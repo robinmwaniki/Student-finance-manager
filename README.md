@@ -1,14 +1,14 @@
 # Student Finance Manager
 
-A PHP and MySQL/MariaDB application for recording day-to-day finances, planning budgets, monitoring savings, and reviewing spending patterns. Monetary values are presented in Kenyan shillings (KES).
+A personal finance application for tracking income, expenses, budgets, savings goals, debts and recurring transactions. The application is being migrated from procedural PHP and MySQL/MariaDB to **Laravel 13, PHP 8.5 and PostgreSQL 18**.
 
-> **Status:** Self-hosted portfolio project. Review the security and sample-data notes before using it with real financial information.
+> **Migration branch:** `feature/laravel-13-postgresql-migration`. The original application remains on `main` as the legacy reference while the rebuild is developed and validated.
 
-## Overview
+## Migration status
 
-Student Finance Manager gives users a central place to manage income, expenses, budgets, savings, debts, and recurring transactions, with monthly summaries and export options.
+This branch contains the Laravel application foundation, PostgreSQL schema migrations and a legacy data migration plan. The original finance workflows are being ported incrementally; this branch is not yet a feature-complete replacement and is not ready for production data.
 
-## Features
+## Planned capabilities
 
 - User registration, login, logout, and password-recovery workflow.
 - Personal finance dashboard with monthly summaries.
@@ -57,16 +57,19 @@ sequenceDiagram
     PHP-->>User: Redirect with status message
 ~~~
 
-## Technology stack
+## Technology
 
-| Area | Technology |
+| Layer | Technology |
 | --- | --- |
-| Server-side | PHP 8.2+ |
-| Database | MySQL / MariaDB |
-| Local environment | XAMPP (Apache and MariaDB) |
-| Frontend | HTML5, CSS3, JavaScript |
-| Database access | MySQLi and prepared statements |
-| Charts / exports | Chart data endpoint, CSV and PDF handlers |
+| Runtime | PHP 8.5 |
+| Framework | Laravel 13 |
+| Database | PostgreSQL 18 |
+| Database access | Eloquent ORM |
+| Frontend direction | Blade, Tailwind CSS, Alpine.js |
+| Charts | Chart.js |
+| Dependencies | Composer |
+| Automated testing | PHPUnit |
+| Code style | Laravel Pint |
 
 ## Getting started
 
@@ -84,19 +87,28 @@ git clone https://github.com/robinmwaniki/Student-finance-manager.git
 cd Student-finance-manager
 ~~~
 
-### 2. Place it in the web root
+- PHP 8.5 with PDO PostgreSQL, OpenSSL, Mbstring, Tokenizer, XML, Ctype, JSON and Fileinfo extensions.
+- Composer 2.
+- PostgreSQL 18.
+- Node.js and npm when frontend assets are introduced.
 
-For XAMPP on Windows, the application directory should be:
+## Local setup
 
 ~~~text
 C:\xampp\htdocs\Student-finance-manager\student_finance
 ~~~
 
-Start Apache and MySQL in the XAMPP Control Panel.
+   ```bash
+   git clone https://github.com/robinmwaniki/Student-finance-manager.git
+   cd Student-finance-manager
+   git checkout feature/laravel-13-postgresql-migration
+   ```
 
-### 3. Create and import the database
+2. Install PHP dependencies:
 
-In phpMyAdmin, create the database:
+   ```bash
+   composer install
+   ```
 
 ~~~sql
 CREATE DATABASE finance_manager
@@ -106,9 +118,9 @@ CREATE DATABASE finance_manager
 
 Import student_finance/finance_manager (2).sql.
 
-**Data hygiene:** the committed SQL dump contains example records. Review and sanitize the dump before sharing it publicly or importing it into an environment with real user data. For a clean setup, remove sample rows while retaining the schema, indexes, and constraints.
+   On Windows PowerShell, use `Copy-Item .env.example .env`.
 
-### 4. Configure the connection
+4. Set PostgreSQL credentials in `.env`. Never commit this file.
 
 Edit student_finance/auth/config.php to match your local database:
 
@@ -119,7 +131,9 @@ $username = "root";
 $password = "";
 $dbname = "finance_manager";
 
-$conn = new mysqli($servername, $username, $password, $dbname);
+   ```bash
+   php artisan migrate
+   ```
 
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
@@ -127,17 +141,19 @@ if ($conn->connect_error) {
 ?>
 ~~~
 
-The empty password shown is a common fresh-XAMPP local default only. Use a dedicated database account and a strong password outside local development. Do not commit real credentials.
+   ```bash
+   php artisan serve
+   ```
 
-### 5. Open the application
+   Open http://localhost:8000.
 
 ~~~text
 http://localhost/Student-finance-manager/student_finance/
 ~~~
 
-Create an account through the sign-up page, then sign in.
+Laravel migrations define the new PostgreSQL schema. Legacy data is not imported by running `php artisan migrate`.
 
-## Database overview
+Read [docs/LEGACY-DATA-MIGRATION.md](docs/LEGACY-DATA-MIGRATION.md) before handling the old MySQL/MariaDB dump. It contains personal records and must be treated as sensitive. Never import it directly into production or publish copies of its data.
 
 | Table | Purpose |
 | --- | --- |
@@ -175,13 +191,7 @@ The auth directory contains dashboard, income, expense, budget, savings, chart, 
 
 ## Security considerations
 
-- Use HTTPS for hosted deployments.
-- Keep database credentials outside source control.
-- Review CSRF protection for state-changing requests.
-- Ensure all reads, updates, and deletes are scoped to the authenticated user.
-- Review session-cookie settings and file-upload validation.
-- Remove identifying or personal records from SQL dumps before publishing them.
-- Do not treat this project as a regulated financial service.
+## Production readiness
 
 ## Troubleshooting
 
