@@ -1,0 +1,28 @@
+name: Feature branch policy
+
+on:
+  pull_request:
+    branches:
+      - main
+    types: [opened, reopened, synchronize, ready_for_review, edited]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  validate-source-branch:
+    name: Require feature/* source branch
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate source branch name
+        shell: bash
+        env:
+          SOURCE_BRANCH: ${{ github.head_ref }}
+        run: |
+          if [[ ! "$SOURCE_BRANCH" =~ ^feature/[a-z0-9]+([._-][a-z0-9]+)*$ ]]; then
+            echo "::error::Pull requests into main must come from feature/<descriptive-name>."
+            echo "Example: feature/dashboard-redesign"
+            exit 1
+          fi
+          echo "Accepted source branch: $SOURCE_BRANCH"
