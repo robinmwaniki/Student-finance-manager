@@ -89,7 +89,7 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        Schema::create('notifications', function (Blueprint $table): void {
+        Schema::create('user_notifications', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->text('message');
@@ -131,7 +131,7 @@ return new class extends Migration
     {
         Schema::dropIfExists('recurring_log');
         Schema::dropIfExists('recurring_transactions');
-        Schema::dropIfExists('notifications');
+        Schema::dropIfExists('user_notifications');
         Schema::dropIfExists('achievements');
         Schema::dropIfExists('savings_goals');
         Schema::dropIfExists('debts');
