@@ -1,6 +1,9 @@
 name: Feature branch policy
 
 on:
+  push:
+    branches:
+      - '**'
   pull_request:
     branches:
       - main
@@ -11,18 +14,33 @@ permissions:
   pull-requests: read
 
 jobs:
-  validate-source-branch:
-    name: Require feature/* source branch
+  validate-branch-name:
+    name: Enforce feature/* development branches
     runs-on: ubuntu-latest
     steps:
-      - name: Validate source branch name
+      - name: Validate branch naming convention
         shell: bash
         env:
-          SOURCE_BRANCH: ${{ github.head_ref }}
+          EVENT_NAME: ${{ github.event_name }}
+          PUSH_BRANCH: ${{ github.ref_name }}
+          PR_SOURCE_BRANCH: ${{ github.head_ref }}
         run: |
-          if [[ ! "$SOURCE_BRANCH" =~ ^feature/[a-z0-9]+([._-][a-z0-9]+)*$ ]]; then
-            echo "::error::Pull requests into main must come from feature/<descriptive-name>."
+          if [[ "$EVENT_NAME" == "pull_request" ]]; then
+            BRANCH_NAME="$PR_SOURCE_BRANCH"
+          else
+            BRANCH_NAME="$PUSH_BRANCH"
+          fi
+
+          # main is the sole integration-branch exception.
+          if [[ "$BRANCH_NAME" == "main" ]]; then
+            echo "Accepted protected integration branch: main"
+            exit 0
+          fi
+
+          if [[ ! "$BRANCH_NAME" =~ ^feature/[a-z0-9]+([._-][a-z0-9]+)*$ ]]; then
+            echo "::error::Use feature/<descriptive-name> for development branches."
             echo "Example: feature/dashboard-redesign"
             exit 1
           fi
-          echo "Accepted source branch: $SOURCE_BRANCH"
+
+          echo "Accepted development branch: $BRANCH_NAME"
