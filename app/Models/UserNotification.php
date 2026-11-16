@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class UserNotification extends Model
 {
-    protected $table = 'notifications';
+    protected $table = 'user_notifications';
 
     public $timestamps = false;
 
