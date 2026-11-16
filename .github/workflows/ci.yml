@@ -86,4 +86,4 @@ jobs:
           DB_PASSWORD: student_finance_test_password
 
       - name: Check code style
-        run: vendor/bin/pint --test
+        run: vendor/bin/pint --test app bootstrap config database public routes tests
