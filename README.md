@@ -10,32 +10,52 @@ This branch contains the Laravel application foundation, PostgreSQL schema migra
 
 ## Planned capabilities
 
-- Secure registration, authentication and password recovery.
-- Income and expense tracking.
-- Monthly category budgets and budget alerts.
-- Savings records and savings goals.
-- Debt tracking.
-- Recurring transactions with duplicate-safe processing.
-- Notifications and achievement tracking.
-- Monthly summaries, category analytics and financial reports.
-- CSV/PDF exports.
-- KES-first presentation with a path to configurable currencies.
+- User registration, login, logout, and password-recovery workflow.
+- Personal finance dashboard with monthly summaries.
+- Income and expense recording and management.
+- Monthly category budgets and budget-exceeded notifications.
+- Savings entries and savings goals.
+- Debt tracking for borrowed and owed amounts.
+- Recurring income and expense records.
+- In-app notifications.
+- Charts and monthly financial summaries.
+- CSV and PDF export endpoints.
+- Profile and avatar-related functionality.
 
 ## Architecture
 
-```mermaid
+PHP pages and request handlers process user actions. PHP sessions maintain the authenticated user, while MySQL/MariaDB stores account and transaction records.
+
+~~~mermaid
 flowchart TD
-    USER[Browser] --> WEB[Laravel Web Layer]
-    WEB --> AUTH[Authentication and Authorization]
-    AUTH --> CTRL[Controllers and Form Requests]
-    CTRL --> APP[Application Services]
-    APP --> MODEL[Eloquent Models]
-    MODEL --> DB[(PostgreSQL 18)]
-    APP --> QUEUE[Database Queue]
-    QUEUE --> JOBS[Scheduled / Background Jobs]
-    JOBS --> DB
-    APP --> FILES[Controlled File Storage]
-```
+    B[Browser] --> PHP[PHP Pages and Handlers]
+    PHP --> S[Session Authentication]
+    S --> W[Finance Workflows]
+    W --> DB[(MySQL / MariaDB)]
+    W --> CH[Chart Data Endpoint]
+    W --> EX[CSV / PDF Export]
+    CH --> B
+    EX --> B
+~~~
+
+### Expense workflow
+
+~~~mermaid
+sequenceDiagram
+    actor User
+    participant Page as Expense Page
+    participant PHP as PHP Handler
+    participant DB as MySQL
+    User->>Page: Submit expense
+    Page->>PHP: POST amount, category and date
+    PHP->>PHP: Check session and validate input
+    PHP->>DB: Read budget and current monthly total
+    PHP->>DB: Insert expense
+    opt Budget threshold exceeded
+        PHP->>DB: Create notification
+    end
+    PHP-->>User: Redirect with status message
+~~~
 
 ## Technology
 
@@ -51,7 +71,21 @@ flowchart TD
 | Automated testing | PHPUnit |
 | Code style | Laravel Pint |
 
-## Requirements
+## Getting started
+
+### Prerequisites
+
+- PHP 8.2 or later
+- MySQL 8+ or MariaDB 10.4+
+- Apache (XAMPP is a convenient local option)
+- Git
+
+### 1. Clone the repository
+
+~~~bash
+git clone https://github.com/robinmwaniki/Student-finance-manager.git
+cd Student-finance-manager
+~~~
 
 - PHP 8.5 with PDO PostgreSQL, OpenSSL, Mbstring, Tokenizer, XML, Ctype, JSON and Fileinfo extensions.
 - Composer 2.
@@ -60,7 +94,9 @@ flowchart TD
 
 ## Local setup
 
-1. Clone the repository and switch to the migration branch:
+~~~text
+C:\xampp\htdocs\Student-finance-manager\student_finance
+~~~
 
    ```bash
    git clone https://github.com/robinmwaniki/Student-finance-manager.git
@@ -74,26 +110,36 @@ flowchart TD
    composer install
    ```
 
-3. Create local configuration:
+~~~sql
+CREATE DATABASE finance_manager
+  CHARACTER SET utf8mb4
+  COLLATE utf8mb4_general_ci;
+~~~
 
-   ```bash
-   cp .env.example .env
-   php artisan key:generate
-   ```
+Import student_finance/finance_manager (2).sql.
 
    On Windows PowerShell, use `Copy-Item .env.example .env`.
 
 4. Set PostgreSQL credentials in `.env`. Never commit this file.
 
-5. Create a PostgreSQL database named `student_finance` and grant the configured user access.
+Edit student_finance/auth/config.php to match your local database:
 
-6. Run migrations:
+~~~php
+<?php
+$servername = "localhost";
+$username = "root";
+$password = "";
+$dbname = "finance_manager";
 
    ```bash
    php artisan migrate
    ```
 
-7. Start the development server:
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+?>
+~~~
 
    ```bash
    php artisan serve
@@ -101,24 +147,61 @@ flowchart TD
 
    Open http://localhost:8000.
 
-## Database and legacy data
+~~~text
+http://localhost/Student-finance-manager/student_finance/
+~~~
 
 Laravel migrations define the new PostgreSQL schema. Legacy data is not imported by running `php artisan migrate`.
 
 Read [docs/LEGACY-DATA-MIGRATION.md](docs/LEGACY-DATA-MIGRATION.md) before handling the old MySQL/MariaDB dump. It contains personal records and must be treated as sensitive. Never import it directly into production or publish copies of its data.
 
-## Quality checks
+| Table | Purpose |
+| --- | --- |
+| users | User accounts and profile details |
+| income, expenses | Income and expense records |
+| budget | Monthly category budgets |
+| savings, savings_goals | Savings activity and targets |
+| debts | Borrowed and owed amounts |
+| recurring_transactions | Scheduled income and expenses |
+| recurring_log | Tracks recurring transaction applications |
+| notifications | User notifications |
+| achievements | Achievement records |
 
-```bash
-php artisan test
-vendor/bin/pint --test
-```
+Finance records are associated with users through user_id. Queries should remain scoped to the authenticated user.
 
-Run PostgreSQL-backed integration tests before approving schema or data migration changes.
+## Configuration
+
+The current database connection is configured in student_finance/auth/config.php. The project does not currently provide a dedicated environment-variable template. For hosted use, move database credentials to server-side environment variables and keep local configuration out of version control.
+
+## Project structure
+
+~~~text
+Student-finance-manager/
+└── student_finance/
+    ├── auth/       # Authentication and finance workflows
+    ├── assets/
+    │   ├── avatars/
+    │   ├── css/
+    │   └── img/
+    ├── index.php
+    └── finance_manager (2).sql
+~~~
+
+The auth directory contains dashboard, income, expense, budget, savings, chart, profile, notification, and export handlers.
+
+## Security considerations
 
 ## Production readiness
 
-Before launch, the project still needs complete authentication and authorization flows, the feature port, a validated data importer, test coverage, secure file storage, mail configuration, monitoring, scheduled recurring-transaction processing, backup/restore verification, CI and production web-server configuration.
+## Troubleshooting
+
+| Problem | Check |
+| --- | --- |
+| Database connection failed | MySQL is running, database name and credentials are correct. |
+| 404 when opening the app | The project is under Apache's document root and the URL includes student_finance. |
+| PHP source is displayed/downloaded | Open through Apache, not directly as a local file. |
+| Tables do not exist | Import the SQL file into finance_manager. |
+| Login session is lost | Check PHP session configuration and browser cookies. |
 
 ## License
 
