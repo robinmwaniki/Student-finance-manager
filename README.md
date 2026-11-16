@@ -1,199 +1,124 @@
 # Student Finance Manager
 
-A PHP and MySQL/MariaDB application for recording day-to-day finances, planning budgets, monitoring savings, and reviewing spending patterns. Monetary values are presented in Kenyan shillings (KES).
+A personal finance application for tracking income, expenses, budgets, savings goals, debts and recurring transactions. The application is being migrated from procedural PHP and MySQL/MariaDB to **Laravel 13, PHP 8.5 and PostgreSQL 18**.
 
-> **Status:** Self-hosted portfolio project. Review the security and sample-data notes before using it with real financial information.
+> **Migration branch:** `feature/laravel-13-postgresql-migration`. The original application remains on `main` as the legacy reference while the rebuild is developed and validated.
 
-## Overview
+## Migration status
 
-Student Finance Manager gives users a central place to manage income, expenses, budgets, savings, debts, and recurring transactions, with monthly summaries and export options.
+This branch contains the Laravel application foundation, PostgreSQL schema migrations and a legacy data migration plan. The original finance workflows are being ported incrementally; this branch is not yet a feature-complete replacement and is not ready for production data.
 
-## Features
+## Planned capabilities
 
-- User registration, login, logout, and password-recovery workflow.
-- Personal finance dashboard with monthly summaries.
-- Income and expense recording and management.
-- Monthly category budgets and budget-exceeded notifications.
-- Savings entries and savings goals.
-- Debt tracking for amounts owed and borrowed.
-- Recurring income and expense records.
-- In-app notifications.
-- Charts and monthly financial summaries.
-- CSV and PDF export endpoints.
-- Profile and avatar-related functionality.
+- Secure registration, authentication and password recovery.
+- Income and expense tracking.
+- Monthly category budgets and budget alerts.
+- Savings records and savings goals.
+- Debt tracking.
+- Recurring transactions with duplicate-safe processing.
+- Notifications and achievement tracking.
+- Monthly summaries, category analytics and financial reports.
+- CSV/PDF exports.
+- KES-first presentation with a path to configurable currencies.
 
 ## Architecture
 
-PHP pages and request handlers process user actions. PHP sessions maintain the authenticated user, while MySQL/MariaDB stores account and transaction records.
-
 ```mermaid
 flowchart TD
-    B[Browser] --> PHP[PHP Pages and Handlers]
-    PHP --> S[Session Authentication]
-    S --> W[Finance Workflows]
-    W --> DB[(MySQL / MariaDB)]
-    W --> CH[Chart Data Endpoint]
-    W --> EX[CSV / PDF Export]
-    CH --> B
-    EX --> B
+    USER[Browser] --> WEB[Laravel Web Layer]
+    WEB --> AUTH[Authentication and Authorization]
+    AUTH --> CTRL[Controllers and Form Requests]
+    CTRL --> APP[Application Services]
+    APP --> MODEL[Eloquent Models]
+    MODEL --> DB[(PostgreSQL 18)]
+    APP --> QUEUE[Database Queue]
+    QUEUE --> JOBS[Scheduled / Background Jobs]
+    JOBS --> DB
+    APP --> FILES[Controlled File Storage]
 ```
 
-### Expense workflow
+## Technology
 
-```mermaid
-sequenceDiagram
-    actor User
-    participant Page as Expense Page
-    participant PHP as PHP Handler
-    participant DB as MySQL
-    User->>Page: Submit expense
-    Page->>PHP: POST amount, category and date
-    PHP->>PHP: Check session and validate input
-    PHP->>DB: Read budget and current monthly total
-    PHP->>DB: Insert expense
-    opt Budget threshold exceeded
-        PHP->>DB: Create notification
-    end
-    PHP-->>User: Redirect with status message
-```
-
-## Technology stack
-
-| Area | Technology |
+| Layer | Technology |
 | --- | --- |
-| Server-side | PHP 8.2+ |
-| Database | MySQL / MariaDB |
-| Local environment | XAMPP (Apache and MariaDB) |
-| Frontend | HTML5, CSS3, JavaScript |
-| Database access | MySQLi and prepared statements |
-| Charts / exports | Chart data endpoint, CSV and PDF handlers |
+| Runtime | PHP 8.5 |
+| Framework | Laravel 13 |
+| Database | PostgreSQL 18 |
+| Database access | Eloquent ORM |
+| Frontend direction | Blade, Tailwind CSS, Alpine.js |
+| Charts | Chart.js |
+| Dependencies | Composer |
+| Automated testing | PHPUnit |
+| Code style | Laravel Pint |
 
-## Getting started
+## Requirements
 
-### Prerequisites
+- PHP 8.5 with PDO PostgreSQL, OpenSSL, Mbstring, Tokenizer, XML, Ctype, JSON and Fileinfo extensions.
+- Composer 2.
+- PostgreSQL 18.
+- Node.js and npm when frontend assets are introduced.
 
-- PHP 8.2 or later
-- MySQL 8+ or MariaDB 10.4+
-- Apache (XAMPP is a convenient local option)
-- Git
+## Local setup
 
-### 1. Clone the repository
+1. Clone the repository and switch to the migration branch:
+
+   ```bash
+   git clone https://github.com/robinmwaniki/Student-finance-manager.git
+   cd Student-finance-manager
+   git checkout feature/laravel-13-postgresql-migration
+   ```
+
+2. Install PHP dependencies:
+
+   ```bash
+   composer install
+   ```
+
+3. Create local configuration:
+
+   ```bash
+   cp .env.example .env
+   php artisan key:generate
+   ```
+
+   On Windows PowerShell, use `Copy-Item .env.example .env`.
+
+4. Set PostgreSQL credentials in `.env`. Never commit this file.
+
+5. Create a PostgreSQL database named `student_finance` and grant the configured user access.
+
+6. Run migrations:
+
+   ```bash
+   php artisan migrate
+   ```
+
+7. Start the development server:
+
+   ```bash
+   php artisan serve
+   ```
+
+   Open http://localhost:8000.
+
+## Database and legacy data
+
+Laravel migrations define the new PostgreSQL schema. Legacy data is not imported by running `php artisan migrate`.
+
+Read [docs/LEGACY-DATA-MIGRATION.md](docs/LEGACY-DATA-MIGRATION.md) before handling the old MySQL/MariaDB dump. It contains personal records and must be treated as sensitive. Never import it directly into production or publish copies of its data.
+
+## Quality checks
 
 ```bash
-git clone https://github.com/robinmwaniki/Student-finance-manager.git
-cd Student-finance-manager
+php artisan test
+vendor/bin/pint --test
 ```
 
-### 2. Place it in the web root
+Run PostgreSQL-backed integration tests before approving schema or data migration changes.
 
-For XAMPP on Windows, the application directory should be:
+## Production readiness
 
-```text
-C:\xampp\htdocs\Student-finance-manager\student_finance
-```
-
-Start Apache and MySQL in the XAMPP Control Panel.
-
-### 3. Create and import the database
-
-In phpMyAdmin, create the database:
-
-```sql
-CREATE DATABASE finance_manager
-  CHARACTER SET utf8mb4
-  COLLATE utf8mb4_general_ci;
-```
-
-Import `student_finance/finance_manager (2).sql`.
-
-**Data hygiene:** the committed SQL dump contains example records. Review and sanitize the dump before sharing it publicly or importing it into an environment with real user data. For a clean setup, remove sample rows while retaining the schema, indexes, and constraints.
-
-### 4. Configure the connection
-
-Edit `student_finance/auth/config.php` to match your local database:
-
-```php
-<?php
-$servername = "localhost";
-$username = "root";
-$password = "";
-$dbname = "finance_manager";
-
-$conn = new mysqli($servername, $username, $password, $dbname);
-
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
-?>
-```
-
-The empty password shown is a common fresh-XAMPP local default only. Use a dedicated database account and a strong password outside local development. Do not commit real credentials.
-
-### 5. Open the application
-
-```text
-http://localhost/Student-finance-manager/student_finance/
-```
-
-Create an account through the sign-up page, then sign in.
-
-## Database overview
-
-The supplied schema includes these principal tables:
-
-| Table | Purpose |
-| --- | --- |
-| `users` | User accounts and profile details |
-| `income`, `expenses` | Income and expense records |
-| `budget` | Monthly category budgets |
-| `savings`, `savings_goals` | Savings activity and targets |
-| `debts` | Borrowed and owed amounts |
-| `recurring_transactions` | Scheduled income and expenses |
-| `recurring_log` | Tracks recurring transaction applications |
-| `notifications` | User notifications |
-| `achievements` | Achievement records |
-
-Finance records are associated with users through `user_id`. Queries should remain scoped to the authenticated user.
-
-## Configuration
-
-The current database connection is configured in `student_finance/auth/config.php`. The project does not currently provide a dedicated environment-variable template. For hosted use, move database credentials to server-side environment variables and keep local configuration out of version control.
-
-## Project structure
-
-```text
-Student-finance-manager/
-└── student_finance/
-    ├── auth/       # Authentication and finance workflows
-    ├── assets/
-    │   ├── avatars/
-    │   ├── css/
-    │   └── img/
-    ├── index.php
-    └── finance_manager (2).sql
-```
-
-The `auth/` directory contains dashboard, income, expense, budget, savings, chart, profile, notification, and export handlers.
-
-## Security considerations
-
-- Use HTTPS for hosted deployments.
-- Keep database credentials outside source control.
-- Review CSRF protection for state-changing requests.
-- Ensure all reads, updates, and deletes are scoped to the authenticated user.
-- Review session-cookie settings and file-upload validation.
-- Remove identifying or personal records from SQL dumps before publishing them.
-- Do not treat this project as a regulated financial service.
-
-## Troubleshooting
-
-| Problem | Check |
-| --- | --- |
-| Database connection failed | MySQL is running, database name and credentials are correct. |
-| 404 when opening the app | The project is under Apache's document root and the URL includes `student_finance`. |
-| PHP source is displayed/downloaded | Open through Apache, not directly as a local file. |
-| Tables do not exist | Import the SQL file into `finance_manager`. |
-| Login session is lost | Check PHP session configuration and browser cookies. |
+Before launch, the project still needs complete authentication and authorization flows, the feature port, a validated data importer, test coverage, secure file storage, mail configuration, monitoring, scheduled recurring-transaction processing, backup/restore verification, CI and production web-server configuration.
 
 ## License
 
