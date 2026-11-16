@@ -15,7 +15,7 @@ Student Finance Manager gives users a central place to manage income, expenses, 
 - Income and expense recording and management.
 - Monthly category budgets and budget-exceeded notifications.
 - Savings entries and savings goals.
-- Debt tracking for amounts owed and borrowed.
+- Debt tracking for borrowed and owed amounts.
 - Recurring income and expense records.
 - In-app notifications.
 - Charts and monthly financial summaries.
@@ -26,7 +26,7 @@ Student Finance Manager gives users a central place to manage income, expenses, 
 
 PHP pages and request handlers process user actions. PHP sessions maintain the authenticated user, while MySQL/MariaDB stores account and transaction records.
 
-```mermaid
+~~~mermaid
 flowchart TD
     B[Browser] --> PHP[PHP Pages and Handlers]
     PHP --> S[Session Authentication]
@@ -36,11 +36,11 @@ flowchart TD
     W --> EX[CSV / PDF Export]
     CH --> B
     EX --> B
-```
+~~~
 
 ### Expense workflow
 
-```mermaid
+~~~mermaid
 sequenceDiagram
     actor User
     participant Page as Expense Page
@@ -55,7 +55,7 @@ sequenceDiagram
         PHP->>DB: Create notification
     end
     PHP-->>User: Redirect with status message
-```
+~~~
 
 ## Technology stack
 
@@ -79,18 +79,18 @@ sequenceDiagram
 
 ### 1. Clone the repository
 
-```bash
+~~~bash
 git clone https://github.com/robinmwaniki/Student-finance-manager.git
 cd Student-finance-manager
-```
+~~~
 
 ### 2. Place it in the web root
 
 For XAMPP on Windows, the application directory should be:
 
-```text
+~~~text
 C:\xampp\htdocs\Student-finance-manager\student_finance
-```
+~~~
 
 Start Apache and MySQL in the XAMPP Control Panel.
 
@@ -98,21 +98,21 @@ Start Apache and MySQL in the XAMPP Control Panel.
 
 In phpMyAdmin, create the database:
 
-```sql
+~~~sql
 CREATE DATABASE finance_manager
   CHARACTER SET utf8mb4
   COLLATE utf8mb4_general_ci;
-```
+~~~
 
-Import `student_finance/finance_manager (2).sql`.
+Import student_finance/finance_manager (2).sql.
 
 **Data hygiene:** the committed SQL dump contains example records. Review and sanitize the dump before sharing it publicly or importing it into an environment with real user data. For a clean setup, remove sample rows while retaining the schema, indexes, and constraints.
 
 ### 4. Configure the connection
 
-Edit `student_finance/auth/config.php` to match your local database:
+Edit student_finance/auth/config.php to match your local database:
 
-```php
+~~~php
 <?php
 $servername = "localhost";
 $username = "root";
@@ -125,43 +125,41 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 ?>
-```
+~~~
 
 The empty password shown is a common fresh-XAMPP local default only. Use a dedicated database account and a strong password outside local development. Do not commit real credentials.
 
 ### 5. Open the application
 
-```text
+~~~text
 http://localhost/Student-finance-manager/student_finance/
-```
+~~~
 
 Create an account through the sign-up page, then sign in.
 
 ## Database overview
 
-The supplied schema includes these principal tables:
-
 | Table | Purpose |
 | --- | --- |
-| `users` | User accounts and profile details |
-| `income`, `expenses` | Income and expense records |
-| `budget` | Monthly category budgets |
-| `savings`, `savings_goals` | Savings activity and targets |
-| `debts` | Borrowed and owed amounts |
-| `recurring_transactions` | Scheduled income and expenses |
-| `recurring_log` | Tracks recurring transaction applications |
-| `notifications` | User notifications |
-| `achievements` | Achievement records |
+| users | User accounts and profile details |
+| income, expenses | Income and expense records |
+| budget | Monthly category budgets |
+| savings, savings_goals | Savings activity and targets |
+| debts | Borrowed and owed amounts |
+| recurring_transactions | Scheduled income and expenses |
+| recurring_log | Tracks recurring transaction applications |
+| notifications | User notifications |
+| achievements | Achievement records |
 
-Finance records are associated with users through `user_id`. Queries should remain scoped to the authenticated user.
+Finance records are associated with users through user_id. Queries should remain scoped to the authenticated user.
 
 ## Configuration
 
-The current database connection is configured in `student_finance/auth/config.php`. The project does not currently provide a dedicated environment-variable template. For hosted use, move database credentials to server-side environment variables and keep local configuration out of version control.
+The current database connection is configured in student_finance/auth/config.php. The project does not currently provide a dedicated environment-variable template. For hosted use, move database credentials to server-side environment variables and keep local configuration out of version control.
 
 ## Project structure
 
-```text
+~~~text
 Student-finance-manager/
 └── student_finance/
     ├── auth/       # Authentication and finance workflows
@@ -171,9 +169,9 @@ Student-finance-manager/
     │   └── img/
     ├── index.php
     └── finance_manager (2).sql
-```
+~~~
 
-The `auth/` directory contains dashboard, income, expense, budget, savings, chart, profile, notification, and export handlers.
+The auth directory contains dashboard, income, expense, budget, savings, chart, profile, notification, and export handlers.
 
 ## Security considerations
 
@@ -190,9 +188,9 @@ The `auth/` directory contains dashboard, income, expense, budget, savings, char
 | Problem | Check |
 | --- | --- |
 | Database connection failed | MySQL is running, database name and credentials are correct. |
-| 404 when opening the app | The project is under Apache's document root and the URL includes `student_finance`. |
+| 404 when opening the app | The project is under Apache's document root and the URL includes student_finance. |
 | PHP source is displayed/downloaded | Open through Apache, not directly as a local file. |
-| Tables do not exist | Import the SQL file into `finance_manager`. |
+| Tables do not exist | Import the SQL file into finance_manager. |
 | Login session is lost | Check PHP session configuration and browser cookies. |
 
 ## License
