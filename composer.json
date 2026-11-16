@@ -4,7 +4,7 @@
   "description": "Personal finance management with Laravel and PostgreSQL.",
   "license": "proprietary",
   "require": {
-    "php": "^8.3",
+    "php": "^8.5",
     "laravel/framework": "^13.0",
     "laravel/tinker": "^3.0"
   },
@@ -17,12 +17,16 @@
   },
   "autoload": {
     "psr-4": {
-      "App\\": "app/",
-      "Database\\Factories\\": "database/factories/",
-      "Database\\Seeders\\": "database/seeders/"
+      "App\\\\": "app/",
+      "Database\\\\Factories\\\\": "database/factories/",
+      "Database\\\\Seeders\\\\": "database/seeders/"
     }
   },
-  "autoload-dev": { "psr-4": { "Tests\\": "tests/" } },
+  "autoload-dev": {
+    "psr-4": {
+      "Tests\\\\": "tests/"
+    }
+  },
   "scripts": {
     "test": "@php artisan test",
     "lint": "@php vendor/bin/pint --test"
@@ -31,7 +35,9 @@
     "optimize-autoloader": true,
     "preferred-install": "dist",
     "sort-packages": true,
-    "allow-plugins": { "php-http/discovery": true }
+    "allow-plugins": {
+      "php-http/discovery": true
+    }
   },
   "minimum-stability": "stable",
   "prefer-stable": true
