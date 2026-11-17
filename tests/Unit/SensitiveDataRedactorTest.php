@@ -34,7 +34,7 @@ class SensitiveDataRedactorTest extends TestCase
     {
         $processor = new RedactSensitiveContextProcessor();
         $record = new LogRecord(
-            new DateTimeImmutable,
+            new DateTimeImmutable(),
             'test',
             Level::Info,
             'Failed transaction amount=5000 account=12345678',
