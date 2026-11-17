@@ -3,28 +3,20 @@
 namespace App\Logging;
 
 use App\Support\Observability\SensitiveDataRedactor;
+use Monolog\LogRecord;
 
 /**
- * Applies the same redaction policy to Monolog context and extra fields.
+ * Applies the same redaction policy to Monolog 3 context and extra fields.
  */
 final class RedactSensitiveContextProcessor
 {
-    /**
-     * @param array<string, mixed> $record
-     * @return array<string, mixed>
-     */
-    public function __invoke(array $record): array
+    public function __invoke(LogRecord $record): LogRecord
     {
-        foreach (['context', 'extra'] as $section) {
-            if (isset($record[$section]) && is_array($record[$section])) {
-                $record[$section] = SensitiveDataRedactor::redactArray($record[$section]);
-            }
-        }
-
-        if (isset($record['message']) && is_string($record['message'])) {
-            $record['message'] = SensitiveDataRedactor::redactMessage($record['message']);
-        }
-
-        return $record;
+        // Monolog 3 records are immutable; return a transformed copy.
+        return $record->with(
+            message: SensitiveDataRedactor::redactMessage($record->message),
+            context: SensitiveDataRedactor::redactArray($record->context),
+            extra: SensitiveDataRedactor::redactArray($record->extra),
+        );
     }
 }
