@@ -3,8 +3,8 @@
 namespace Tests\Unit;
 
 use App\Support\Observability\RedactSentryEvent;
-use Tests\TestCase;
 use Sentry\Event;
+use Tests\TestCase;
 
 class RedactSentryEventTest extends TestCase
 {
