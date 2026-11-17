@@ -1,5 +1,6 @@
 <?php
 
+use App\Logging\RedactSensitiveContextProcessor;
 use Monolog\Handler\NullHandler;
 use Monolog\Handler\StreamHandler;
 use Monolog\Processor\PsrLogMessageProcessor;
@@ -21,6 +22,7 @@ return [
             'path' => storage_path('logs/laravel.log'),
             'level' => env('LOG_LEVEL', 'debug'),
             'replace_placeholders' => true,
+            'processors' => [RedactSensitiveContextProcessor::class],
         ],
         'daily' => [
             'driver' => 'daily',
@@ -28,24 +30,27 @@ return [
             'level' => env('LOG_LEVEL', 'debug'),
             'days' => (int) env('LOG_DAILY_DAYS', 14),
             'replace_placeholders' => true,
+            'processors' => [RedactSensitiveContextProcessor::class],
         ],
         'stderr' => [
             'driver' => 'monolog',
             'level' => env('LOG_LEVEL', 'debug'),
             'handler' => StreamHandler::class,
             'with' => ['stream' => 'php://stderr'],
-            'processors' => [PsrLogMessageProcessor::class],
+            'processors' => [PsrLogMessageProcessor::class, RedactSensitiveContextProcessor::class],
         ],
         'syslog' => [
             'driver' => 'syslog',
             'level' => env('LOG_LEVEL', 'debug'),
             'facility' => env('LOG_SYSLOG_FACILITY', LOG_USER),
             'replace_placeholders' => true,
+            'processors' => [RedactSensitiveContextProcessor::class],
         ],
         'errorlog' => [
             'driver' => 'errorlog',
             'level' => env('LOG_LEVEL', 'debug'),
             'replace_placeholders' => true,
+            'processors' => [RedactSensitiveContextProcessor::class],
         ],
         'null' => [
             'driver' => 'monolog',
