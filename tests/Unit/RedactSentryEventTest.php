@@ -3,7 +3,7 @@
 namespace Tests\Unit;
 
 use App\Support\Observability\RedactSentryEvent;
-use PHPUnit\Framework\TestCase;
+use Tests\TestCase;
 use Sentry\Event;
 
 class RedactSentryEventTest extends TestCase
