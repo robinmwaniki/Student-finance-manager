@@ -4,6 +4,9 @@ namespace Tests\Unit;
 
 use App\Logging\RedactSensitiveContextProcessor;
 use App\Support\Observability\SensitiveDataRedactor;
+use DateTimeImmutable;
+use Monolog\Level;
+use Monolog\LogRecord;
 use PHPUnit\Framework\TestCase;
 
 class SensitiveDataRedactorTest extends TestCase
@@ -30,14 +33,19 @@ class SensitiveDataRedactorTest extends TestCase
     public function test_monolog_processor_redacts_context_extra_and_message(): void
     {
         $processor = new RedactSensitiveContextProcessor();
-        $record = $processor([
-            'message' => 'Failed transaction amount=5000 account=12345678',
-            'context' => ['password' => 'do-not-log'],
-            'extra' => ['request_id' => 'safe-id'],
-        ]);
+        $record = new LogRecord(
+            new DateTimeImmutable(),
+            'test',
+            Level::Info,
+            'Failed transaction amount=5000 account=12345678',
+            ['password' => 'do-not-log'],
+            ['request_id' => 'safe-id'],
+        );
 
-        $this->assertSame('Failed transaction amount=[REDACTED] account=[REDACTED]', $record['message']);
-        $this->assertSame('[REDACTED]', $record['context']['password']);
-        $this->assertSame('safe-id', $record['extra']['request_id']);
+        $redacted = $processor($record);
+
+        $this->assertSame('Failed transaction amount=[REDACTED] account=[REDACTED]', $redacted->message);
+        $this->assertSame('[REDACTED]', $redacted->context['password']);
+        $this->assertSame('safe-id', $redacted->extra['request_id']);
     }
 }
