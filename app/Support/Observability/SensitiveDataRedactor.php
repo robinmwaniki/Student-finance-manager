@@ -12,8 +12,6 @@ final class SensitiveDataRedactor
     /**
      * Replace values attached to sensitive keys, including nested request/log contexts.
      *
-     * @param array<string|int, mixed> $data
-     * @return array<string|int, mixed>
      */
     public static function redactArray(array $data): array
     {
