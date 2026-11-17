@@ -20,6 +20,7 @@ final class SensitiveDataRedactor
         foreach ($data as $key => $value) {
             if (is_string($key) && preg_match(self::SENSITIVE_KEY_PATTERN, $key) === 1) {
                 $data[$key] = '[REDACTED]';
+
                 continue;
             }
 
