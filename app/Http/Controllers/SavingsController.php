@@ -86,7 +86,8 @@ class SavingsController extends Controller
         ]);
         $token = $data['submission_token'];
         unset($data['submission_token']);
-        $goal = ! empty($data['goal_id']) ? $request->user()->savingsGoals()->whereKey($data['goal_id'])->firstOrFail() : null;
+        $goalId = $data['goal_id'] ?? null;
+        $goal = $goalId ? $request->user()->savingsGoals()->whereKey($goalId)->firstOrFail() : null;
 
         DB::transaction(function () use ($request, $data, $token, $goal): void {
             $request->user()->savings()->firstOrCreate(['submission_token' => $token], [
@@ -114,7 +115,8 @@ class SavingsController extends Controller
         ]);
         $user = $request->user();
         $record = $user->savings()->whereKey($saving)->firstOrFail();
-        $goal = ! empty($data['goal_id']) ? $user->savingsGoals()->whereKey($data['goal_id'])->firstOrFail() : null;
+        $goalId = $data['goal_id'] ?? null;
+        $goal = $goalId ? $user->savingsGoals()->whereKey($goalId)->firstOrFail() : null;
         $oldGoalId = $record->goal_id;
 
         DB::transaction(function () use ($user, $record, $goal, $data, $oldGoalId): void {
