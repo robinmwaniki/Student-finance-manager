@@ -11,7 +11,6 @@ final class SensitiveDataRedactor
 
     /**
      * Replace values attached to sensitive keys, including nested request/log contexts.
-     *
      */
     public static function redactArray(array $data): array
     {
