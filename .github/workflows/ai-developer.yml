@@ -81,13 +81,12 @@ jobs:
           RUN_ID: \${{ github.run_id }}
         run: |
           set -euo pipefail
+          rm -f .ai-task.md .ai-issue-number .ai-issue-title .ai-project-context.md
           git status --short
           if git diff --quiet && [[ -z "$(git ls-files --others --exclude-standard)" ]]; then
             echo "::error::Gemini did not produce any workspace changes."
             exit 1
           fi
-
-          rm -f .ai-task.md .ai-issue-number .ai-issue-title .ai-project-context.md
           BRANCH_NAME="feature/ai-task-\${RUN_ID}"
           git checkout -b "$BRANCH_NAME"
           git add -A
