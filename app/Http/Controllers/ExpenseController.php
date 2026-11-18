@@ -63,6 +63,8 @@ class ExpenseController extends Controller
             'tag' => ['nullable', 'string', 'max:50'],
         ]);
 
+        $request->user()->expenses()->whereKey($expense)->firstOrFail();
+
         $expectedVersion = (int) $data['lock_version'];
         unset($data['lock_version']);
 
@@ -79,6 +81,7 @@ class ExpenseController extends Controller
     public function destroy(Request $request, int $expense): RedirectResponse
     {
         $data = $request->validate(['lock_version' => ['required', 'integer', 'min:0']]);
+        $request->user()->expenses()->whereKey($expense)->firstOrFail();
 
         $deleted = $request->user()->expenses()
             ->whereKey($expense)
