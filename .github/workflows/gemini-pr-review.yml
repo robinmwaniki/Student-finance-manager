@@ -1,0 +1,56 @@
+name: Gemini PR Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  code-review:
+    if: github.actor != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Extract PR Diff
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: gh pr diff "$PR_NUMBER" > pr_changes.diff
+
+      - name: Run Gemini Code Review
+        id: gemini_review
+        continue-on-error: true
+        uses: google-github-actions/run-gemini-cli@main
+        env:
+          GEMINI_CLI_TRUST_WORKSPACE: "true"
+        with:
+          gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
+          prompt: |
+            You are a senior software engineer reviewing a pull request.
+            Read pr_changes.diff and identify only actionable correctness, security,
+            reliability, performance, maintainability, and test-coverage findings.
+            Do not modify files. If there are no material findings, say so clearly.
+
+      - name: Publish review or provider-unavailable notice
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REVIEW_OUTCOME: ${{ steps.gemini_review.outcome }}
+          REVIEW_BODY: ${{ steps.gemini_review.outputs.response }}
+        run: |
+          set -euo pipefail
+          if [[ "$REVIEW_OUTCOME" == "success" && -n "$REVIEW_BODY" ]]; then
+            printf '%s\n' "$REVIEW_BODY" > review-comment.md
+            gh pr comment "$PR_NUMBER" --body-file review-comment.md
+          else
+            gh pr comment "$PR_NUMBER" --body "Gemini review was unavailable for this run (provider quota, rate limit, or service error). This is not a code approval; the Laravel CI and human review remain required. Rerun the review when the Gemini API quota is available."
+          fi

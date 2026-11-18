@@ -4,6 +4,7 @@ namespace Tests;
 
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 
-abstract class TestCase extends BaseTestCase
-{
-}
+/**
+ * Shared Laravel test case for feature and unit tests.
+ */
+abstract class TestCase extends BaseTestCase {}
