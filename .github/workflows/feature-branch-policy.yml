@@ -7,11 +7,11 @@ on:
   pull_request:
     branches:
       - develop
+      - main
     types: [opened, reopened, synchronize, ready_for_review, edited]
 
 permissions:
   contents: read
-  pull-requests: read
 
 jobs:
   validate-branch-name:
@@ -24,23 +24,41 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
           PUSH_BRANCH: ${{ github.ref_name }}
           PR_SOURCE_BRANCH: ${{ github.head_ref }}
+          PR_TARGET_BRANCH: ${{ github.base_ref }}
         run: |
+          set -euo pipefail
+
           if [[ "$EVENT_NAME" == "pull_request" ]]; then
-            BRANCH_NAME="$PR_SOURCE_BRANCH"
-          else
-            BRANCH_NAME="$PUSH_BRANCH"
-          fi
+            if [[ "$PR_TARGET_BRANCH" == "main" && "$PR_SOURCE_BRANCH" == "develop" ]]; then
+              echo "Accepted release promotion: develop -> main"
+              exit 0
+            fi
 
-          # develop and main are protected integration-branch exceptions.
-          if [[ "$BRANCH_NAME" == "main" || "$BRANCH_NAME" == "develop" ]]; then
-            echo "Accepted protected integration branch: $BRANCH_NAME"
-            exit 0
-          fi
+            if [[ "$PR_TARGET_BRANCH" == "develop" && "$PR_SOURCE_BRANCH" =~ ^feature/[a-z0-9]+([._-][a-z0-9]+)*$ ]]; then
+              echo "Accepted feature branch: $PR_SOURCE_BRANCH -> develop"
+              exit 0
+            fi
 
-          if [[ ! "$BRANCH_NAME" =~ ^feature/[a-z0-9]+([._-][a-z0-9]+)*$ ]]; then
-            echo "::error::Use feature/<descriptive-name> for development branches."
-            echo "Example: feature/dashboard-redesign"
+            # Preserve the existing feature-to-main path for urgent fixes.
+            if [[ "$PR_TARGET_BRANCH" == "main" && "$PR_SOURCE_BRANCH" =~ ^feature/[a-z0-9]+([._-][a-z0-9]+)*$ ]]; then
+              echo "Accepted feature hotfix branch: $PR_SOURCE_BRANCH -> main"
+              exit 0
+            fi
+
+            echo "::error::Pull requests must use feature/<name> -> develop, or develop -> main for releases."
             exit 1
           fi
 
-          echo "Accepted development branch: $BRANCH_NAME"
+          if [[ "$PUSH_BRANCH" == "main" || "$PUSH_BRANCH" == "develop" ]]; then
+            echo "Accepted protected integration branch: $PUSH_BRANCH"
+            exit 0
+          fi
+
+          if [[ "$PUSH_BRANCH" =~ ^feature/[a-z0-9]+([._-][a-z0-9]+)*$ ]]; then
+            echo "Accepted development branch: $PUSH_BRANCH"
+            exit 0
+          fi
+
+          echo "::error::Use feature/<descriptive-name> for development branches."
+          echo "Example: feature/dashboard-redesign"
+          exit 1
