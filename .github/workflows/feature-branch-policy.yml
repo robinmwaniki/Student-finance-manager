@@ -24,16 +24,22 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
           PUSH_BRANCH: ${{ github.ref_name }}
           PR_SOURCE_BRANCH: ${{ github.head_ref }}
+          PR_TARGET_BRANCH: ${{ github.base_ref }}
         run: |
+          if [[ "$EVENT_NAME" == "pull_request" && "$PR_TARGET_BRANCH" == "main" && "$PR_SOURCE_BRANCH" == "develop" ]]; then
+            echo "Accepted release promotion: develop -> main"
+            exit 0
+          fi
+
           if [[ "$EVENT_NAME" == "pull_request" ]]; then
             BRANCH_NAME="$PR_SOURCE_BRANCH"
           else
             BRANCH_NAME="$PUSH_BRANCH"
           fi
 
-          # Allow the release integration branch as a source for PRs into main.
-          if [[ "$BRANCH_NAME" == "main" || "$BRANCH_NAME" == "develop" ]]; then
-            echo "Accepted protected integration branch: $BRANCH_NAME"
+          # main remains the only protected integration-branch exception here.
+          if [[ "$BRANCH_NAME" == "main" ]]; then
+            echo "Accepted protected integration branch: main"
             exit 0
           fi
 
