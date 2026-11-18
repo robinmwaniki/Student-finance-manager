@@ -4,7 +4,6 @@ namespace Tests\Unit;
 
 use App\Logging\RedactSensitiveContextProcessor;
 use App\Support\Observability\SensitiveDataRedactor;
-use DateTimeImmutable;
 use Monolog\Level;
 use Monolog\LogRecord;
 use PHPUnit\Framework\TestCase;
@@ -32,7 +31,7 @@ class SensitiveDataRedactorTest extends TestCase
 
     public function test_monolog_processor_redacts_context_extra_and_message(): void
     {
-        $processor = new RedactSensitiveContextProcessor();
+        $processor = new RedactSensitiveContextProcessor;
         $datetime = DateTimeImmutable::createFromFormat('Y-m-d H:i:s', '2026-01-01 00:00:00');
         $this->assertNotFalse($datetime);
 
