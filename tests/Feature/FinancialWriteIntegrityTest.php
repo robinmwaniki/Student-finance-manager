@@ -143,6 +143,64 @@ class FinancialWriteIntegrityTest extends TestCase
         RecurringLog::create($log);
     }
 
+    public function test_stale_expense_update_cannot_overwrite_a_newer_version(): void
+    {
+        $user = $this->makeUser();
+        $record = $user->expenses()->create([
+            'category' => 'Transport',
+            'amount' => '250.00',
+            'transaction_date' => now()->toDateString(),
+        ]);
+
+        $this->actingAs($user)->put(route('expenses.update', $record), [
+            'lock_version' => 0,
+            'category' => 'Travel',
+            'amount' => '300.00',
+            'transaction_date' => now()->toDateString(),
+        ])->assertRedirect();
+
+        $this->actingAs($user)->put(route('expenses.update', $record), [
+            'lock_version' => 0,
+            'category' => 'Stale category',
+            'amount' => '999.00',
+            'transaction_date' => now()->toDateString(),
+        ])->assertStatus(409);
+
+        $this->assertDatabaseHas('expenses', [
+            'id' => $record->id,
+            'category' => 'Travel',
+            'amount' => '300.00',
+            'lock_version' => 1,
+        ]);
+    }
+
+    public function test_stale_expense_delete_is_rejected_after_a_concurrent_update(): void
+    {
+        $user = $this->makeUser();
+        $record = $user->expenses()->create([
+            'category' => 'Food',
+            'amount' => '400.00',
+            'transaction_date' => now()->toDateString(),
+        ]);
+
+        $this->actingAs($user)->put(route('expenses.update', $record), [
+            'lock_version' => 0,
+            'category' => 'Groceries',
+            'amount' => '450.00',
+            'transaction_date' => now()->toDateString(),
+        ])->assertRedirect();
+
+        $this->actingAs($user)->delete(route('expenses.destroy', $record), [
+            'lock_version' => 0,
+        ])->assertStatus(409);
+
+        $this->assertDatabaseHas('expenses', [
+            'id' => $record->id,
+            'category' => 'Groceries',
+            'lock_version' => 1,
+        ]);
+    }
+
     private function makeUser(string $email = 'finance@example.test'): User
     {
         static $counter = 0;
