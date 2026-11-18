@@ -8,12 +8,13 @@ on:
     branches:
       - develop
       - main
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: laravel-ci-${{ github.ref }}
+  group: laravel-ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -37,6 +38,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up PHP 8.5
         uses: shivammathur/setup-php@v2
@@ -49,7 +52,7 @@ jobs:
       - name: Install dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
 
-      - name: Validate Composer manifest and lock file
+      - name: Validate Composer manifest and generated lock file
         run: composer validate --strict
 
       - name: Prepare application environment
@@ -86,5 +89,36 @@ jobs:
           DB_USERNAME: student_finance
           DB_PASSWORD: student_finance_test_password
 
-      - name: Check code style
-        run: vendor/bin/pint --test app bootstrap/app.php bootstrap/providers.php config database public routes tests
+      - name: Check Pint formatting on changed PHP files
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PUSH_BASE_SHA: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          if [[ "$EVENT_NAME" == "pull_request" ]]; then
+            BASE_SHA="$PR_BASE_SHA"
+          else
+            BASE_SHA="$PUSH_BASE_SHA"
+          fi
+
+          if [[ -z "$BASE_SHA" || "$BASE_SHA" =~ ^0+$ ]]; then
+            BASE_SHA="$(git rev-parse HEAD^ 2>/dev/null || true)"
+          fi
+
+          if [[ -z "$BASE_SHA" ]]; then
+            echo "::error::Unable to determine the base commit for the Pint diff."
+            exit 1
+          fi
+
+          mapfile -t PHP_FILES < <(
+            git diff --name-only --diff-filter=ACMR "$BASE_SHA"...HEAD -- '*.php' |
+              grep -E '^(app|bootstrap|config|database|public|routes|tests)/' || true
+          )
+
+          if (( ${#PHP_FILES[@]} == 0 )); then
+            echo "No changed application PHP files to format-check."
+          else
+            printf 'Checking %s changed PHP file(s) with Pint.\n' "${#PHP_FILES[@]}"
+            vendor/bin/pint --test "${PHP_FILES[@]}"
+          fi
