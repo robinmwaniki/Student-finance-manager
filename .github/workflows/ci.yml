@@ -7,12 +7,14 @@ on:
   pull_request:
     branches:
       - develop
+      - main
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: laravel-ci-${{ github.ref }}
+  group: laravel-ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -48,7 +50,7 @@ jobs:
       - name: Install dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
 
-      - name: Validate Composer manifest and lock file
+      - name: Validate Composer manifest and generated lock file
         run: composer validate --strict
 
       - name: Prepare application environment
@@ -86,4 +88,4 @@ jobs:
           DB_PASSWORD: student_finance_test_password
 
       - name: Check code style
-        run: vendor/bin/pint --test app bootstrap/app.php bootstrap/providers.php config database public routes tests
+        run: vendor/bin/pint --test app bootstrap config database public routes tests
