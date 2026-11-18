@@ -15,11 +15,10 @@ class AddFinancialWriteIntegrityConstraints extends Migration
             ->havingRaw('COUNT(*) > 1')
             ->exists();
 
-        if ($hasDuplicateBudgets) {
-            throw new \RuntimeException(
-                'Cannot add the monthly budget uniqueness constraint: duplicate user/category/month budgets exist. Reconcile these records before retrying this migration.'
-            );
-        }
+        throw_if(
+            $hasDuplicateBudgets,
+            'Cannot add the monthly budget uniqueness constraint: duplicate user/category/month budgets exist. Reconcile these records before retrying this migration.'
+        );
 
         Schema::table('income', function (Blueprint $table): void {
             $table->uuid('submission_token')->nullable();
