@@ -106,7 +106,7 @@ jobs:
             exit 0
           fi
 
-          BRANCH_NAME="feature/composer-lock-\${RUN_NUMBER}"
+          BRANCH_NAME="feature/composer-lock-$RUN_NUMBER"
           git checkout -b "$BRANCH_NAME"
           git commit -m "build(deps): commit Composer lock file"
           git push origin "$BRANCH_NAME"
