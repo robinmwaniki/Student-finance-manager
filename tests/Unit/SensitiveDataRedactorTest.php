@@ -32,7 +32,7 @@ class SensitiveDataRedactorTest extends TestCase
     public function test_monolog_processor_redacts_context_extra_and_message(): void
     {
         $processor = new RedactSensitiveContextProcessor;
-        $datetime = DateTimeImmutable::createFromFormat('Y-m-d H:i:s', '2026-01-01 00:00:00');
+        $datetime = \DateTimeImmutable::createFromFormat('Y-m-d H:i:s', '2026-01-01 00:00:00');
         $this->assertNotFalse($datetime);
 
         $record = new LogRecord(
