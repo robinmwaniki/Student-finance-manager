@@ -1,0 +1,93 @@
+name: Generate Composer Lock File
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: composer-lock-generation
+  cancel-in-progress: false
+
+jobs:
+  generate-lock:
+    name: Resolve and publish locked PHP dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require repository write token
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
+        run: |
+          if [[ -z "$GH_PAT" ]]; then
+            echo "::error::Add the GH_PAT Actions secret with Contents and Pull requests read/write permissions."
+            exit 1
+          fi
+
+      - name: Checkout develop
+        uses: actions/checkout@v4
+        with:
+          ref: develop
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up PHP 8.5 and Composer 2
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: ctype, curl, dom, fileinfo, filter, hash, mbstring, openssl, pcre, pdo, pdo_pgsql, session, tokenizer, xml
+          coverage: none
+          tools: composer:v2
+
+      - name: Resolve dependencies and generate lock file
+        run: composer update --no-interaction --prefer-dist --no-progress --with-all-dependencies
+
+      - name: Validate manifest and lock file
+        run: |
+          test -s composer.lock
+          composer validate --strict
+          composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Commit lock file and open a development PR
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+          RUN_NUMBER: ${{ github.run_number }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add composer.lock
+          if git diff --cached --quiet; then
+            echo "composer.lock is already current on develop."
+            exit 0
+          fi
+
+          BRANCH_NAME="feature/composer-lock-${RUN_NUMBER}"
+          git commit -m "build(deps): commit Composer lock file"
+          ASKPASS_SCRIPT="$RUNNER_TEMP/git-askpass.sh"
+          cat > "$ASKPASS_SCRIPT" <<'ASKPASS'
+          #!/bin/sh
+          case "$1" in
+            *Username*) printf '%s\n' "x-access-token" ;;
+            *Password*) printf '%s\n' "$GH_PAT" ;;
+            *) exit 1 ;;
+          esac
+          ASKPASS
+          chmod 700 "$ASKPASS_SCRIPT"
+          GIT_ASKPASS="$ASKPASS_SCRIPT" GIT_TERMINAL_PROMPT=0 git push origin "HEAD:$BRANCH_NAME"
+          rm -f "$ASKPASS_SCRIPT"
+          gh pr create \
+            --repo "$GITHUB_REPOSITORY" \
+            --base develop \
+            --head "$BRANCH_NAME" \
+            --title "build(deps): commit Composer lock file" \
+            --body "## Summary
+          Generates and commits composer.lock using Composer 2 and PHP 8.5.
+
+          ## Validation
+          - composer update completed successfully.
+          - composer validate --strict passed.
+          - composer install completed from the generated lock file.
+
+          Laravel CI will run on this pull request."
