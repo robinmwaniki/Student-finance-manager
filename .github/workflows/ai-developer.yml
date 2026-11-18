@@ -16,7 +16,7 @@ permissions:
   issues: read
 
 concurrency:
-  group: ai-developer-${{ github.event.issue.number || github.run_id }}
+  group: ai-developer-\${{ github.event.issue.number || github.run_id }}
   cancel-in-progress: false
 
 jobs:
@@ -33,24 +33,24 @@ jobs:
 
       - name: Prepare task safely
         env:
-          TASK_DESCRIPTION: ${{ github.event.inputs.task_description || github.event.issue.body }}
-          ISSUE_NUMBER: ${{ github.event.issue.number }}
-          ISSUE_TITLE: ${{ github.event.issue.title }}
+          TASK_DESCRIPTION: \${{ github.event.inputs.task_description || github.event.issue.body }}
+          ISSUE_NUMBER: \${{ github.event.issue.number }}
+          ISSUE_TITLE: \${{ github.event.issue.title }}
         run: |
           set -euo pipefail
-          printf '%s\\n' "$TASK_DESCRIPTION" > .ai-task.md
-          printf '%s\\n' "$ISSUE_NUMBER" > .ai-issue-number
-          printf '%s\\n' "$ISSUE_TITLE" > .ai-issue-title
+          printf '%s\n' "$TASK_DESCRIPTION" > .ai-task.md
+          printf '%s\n' "$ISSUE_NUMBER" > .ai-issue-number
+          printf '%s\n' "$ISSUE_TITLE" > .ai-issue-title
           {
             echo "Repository: Student-finance-manager"
             echo "Target integration branch: develop"
             echo "Task source: GitHub issue or manual dispatch"
             echo
             echo "Top-level project files:"
-            find . -maxdepth 2 -type f \\
-              -not -path './.git/*' \\
-              -not -path './vendor/*' \\
-              -not -path './node_modules/*' \\
+            find . -maxdepth 2 -type f \
+              -not -path './.git/*' \
+              -not -path './vendor/*' \
+              -not -path './node_modules/*' \
               | sort | head -250
           } > .ai-project-context.md
 
@@ -59,7 +59,7 @@ jobs:
         env:
           GEMINI_CLI_TRUST_WORKSPACE: "true"
         with:
-          gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
+          gemini_api_key: \${{ secrets.GEMINI_API_KEY }}
           prompt: |
             You are implementing a task in the Student-finance-manager Laravel application.
             Read .ai-task.md and .ai-project-context.md from the workspace.
@@ -75,10 +75,10 @@ jobs:
 
       - name: Verify and commit implementation
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          ISSUE_NUMBER: ${{ github.event.issue.number }}
-          ISSUE_TITLE: ${{ github.event.issue.title }}
-          RUN_ID: ${{ github.run_id }}
+          GH_TOKEN: \${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: \${{ github.event.issue.number }}
+          ISSUE_TITLE: \${{ github.event.issue.title }}
+          RUN_ID: \${{ github.run_id }}
         run: |
           set -euo pipefail
           git status --short
@@ -87,18 +87,19 @@ jobs:
             exit 1
           fi
 
-          BRANCH_NAME="feature/ai-task-${RUN_ID}"
+          rm -f .ai-task.md .ai-issue-number .ai-issue-title .ai-project-context.md
+          BRANCH_NAME="feature/ai-task-\${RUN_ID}"
           git checkout -b "$BRANCH_NAME"
           git add -A
           git commit -m "feat(ai): implement requested issue changes"
           git push --set-upstream origin "$BRANCH_NAME"
 
           if [[ -n "$ISSUE_NUMBER" ]]; then
-            PR_TITLE="feat: resolve issue #${ISSUE_NUMBER} - ${ISSUE_TITLE}"
-            printf 'Implements issue #%s using the AI-assisted development workflow.\\n\\nChanges were generated in the workspace, committed to a feature branch, and are subject to the normal CI and review process.\\n' "$ISSUE_NUMBER" > pr-body.md
+            PR_TITLE="feat: resolve issue #\${ISSUE_NUMBER} - \${ISSUE_TITLE}"
+            printf 'Implements issue #%s using the AI-assisted development workflow.\n\nChanges were generated in the workspace, committed to a feature branch, and are subject to the normal CI and review process.\n' "$ISSUE_NUMBER" > pr-body.md
           else
             PR_TITLE="feat: AI-assisted implementation"
-            printf 'Implements the manually dispatched task using the AI-assisted development workflow.\\n\\nChanges were generated in the workspace, committed to a feature branch, and are subject to the normal CI and review process.\\n' > pr-body.md
+            printf 'Implements the manually dispatched task using the AI-assisted development workflow.\n\nChanges were generated in the workspace, committed to a feature branch, and are subject to the normal CI and review process.\n' > pr-body.md
           fi
 
           gh pr create --title "$PR_TITLE" --body-file pr-body.md --base develop --head "$BRANCH_NAME"
