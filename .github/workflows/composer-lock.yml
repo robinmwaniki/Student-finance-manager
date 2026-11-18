@@ -1,6 +1,9 @@
 name: Generate Composer Lock File
 
 on:
+  push:
+    branches:
+      - feature/composer-lock-generation
   workflow_dispatch:
 
 permissions:
