@@ -10,54 +10,47 @@ permissions:
 
 jobs:
   code-review:
-    # Skip automated dependency update PRs if desired
     if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Extract PR Diff
-        id: diff
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: |
-          gh pr diff "$PR_NUMBER" > pr_changes.diff
+        run: gh pr diff "$PR_NUMBER" > pr_changes.diff
 
       - name: Run Gemini Code Review
         id: gemini_review
+        continue-on-error: true
         uses: google-github-actions/run-gemini-cli@main
         env:
-          # Required for non-interactive GitHub Actions workspaces.
           GEMINI_CLI_TRUST_WORKSPACE: "true"
         with:
           gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
           prompt: |
-            You are an expert senior software engineer conducting a pull request code review.
-            Analyze the git diff located in the file `pr_changes.diff`.
+            You are a senior software engineer reviewing a pull request.
+            Read pr_changes.diff and identify only actionable correctness, security,
+            reliability, performance, maintainability, and test-coverage findings.
+            Do not modify files. If there are no material findings, say so clearly.
 
-            Focus your review on:
-            1. Potential bugs, edge cases, or null/index handling errors.
-            2. Security vulnerabilities (e.g., hardcoded secrets, injection risks, improper auth checks).
-            3. Performance bottlenecks or inefficient database queries.
-            4. Readability, maintainability, and adherence to clean code practices.
-
-            Format your response in clean Markdown with bullet points. If the code looks solid with no major issues, state that clearly and briefly highlight what was done well. Keep feedback constructive and actionable.
-
-      - name: Post Review Comment on PR
+      - name: Publish review or provider-unavailable notice
+        if: always()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          REVIEW_OUTCOME: ${{ steps.gemini_review.outcome }}
           REVIEW_BODY: ${{ steps.gemini_review.outputs.response }}
         run: |
-          if [ -n "$REVIEW_BODY" ]; then
-            gh pr comment "$PR_NUMBER" --body "## 🤖 Gemini AI Code Review
-
-          $REVIEW_BODY"
+          set -euo pipefail
+          if [[ "$REVIEW_OUTCOME" == "success" && -n "$REVIEW_BODY" ]]; then
+            printf '%s\n' "$REVIEW_BODY" > review-comment.md
+            gh pr comment "$PR_NUMBER" --body-file review-comment.md
           else
-            echo "No review output generated."
+            gh pr comment "$PR_NUMBER" --body "Gemini review was unavailable for this run (provider quota, rate limit, or service error). This is not a code approval; the Laravel CI and human review remain required. Rerun the review when the Gemini API quota is available."
           fi
