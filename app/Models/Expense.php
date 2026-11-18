@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Expense extends Model
 {
-    protected $fillable = ['user_id', 'category', 'amount', 'transaction_date', 'tag'];
+    protected $fillable = ['user_id', 'category', 'amount', 'transaction_date', 'tag', 'submission_token'];
 
     protected function casts(): array
     {

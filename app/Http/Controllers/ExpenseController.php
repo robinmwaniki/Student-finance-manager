@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class ExpenseController extends Controller
@@ -25,41 +27,68 @@ class ExpenseController extends Controller
             ->whereBetween('transaction_date', [$start, $end])
             ->sum('amount');
 
-        return view('finance.expenses.index', compact('records', 'month', 'total'));
+        return view('finance.expenses.index', [
+            'records' => $records,
+            'month' => $month,
+            'total' => $total,
+            'submissionToken' => (string) Str::uuid(),
+        ]);
     }
 
     public function store(Request $request): RedirectResponse
     {
         $data = $request->validate([
+            'submission_token' => ['required', 'uuid'],
             'category' => ['required', 'string', 'max:50'],
             'amount' => ['required', 'numeric', 'gt:0', 'decimal:0,2', 'max:999999999999'],
             'transaction_date' => ['required', 'date', 'before_or_equal:today'],
             'tag' => ['nullable', 'string', 'max:50'],
         ]);
 
-        $request->user()->expenses()->create($data);
+        $token = $data['submission_token'];
+        unset($data['submission_token']);
 
-        return back()->with('success', 'Expense record added.');
+        $request->user()->expenses()->firstOrCreate(['submission_token' => $token], $data);
+
+        return back()->with('success', 'Expense record saved.');
     }
 
     public function update(Request $request, int $expense): RedirectResponse
     {
-        $record = $request->user()->expenses()->findOrFail($expense);
         $data = $request->validate([
+            'lock_version' => ['required', 'integer', 'min:0'],
             'category' => ['required', 'string', 'max:50'],
             'amount' => ['required', 'numeric', 'gt:0', 'decimal:0,2', 'max:999999999999'],
             'transaction_date' => ['required', 'date', 'before_or_equal:today'],
             'tag' => ['nullable', 'string', 'max:50'],
         ]);
 
-        $record->update($data);
+        $request->user()->expenses()->whereKey($expense)->firstOrFail();
+
+        $expectedVersion = (int) $data['lock_version'];
+        unset($data['lock_version']);
+
+        $updated = $request->user()->expenses()
+            ->whereKey($expense)
+            ->where('lock_version', $expectedVersion)
+            ->update([...$data, 'lock_version' => DB::raw('lock_version + 1')]);
+
+        abort_unless($updated === 1, 409, 'This expense record changed after you opened it. Refresh the page and apply your changes again.');
 
         return back()->with('success', 'Expense record updated.');
     }
 
     public function destroy(Request $request, int $expense): RedirectResponse
     {
-        $request->user()->expenses()->findOrFail($expense)->delete();
+        $data = $request->validate(['lock_version' => ['required', 'integer', 'min:0']]);
+        $request->user()->expenses()->whereKey($expense)->firstOrFail();
+
+        $deleted = $request->user()->expenses()
+            ->whereKey($expense)
+            ->where('lock_version', (int) $data['lock_version'])
+            ->delete();
+
+        abort_unless($deleted === 1, 409, 'This expense record changed after you opened it. Refresh the page before deleting it.');
 
         return back()->with('success', 'Expense record deleted.');
     }
