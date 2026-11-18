@@ -54,4 +54,4 @@ class AddFinancialWriteIntegrityConstraints extends Migration
             $table->dropColumn(['submission_token', 'lock_version']);
         });
     }
-};
+}
