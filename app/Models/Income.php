@@ -9,7 +9,7 @@ class Income extends Model
 {
     protected $table = 'income';
 
-    protected $fillable = ['user_id', 'amount', 'source', 'transaction_date', 'tag'];
+    protected $fillable = ['user_id', 'amount', 'source', 'transaction_date', 'tag', 'submission_token'];
 
     protected function casts(): array
     {

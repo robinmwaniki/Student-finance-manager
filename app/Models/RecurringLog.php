@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class RecurringLog extends Model
 {
+    protected $table = 'recurring_log';
+
     public $timestamps = false;
 
     protected $fillable = ['recurring_id', 'user_id', 'applied_month', 'applied_at'];
