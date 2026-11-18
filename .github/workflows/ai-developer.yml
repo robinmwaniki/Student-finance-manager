@@ -116,7 +116,7 @@ jobs:
           rm -f "$ASKPASS_SCRIPT"
 
           if [[ -n "$ISSUE_NUMBER" ]]; then
-            PR_TITLE="feat: resolve issue #\${ISSUE_NUMBER} - \${ISSUE_TITLE}"
+            PR_TITLE="feat: resolve issue #${ISSUE_NUMBER} - ${ISSUE_TITLE}"
             printf 'Implements issue #%s using the AI-assisted development workflow.\n\nChanges were generated in the workspace, committed to a feature branch, and are subject to the normal CI and review process.\n' "$ISSUE_NUMBER" > pr-body.md
           else
             PR_TITLE="feat: AI-assisted implementation"
