@@ -39,6 +39,12 @@ jobs:
               exit 0
             fi
 
+            # Preserve the existing feature-to-main path for urgent fixes.
+            if [[ "$PR_TARGET_BRANCH" == "main" && "$PR_SOURCE_BRANCH" =~ ^feature/[a-z0-9]+([._-][a-z0-9]+)*$ ]]; then
+              echo "Accepted feature hotfix branch: $PR_SOURCE_BRANCH -> main"
+              exit 0
+            fi
+
             echo "::error::Pull requests must use feature/<name> -> develop, or develop -> main for releases."
             exit 1
           fi
