@@ -63,6 +63,8 @@ class IncomeController extends Controller
             'tag' => ['nullable', 'string', 'max:50'],
         ]);
 
+        $request->user()->income()->whereKey($income)->firstOrFail();
+
         $expectedVersion = (int) $data['lock_version'];
         unset($data['lock_version']);
 
@@ -79,6 +81,7 @@ class IncomeController extends Controller
     public function destroy(Request $request, int $income): RedirectResponse
     {
         $data = $request->validate(['lock_version' => ['required', 'integer', 'min:0']]);
+        $request->user()->income()->whereKey($income)->firstOrFail();
 
         $deleted = $request->user()->income()
             ->whereKey($income)
