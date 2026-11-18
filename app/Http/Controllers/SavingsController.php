@@ -158,8 +158,15 @@ class SavingsController extends Controller
     /** Derive the denormalized balance from the ledger after each contribution mutation. */
     private function syncGoal(SavingsGoal $goal): void
     {
-        $total = $goal->contributions()->sum('amount');
-        $completed = $goal->target_amount !== null && round((float) $total, 2) >= round((float) $goal->target_amount, 2);
-        $goal->forceFill(['current_amount' => $total, 'status' => $completed ? 'completed' : 'active'])->save();
+        // Serialize balance reconciliation for this goal when concurrent contributions arrive.
+        $lockedGoal = SavingsGoal::query()->whereKey($goal->id)->lockForUpdate()->firstOrFail();
+        $total = $lockedGoal->contributions()->sum('amount');
+        $completed = $lockedGoal->target_amount !== null
+            && round((float) $total, 2) >= round((float) $lockedGoal->target_amount, 2);
+
+        $lockedGoal->forceFill([
+            'current_amount' => $total,
+            'status' => $completed ? 'completed' : 'active',
+        ])->save();
     }
 }
