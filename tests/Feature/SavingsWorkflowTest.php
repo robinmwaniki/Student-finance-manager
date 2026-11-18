@@ -180,6 +180,7 @@ class SavingsWorkflowTest extends TestCase
     {
         static $counter = 0;
         $counter++;
+
         return User::create([
             'fullname' => 'Savings Owner',
             'email' => $counter === 1 ? $email : str_replace('@', $counter.'@', $email),
