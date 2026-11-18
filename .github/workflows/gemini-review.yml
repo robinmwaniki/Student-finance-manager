@@ -1,49 +1,22 @@
 name: Gemini AI Assistant
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
+  workflow_dispatch:
 
 permissions:
   contents: read
-  pull-requests: write
 
 jobs:
   review:
-    if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-
       - name: Run Gemini CLI Action
-        id: gemini_review
-        continue-on-error: true
         uses: google-github-actions/run-gemini-cli@main
         env:
           GEMINI_CLI_TRUST_WORKSPACE: "true"
         with:
           gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
           prompt: |
-            Review this pull request as a senior software engineer.
-            Inspect the checked-out changes and report actionable correctness,
-            security, reliability, performance, and test-coverage findings.
-            Do not modify files. If there are no material findings, say so clearly.
-
-      - name: Report review result
-        if: always()
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          REVIEW_OUTCOME: ${{ steps.gemini_review.outcome }}
-          REVIEW_BODY: ${{ steps.gemini_review.outputs.response }}
-        run: |
-          set -euo pipefail
-          if [[ "$REVIEW_OUTCOME" == "success" && -n "$REVIEW_BODY" ]]; then
-            printf '%s\n' "$REVIEW_BODY" > review-comment.md
-            gh pr comment "$PR_NUMBER" --body-file review-comment.md
-          else
-            gh pr comment "$PR_NUMBER" --body "Gemini review was unavailable for this run (provider quota, rate limit, or service error). This is not a code approval; required CI and human review remain necessary. Rerun when the Gemini API quota is available."
-          fi
+            Run a manual Gemini CLI smoke check. Do not modify repository files.
