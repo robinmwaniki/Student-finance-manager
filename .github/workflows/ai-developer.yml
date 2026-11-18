@@ -16,7 +16,7 @@ permissions:
   issues: read
 
 concurrency:
-  group: ai-developer-\${{ github.event.issue.number || github.run_id }}
+  group: ai-developer-${{ github.event.issue.number || github.run_id }}
   cancel-in-progress: false
 
 jobs:
@@ -33,9 +33,9 @@ jobs:
 
       - name: Prepare task safely
         env:
-          TASK_DESCRIPTION: \${{ github.event.inputs.task_description || github.event.issue.body }}
-          ISSUE_NUMBER: \${{ github.event.issue.number }}
-          ISSUE_TITLE: \${{ github.event.issue.title }}
+          TASK_DESCRIPTION: ${{ github.event.inputs.task_description || github.event.issue.body }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
         run: |
           set -euo pipefail
           printf '%s\n' "$TASK_DESCRIPTION" > .ai-task.md
@@ -59,7 +59,7 @@ jobs:
         env:
           GEMINI_CLI_TRUST_WORKSPACE: "true"
         with:
-          gemini_api_key: \${{ secrets.GEMINI_API_KEY }}
+          gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
           prompt: |
             You are implementing a task in the Student-finance-manager Laravel application.
             Read .ai-task.md and .ai-project-context.md from the workspace.
@@ -75,10 +75,10 @@ jobs:
 
       - name: Verify and commit implementation
         env:
-          GH_TOKEN: \${{ secrets.GITHUB_TOKEN }}
-          ISSUE_NUMBER: \${{ github.event.issue.number }}
-          ISSUE_TITLE: \${{ github.event.issue.title }}
-          RUN_ID: \${{ github.run_id }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          RUN_ID: ${{ github.run_id }}
         run: |
           set -euo pipefail
           rm -f .ai-task.md .ai-issue-number .ai-issue-title .ai-project-context.md
@@ -87,7 +87,7 @@ jobs:
             echo "::error::Gemini did not produce any workspace changes."
             exit 1
           fi
-          BRANCH_NAME="feature/ai-task-\${RUN_ID}"
+          BRANCH_NAME="feature/ai-task-${RUN_ID}"
           git checkout -b "$BRANCH_NAME"
           git add -A
           git commit -m "feat(ai): implement requested issue changes"
