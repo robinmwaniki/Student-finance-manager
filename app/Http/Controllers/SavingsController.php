@@ -39,6 +39,7 @@ class SavingsController extends Controller
             'notes' => ['nullable', 'string', 'max:500'],
         ]);
         $request->user()->savingsGoals()->create($data);
+
         return back()->with('success', 'Savings goal created.');
     }
 
@@ -59,6 +60,7 @@ class SavingsController extends Controller
         $updated = $user->savingsGoals()->whereKey($goal)->where('lock_version', $version)
             ->update([...$data, 'lock_version' => DB::raw('lock_version + 1')]);
         abort_unless($updated === 1, 409, 'This savings goal changed after you opened it. Refresh and try again.');
+
         return back()->with('success', 'Savings goal updated.');
     }
 
@@ -72,6 +74,7 @@ class SavingsController extends Controller
             abort_unless($deleted === 1, 409, 'This savings goal changed after you opened it. Refresh before deleting it.');
             // Contributions survive goal deletion; the nullable foreign key is set to null.
         });
+
         return back()->with('success', 'Savings goal deleted. Its contribution history was retained.');
     }
 
@@ -101,6 +104,7 @@ class SavingsController extends Controller
                 $this->syncGoal($goal);
             }
         });
+
         return back()->with('success', 'Savings contribution saved.');
     }
 
@@ -136,6 +140,7 @@ class SavingsController extends Controller
                 }
             }
         });
+
         return back()->with('success', 'Savings contribution updated.');
     }
 
@@ -154,6 +159,7 @@ class SavingsController extends Controller
                 }
             }
         });
+
         return back()->with('success', 'Savings contribution deleted.');
     }
 
