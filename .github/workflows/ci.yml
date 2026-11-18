@@ -6,6 +6,7 @@ on:
       - 'feature/**'
   pull_request:
     branches:
+      - develop
       - main
 
 permissions:
@@ -86,4 +87,4 @@ jobs:
           DB_PASSWORD: student_finance_test_password
 
       - name: Check code style
-        run: vendor/bin/pint --test app bootstrap config database public routes tests
+        run: vendor/bin/pint --test app bootstrap/app.php bootstrap/providers.php config database public routes tests
