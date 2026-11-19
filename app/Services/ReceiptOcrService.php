@@ -63,7 +63,7 @@ class ReceiptOcrService
                 return null;
             }
 
-            $amount = is_numeric($data['amount'] ?? null) && (float) $data['amount'] > 0
+            $amount = is_numeric($data['amount'] ?? null) && (float) $data['amount'] > 0 && (float) $data['amount'] <= 999999999999
                 ? round((float) $data['amount'], 2)
                 : null;
             $date = null;
