@@ -36,7 +36,7 @@ class SimplePdfReport
 
             $stream .= 'ET'.$newline.'BT'.$newline.'/F1 8 Tf'.$newline.'500 25 Td'.$newline
                 .'(Page '.($pageIndex + 1).' of '.count($pages).') Tj'.$newline.'ET'.$newline;
-            $objects[$contentId] = '<< /Length '.strlen($stream)." >>".$newline.'stream'.$newline.$stream.'endstream';
+            $objects[$contentId] = '<< /Length '.strlen($stream).' >>'.$newline.'stream'.$newline.$stream.'endstream';
             $objects[$pageId] = '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 '.$fontId.' 0 R >> >> /Contents '.$contentId.' 0 R >>';
         }
 
