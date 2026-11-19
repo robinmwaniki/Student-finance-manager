@@ -22,7 +22,7 @@
 <div class="table-wrap"><table><thead><tr><th>Description</th><th>Direction</th><th>Due date</th><th>Status</th><th>Amount</th><th>Manage</th></tr></thead><tbody>
 @forelse($debts as $debt)
 @php($overdue = $debt->status === 'pending' && $debt->due_date && $debt->due_date->lt(today()))
-<tr><td><strong>{{ $debt->description ?: 'Debt record' }}</strong></td><td>{{ $debt->type === 'borrowed' ? 'I owe' : 'Owed to me' }}</td><td>{{ $debt->due_date?->format('d M Y') ?? '—' }}</td><td>{{ $overdue ? 'Overdue' : ucfirst($debt->status) }}</td><td class="amount">KES {{ number_format((float) $debt->amount, 2) }}</td><td><details><summary style="cursor:pointer;color:#5365b5;font-weight:700">Edit</summary>
+<tr><td><strong>{{ $debt->description ?: 'Debt record' }}</strong></td><td>{{ $debt->type === 'borrowed' ? 'I owe' : ($debt->type === 'lent' ? 'Owed to me' : ucfirst($debt->type)) }}</td><td>{{ $debt->due_date?->format('d M Y') ?? '—' }}</td><td>{{ $overdue ? 'Overdue' : ucfirst($debt->status) }}</td><td class="amount">KES {{ number_format((float) $debt->amount, 2) }}</td><td><details><summary style="cursor:pointer;color:#5365b5;font-weight:700">Edit</summary>
 <form method="POST" action="{{ route('debts.update', $debt) }}" style="min-width:220px;padding:12px 0">@csrf @method('PUT')<input type="hidden" name="lock_version" value="{{ $debt->lock_version }}">
 <div class="field" style="margin-bottom:8px"><label>Description</label><input name="description" value="{{ $debt->description }}" maxlength="255"></div>
 <div class="field" style="margin-bottom:8px"><label>Amount</label><input name="amount" type="number" min="0.01" step="0.01" value="{{ $debt->amount }}" required></div>
