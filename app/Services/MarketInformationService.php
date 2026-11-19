@@ -346,6 +346,9 @@ class MarketInformationService
                 continue;
             }
             $distance = $this->distanceKm($latitude, $longitude, (float) $lat, (float) $lon);
+            if ($distance > 3.0) {
+                continue;
+            }
             $places[] = [
                 'name' => $this->safeText((string) ($tags['name'] ?? (($tags['amenity'] ?? '') === 'atm' ? 'ATM' : 'Bank')), 100),
                 'type' => ($tags['amenity'] ?? '') === 'atm' ? 'ATM' : 'Bank',
