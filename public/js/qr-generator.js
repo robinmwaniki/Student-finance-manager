@@ -10,6 +10,7 @@
     const status = document.getElementById('qr-status');
     const preview = document.getElementById('qr-preview');
     const previewPanel = document.getElementById('qr-preview-panel');
+    const emptyPreview = document.getElementById('qr-preview-empty');
     const download = document.getElementById('qr-download');
     const byteCount = document.getElementById('qr-byte-count');
     const generateButton = document.getElementById('qr-generate');
@@ -21,6 +22,7 @@
 
     function hidePreview() {
         previewPanel.hidden = true;
+        emptyPreview.hidden = false;
         preview.removeAttribute('src');
         download.removeAttribute('href');
         download.hidden = true;
@@ -77,6 +79,7 @@
             preview.src = dataUrl;
             preview.alt = 'Generated QR code preview';
             previewPanel.hidden = false;
+            emptyPreview.hidden = true;
             download.href = dataUrl;
             download.download = 'student-finance-qr-code.gif';
             download.hidden = false;
