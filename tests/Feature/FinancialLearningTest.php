@@ -162,6 +162,7 @@ class FinancialLearningTest extends TestCase
 
         $this->actingAs($user)->post(route('learning.quiz.submit'), ['option' => 'Z'])
             ->assertSessionHasErrors('option');
+        $this->app['auth']->forgetGuards();
         $this->post(route('learning.quiz.submit'), ['option' => 'A'])
             ->assertRedirect(route('login'));
     }
