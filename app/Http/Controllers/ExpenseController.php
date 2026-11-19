@@ -43,7 +43,7 @@ class ExpenseController extends Controller
             'submission_token' => ['required', 'uuid'],
             'category' => ['required', 'string', 'max:50'],
             'amount' => ['required', 'numeric', 'gt:0', 'decimal:0,2', 'max:999999999999'],
-            'currency' => ['required', 'string', 'size:3', 'in:'.implode(',', $currencies->currencies())],
+            'currency' => ['nullable', 'string', 'size:3', 'in:'.implode(',', $currencies->currencies())],
             'accept_stale_rate' => ['sometimes', 'boolean'],
             'transaction_date' => ['required', 'date', 'before_or_equal:today'],
             'tag' => ['nullable', 'string', 'max:50'],
@@ -51,7 +51,7 @@ class ExpenseController extends Controller
 
         $token = $data['submission_token'];
         $originalAmount = (float) $data['amount'];
-        $originalCurrency = $data['currency'];
+        $originalCurrency = $data['currency'] ?? 'KES';
         unset($data['submission_token'], $data['currency'], $data['accept_stale_rate']);
 
         $quote = $currencies->quote($originalCurrency, 'KES');
