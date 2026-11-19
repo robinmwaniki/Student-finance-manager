@@ -58,6 +58,7 @@ Route::middleware(['auth', 'auth.session'])->group(function (): void {
     Route::post('/market/weather', [MarketInformationController::class, 'weather'])->middleware('throttle:10,1')->name('market.weather');
     Route::post('/market/purchasing-power', [MarketInformationController::class, 'purchasingPower'])->middleware('throttle:10,1')->name('market.purchasing-power');
     Route::get('/tools', [FinancialToolsController::class, 'index'])->name('tools.index');
+    Route::get('/tools/qr', [FinancialToolsController::class, 'qr'])->name('tools.qr');
     Route::post('/tools/loan', [FinancialToolsController::class, 'loan'])->middleware('throttle:20,1')->name('tools.loan');
     Route::post('/tools/split', [FinancialToolsController::class, 'split'])->middleware('throttle:20,1')->name('tools.split');
     Route::post('/tools/currency', [FinancialToolsController::class, 'currency'])->middleware('throttle:20,1')->name('tools.currency');
