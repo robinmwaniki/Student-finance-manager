@@ -250,7 +250,7 @@ class MarketInformationTest extends TestCase
         Cache::forget('market:stale:weather:-1.29:36.82');
         Http::fake(['api.open-meteo.com/*' => Http::response([], 503)]);
 
-        $unavailableWeather = app(MarketInformationService::class)->weather(-1.286389, 36.817223);
+        $unavailableWeather = app(MarketInformationService::class)->weather(-2.0, 37.0);
         $this->assertFalse($unavailableWeather['available']);
         $this->assertStringContainsString('temporarily unavailable', $unavailableWeather['message']);
     }
