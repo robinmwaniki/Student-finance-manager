@@ -174,10 +174,16 @@ class MarketInformationTest extends TestCase
             ->assertJsonPath('current.temperature_2m', 24.5)
             ->assertJsonPath('source', 'Open-Meteo');
 
-        Http::fake(['*' => Http::response([], 503)]);
+        Cache::forget('market:fresh:weather:-1.29:36.82');
+        Http::fake([
+            'nominatim.openstreetmap.org/*' => Http::response([
+                ['lat' => '-1.286389', 'lon' => '36.817223', 'display_name' => 'Nairobi, Kenya'],
+            ], 200),
+            'api.open-meteo.com/*' => Http::response([], 503),
+        ]);
         $this->actingAs($user)->postJson(route('market.weather'), ['location' => 'Nairobi'])
-            ->assertStatus(503)
-            ->assertJsonStructure(['message']);
+            ->assertOk()
+            ->assertJsonPath('stale', true);
     }
 
     public function test_purchasing_power_calculator_uses_latest_annual_inflation_observation(): void
