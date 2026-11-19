@@ -19,7 +19,7 @@ class CurrencyRateService
     ];
 
     /**
-     * Get a public exchange rate. Fresh data is cached for one hour; stale fallback expires after 24 hours.
+     * Return a fresh public rate or a cached snapshot no older than 24 hours.
      *
      * @return array{base: string, target: string, rate: float, source: string, as_of: string, stale: bool}|null
      */
@@ -67,7 +67,6 @@ class CurrencyRateService
                     'as_of' => isset($payload['time_last_update_utc'])
                         ? CarbonImmutable::parse($payload['time_last_update_utc'])->utc()->toIso8601String()
                         : now('UTC')->toIso8601String(),
-                    'fetched_at' => now('UTC')->toIso8601String(),
                     'source' => self::SOURCE,
                 ];
 
@@ -96,7 +95,7 @@ class CurrencyRateService
     }
 
     /**
-     * Convert using a user-confirmed manual rate when the public provider has no usable quote.
+     * Convert using a user-confirmed manual rate when the provider has no usable quote.
      */
     public function convertWithRate(float $amount, float $rate): ?string
     {
@@ -106,11 +105,16 @@ class CurrencyRateService
         }
 
         $minorUnits = (int) round($amount * 100);
-        $convertedMinorUnits = (int) round($minorUnits * $rate);\n        if ($convertedMinorUnits > 99999999999999) {\n            return null;\n        }\n\n        return number_format($convertedMinorUnits / 100, 2, '.', '');
+        $convertedMinorUnits = (int) round($minorUnits * $rate);
+        if ($convertedMinorUnits > 99999999999999) {
+            return null;
+        }
+
+        return number_format($convertedMinorUnits / 100, 2, '.', '');
     }
 
     /**
-     * Convert to the nearest minor unit; callers retain the returned rate and source metadata.
+     * Convert to the nearest minor unit; callers retain rate and source provenance.
      *
      * @return array{amount: string, rate: float, source: string, as_of: string, stale: bool}|null
      */
@@ -127,7 +131,11 @@ class CurrencyRateService
 
         $minorUnits = (int) round($amount * 100);
         $convertedMinorUnits = (int) round($minorUnits * $quote['rate']);
-        if ($convertedMinorUnits > 99999999999999) {\n            return null;\n        }\n\n        return [
+        if ($convertedMinorUnits > 99999999999999) {
+            return null;
+        }
+
+        return [
             'amount' => number_format($convertedMinorUnits / 100, 2, '.', ''),
             'rate' => $quote['rate'],
             'source' => $quote['source'],
