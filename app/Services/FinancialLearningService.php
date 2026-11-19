@@ -33,7 +33,7 @@ class FinancialLearningService
      */
     public function submitAnswer(User $user, string $selectedOption, AchievementService $achievements): array
     {
-        return DB::transaction(function () use ($user, $selectedOption): array {
+        return DB::transaction(function () use ($user, $selectedOption, $achievements): array {
             $lockedUser = User::query()->whereKey($user->getKey())->lockForUpdate()->firstOrFail();
             $streak = UserFinancialStreak::query()->where('user_id', $lockedUser->getKey())->lockForUpdate()->first();
             $timezone = $streak?->timezone ?: config('app.timezone');
@@ -43,9 +43,14 @@ class FinancialLearningService
             $existing = $lockedUser->quizAttempts()->whereDate('quiz_date', $quizDate)->with('question')->first();
 
             if ($existing !== null) {
+                $streak ??= UserFinancialStreak::query()->firstOrCreate(
+                    ['user_id' => $lockedUser->getKey()],
+                    ['timezone' => $timezone],
+                );
+
                 return [
                     'attempt' => $existing,
-                    'streak' => $streak ?? UserFinancialStreak::query()->where('user_id', $lockedUser->getKey())->firstOrFail(),
+                    'streak' => $streak,
                     'already_attempted' => true,
                 ];
             }
