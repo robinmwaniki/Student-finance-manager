@@ -20,7 +20,8 @@ class FinancialReportMail extends Mailable implements ShouldQueue
     public function __construct(
         public readonly string $periodLabel,
         public readonly array $lines,
-    ) {
+    )
+    {
     }
 
     public function envelope(): Envelope
