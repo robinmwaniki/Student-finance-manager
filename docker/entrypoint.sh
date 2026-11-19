@@ -23,6 +23,7 @@ if [[ -z "${ASSET_URL:-}" && -n "${RENDER_EXTERNAL_URL:-}" ]]; then
 fi
 
 sed -i "s/__PORT__/$PORT/g" /etc/nginx/sites-available/default
+nginx -t
 
 mkdir -p \
     storage/app/private \
