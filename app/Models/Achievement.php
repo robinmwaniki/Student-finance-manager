@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Achievement extends Model
 {
-    protected $fillable = ['user_id', 'title', 'description', 'points', 'unlocked_at'];
+    protected $fillable = ['user_id', 'code', 'title', 'description', 'points', 'unlocked_at'];
 
     protected function casts(): array
     {
