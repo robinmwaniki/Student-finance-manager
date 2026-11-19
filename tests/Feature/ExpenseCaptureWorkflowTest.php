@@ -98,7 +98,7 @@ class ExpenseCaptureWorkflowTest extends TestCase
     public function test_voice_transcript_creates_a_reviewable_draft_without_booking_expense(): void
     {
         $user = $this->makeUser();
-        $this->assertNull(app(\App\Services\VoiceExpenseParser::class)->parse('I went shopping in 2026.'));
+        $this->assertNull(app(VoiceExpenseParser::class)->parse('I went shopping in 2026.'));
 
         $this->actingAs($user)->post(route('expense-capture.voice'), [
             'transcript' => 'I spent 350 shillings on lunch today.',
