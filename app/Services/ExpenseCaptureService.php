@@ -34,7 +34,7 @@ class ExpenseCaptureService
         return DB::transaction(function () use ($user, $draftId, $expectedVersion, $data): Expense {
             $draft = $user->expenseCaptureDrafts()->whereKey($draftId)->lockForUpdate()->firstOrFail();
 
-            abort_unless($draft->status === 'pending', 409, 'This capture draft is no longer awaiting confirmation.');
+            abort_unless($draft->status === 'pending', 409, 'This capture draft is no longer awaiting confirmation.');\n            abort_if($draft->expires_at !== null && $draft->expires_at->isPast(), 410, 'This capture draft has expired. Capture the details again.');
             abort_unless($draft->lock_version === $expectedVersion, 409, 'This draft changed. Refresh it before confirming.');
 
             $expense = $user->expenses()->firstOrCreate(
