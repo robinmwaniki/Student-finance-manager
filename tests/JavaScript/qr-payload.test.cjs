@@ -38,6 +38,7 @@ test('public HTTP and HTTPS links are accepted and unsafe URLs are rejected', ()
     assert.equal(buildPayload('url', { url: 'https://example.test/?access_token=abc' }, true).valid, false);
     assert.equal(buildPayload('url', { url: 'https://example.test/?token=abc' }, true).valid, false);
     assert.equal(buildPayload('url', { url: 'https://example.test/?session-id=abc' }, true).valid, false);
+    assert.equal(buildPayload('url', { url: 'https://example.test/#access_token=abc' }, true).valid, false);
 });
 
 test('M-Pesa payment references create a clear non-payment instruction payload', () => {
@@ -59,6 +60,7 @@ test('M-Pesa payment references create a clear non-payment instruction payload',
 test('payment references reject invalid merchant codes, references and amounts', () => {
     const fields = { method: 'till', code: '1234', reference: 'ORDER-1', amount: '10.00' };
     assert.equal(buildPayload('payment', fields, true).valid, false);
+    assert.equal(buildPayload('payment', { ...fields, method: 'bank-transfer', code: '123456' }, true).valid, false);
     assert.equal(buildPayload('payment', { ...fields, code: '123456', reference: 'bad<>ref' }, true).valid, false);
     assert.equal(buildPayload('payment', { ...fields, code: '123456', amount: '-10' }, true).valid, false);
     assert.equal(buildPayload('payment', { ...fields, code: '123456', amount: '10.999' }, true).valid, false);
