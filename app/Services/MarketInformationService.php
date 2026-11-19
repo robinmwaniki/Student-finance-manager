@@ -387,6 +387,7 @@ class MarketInformationService
             'annual_inflation' => $rate,
             'estimated_future_cost' => round($futureCost, 2),
             'source_year' => $inflation['latest']['year'],
+            'stale' => $inflation['stale'] ?? false,
             'disclaimer' => 'Illustrative estimate using the latest annual Kenya inflation rate held constant; actual inflation will vary.',
         ];
     }
