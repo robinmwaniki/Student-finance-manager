@@ -79,6 +79,20 @@
 </div>
 
 <section class="card" style="margin-bottom:18px">
+    <h2 class="section-heading">Achievement progress</h2>
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">
+        @foreach($achievementProgress as $progress)
+            <article style="border:1px solid #e8edf4;border-radius:11px;padding:13px">
+                <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><strong style="font-size:12px">{{ $progress['title'] }}</strong><span style="font-size:10px;color:{{ $progress['unlocked'] ? '#16835b' : '#8490a3' }};font-weight:700">{{ $progress['unlocked'] ? 'UNLOCKED' : '+'.$progress['points'].' pts' }}</span></div>
+                <p class="muted" style="font-size:11px;line-height:1.5;margin:7px 0">{{ $progress['description'] }}</p>
+                <div style="height:6px;background:#edf0f5;border-radius:8px;overflow:hidden"><div style="height:100%;width:{{ min(100, ($progress['current'] / $progress['target']) * 100) }}%;background:{{ $progress['unlocked'] ? '#16835b' : '#5365b5' }}"></div></div>
+                <small class="muted">{{ $progress['current'] }} / {{ $progress['target'] }}</small>
+            </article>
+        @endforeach
+    </div>
+</section>
+
+<section class="card" style="margin-bottom:18px">
     <h2 class="section-heading">Achievement collection</h2>
     @if($achievements->isNotEmpty())
         <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">
