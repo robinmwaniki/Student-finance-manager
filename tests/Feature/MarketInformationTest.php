@@ -247,18 +247,12 @@ class MarketInformationTest extends TestCase
             ->assertJsonPath('source', 'Open-Meteo');
 
         Cache::forget('market:fresh:weather:-1.29:36.82');
-        Cache::put('market:stale:weather:-1.29:36.82', [
-            'available' => true,
-            'current' => ['temperature_2m' => 24.5],
-            'timezone' => 'Africa/Nairobi',
-            'source' => 'Open-Meteo',
-            'fetched_at' => now('UTC')->toIso8601String(),
-            'delay_note' => 'Cached test observation.',
-        ], now()->addMinutes(180));
+        Cache::forget('market:stale:weather:-1.29:36.82');
         Http::fake(['api.open-meteo.com/*' => Http::response([], 503)]);
 
-        $staleWeather = app(MarketInformationService::class)->weather(-1.286389, 36.817223);
-        $this->assertTrue($staleWeather['stale']);
+        $unavailableWeather = app(MarketInformationService::class)->weather(-1.286389, 36.817223);
+        $this->assertFalse($unavailableWeather['available']);
+        $this->assertStringContainsString('temporarily unavailable', $unavailableWeather['message']);
     }
 
     public function test_purchasing_power_calculator_uses_latest_annual_inflation_observation(): void
