@@ -24,6 +24,7 @@
 <a class="nav-link {{ request()->routeIs('recurring.*') ? 'active' : '' }}" href="{{ route('recurring.index') }}"><span class="nav-icon">⟳</span>Recurring</a>
 <a class="nav-link {{ request()->routeIs('reminders.*') ? 'active' : '' }}" href="{{ route('reminders.index') }}"><span class="nav-icon">◷</span>Reminders</a>
 <a class="nav-link {{ request()->routeIs('journal.*') ? 'active' : '' }}" href="{{ route('journal.index') }}"><span class="nav-icon">▤</span>Journal</a>
+<a class="nav-link {{ request()->routeIs('tools.*') ? 'active' : '' }}" href="{{ route('tools.index') }}"><span class="nav-icon">∑</span>Tools</a>
 <a class="nav-link {{ request()->routeIs('reports.*') ? 'active' : '' }}" href="{{ route('reports.index') }}"><span class="nav-icon">▤</span>Reports</a>
 <a class="nav-link {{ request()->routeIs('learning.*') ? 'active' : '' }}" href="{{ route('learning.index') }}"><span class="nav-icon">✦</span>Learning</a>
 <a class="nav-link {{ request()->routeIs('assistant.*') ? 'active' : '' }}" href="{{ route('assistant.index') }}"><span class="nav-icon">✧</span>AI Assistant</a>
