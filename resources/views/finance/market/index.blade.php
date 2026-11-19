@@ -184,7 +184,7 @@
             });
             const data = await response.json();
             if (!response.ok) throw new Error(data.message || 'Calculation unavailable');
-            output.textContent = 'Estimated future cost: KES ' + Number(data.estimated_future_cost).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' · Annual inflation ' + data.annual_inflation + '% (data year ' + data.source_year + '). ' + data.disclaimer;
+            output.textContent = 'Estimated future cost: KES ' + Number(data.estimated_future_cost).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' · Annual inflation ' + data.annual_inflation + '% (data year ' + data.source_year + '). ' + (data.stale ? 'Using stale cached inflation data. ' : '') + data.disclaimer;
         } catch (error) { output.textContent = error.message; }
     });
 
@@ -209,21 +209,22 @@
                 setText(statusId, data.location + ' · ' + data.source + ' · ' + data.fetched_at);
                 appendLine(list, current.temperature_2m + '°C · feels like ' + current.apparent_temperature + '°C', true);
                 appendLine(list, 'Humidity ' + current.relative_humidity_2m + '% · Wind ' + current.wind_speed_10m + ' km/h · Precipitation ' + current.precipitation + ' mm');
+                appendLine(list, 'Observation time: ' + (current.time || data.fetched_at) + (data.stale ? ' · cached / stale' : ''));
                 appendLine(list, data.delay_note);
             }
         } catch (error) { setText(statusId, error.message); }
     };
-    const getBrowserLocation = callback => {
-        if (!navigator.geolocation) { setText('nearby-status', 'Location is not supported by this browser. Use manual search.'); return; }
+    const getBrowserLocation = (callback, statusId) => {
+        if (!navigator.geolocation) { setText(statusId, 'Location is not supported by this browser. Use manual search.'); return; }
         navigator.geolocation.getCurrentPosition(
             position => callback({ latitude: position.coords.latitude, longitude: position.coords.longitude }),
-            () => setText('nearby-status', 'Location permission was denied or unavailable. Use manual search.'),
+            () => setText(statusId, 'Location permission was denied or unavailable. Use manual search.'),
             { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }
         );
     };
     document.getElementById('nearby-location').addEventListener('click', () => {
         setText('nearby-status', 'Requesting location permission after your action…');
-        getBrowserLocation(coords => postLocation('/market/nearby', coords, 'nearby-status', 'nearby-list', 'nearby'));
+        getBrowserLocation(coords => postLocation('/market/nearby', coords, 'nearby-status', 'nearby-list', 'nearby'), 'nearby-status');
     });
     document.getElementById('nearby-search').addEventListener('submit', event => {
         event.preventDefault();
@@ -232,7 +233,7 @@
     });
     document.getElementById('weather-location').addEventListener('click', () => {
         setText('weather-result', 'Requesting location permission after your action…');
-        getBrowserLocation(coords => postLocation('/market/weather', coords, 'weather-result', 'weather-result', 'weather'));
+        getBrowserLocation(coords => postLocation('/market/weather', coords, 'weather-result', 'weather-result', 'weather'), 'weather-result');
     });
     document.getElementById('weather-search').addEventListener('submit', event => {
         event.preventDefault();
