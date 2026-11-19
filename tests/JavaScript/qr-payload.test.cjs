@@ -17,6 +17,7 @@ test('empty, oversized, control-character and credential-like payloads are rejec
     assert.equal(validatePayload('x'.repeat(MAX_BYTES + 1), true).valid, false);
     assert.equal(validatePayload('Line\u0000break', true).valid, false);
     assert.equal(validatePayload('password=correct-horse-battery-staple', true).valid, false);
+    assert.equal(validatePayload('My PIN is 1234', true).valid, false);
     assert.equal(validatePayload('-----BEGIN PRIVATE KEY-----abc', true).valid, false);
 });
 
@@ -35,6 +36,7 @@ test('public HTTP and HTTPS links are accepted and unsafe URLs are rejected', ()
     assert.equal(buildPayload('url', { url: 'javascript:alert(1)' }, true).valid, false);
     assert.equal(buildPayload('url', { url: 'https://user:pass@example.test' }, true).valid, false);
     assert.equal(buildPayload('url', { url: 'https://example.test/?access_token=abc' }, true).valid, false);
+    assert.equal(buildPayload('url', { url: 'https://example.test/?token=abc' }, true).valid, false);
     assert.equal(buildPayload('url', { url: 'https://example.test/?session-id=abc' }, true).valid, false);
 });
 
