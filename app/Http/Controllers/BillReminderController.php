@@ -92,6 +92,7 @@ class BillReminderController extends Controller
     public function destroy(Request $request, int $reminder): RedirectResponse
     {
         $data = $request->validate(['lock_version' => ['required', 'integer', 'min:0']]);
+        $request->user()->billReminders()->whereKey($reminder)->firstOrFail();
         $deleted = $request->user()->billReminders()->whereKey($reminder)
             ->where('lock_version', (int) $data['lock_version'])->delete();
 
