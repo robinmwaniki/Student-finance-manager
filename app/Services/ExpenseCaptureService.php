@@ -37,7 +37,6 @@ class ExpenseCaptureService
             abort_unless($draft->status === 'pending', 409, 'This capture draft is no longer awaiting confirmation.');
             abort_if($draft->expires_at !== null && $draft->expires_at->isPast(), 410, 'This capture draft has expired. Capture the details again.');
             abort_unless($draft->lock_version === $expectedVersion, 409, 'This draft changed. Refresh it before confirming.');
-            abort_if($draft->expires_at !== null && $draft->expires_at->isPast(), 410, 'This capture draft has expired.');
 
             $expense = $user->expenses()->firstOrCreate(
                 ['submission_token' => $draft->submission_token],
