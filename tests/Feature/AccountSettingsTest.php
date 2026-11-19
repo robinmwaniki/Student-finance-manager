@@ -47,7 +47,7 @@ class AccountSettingsTest extends TestCase
             ->assertSessionHasErrors('avatar');
 
         $this->assertNull($user->fresh()->avatar);
-        Storage::disk('public')->assertDirectoryEmpty('avatars');
+        $this->assertSame([], Storage::disk('public')->allFiles('avatars'));
     }
 
     public function test_profile_validation_rejects_invalid_name_without_changing_email(): void
