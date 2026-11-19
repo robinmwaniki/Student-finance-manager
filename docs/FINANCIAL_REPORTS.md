@@ -1,10 +1,10 @@
 # Financial reports and exports
 
-The authenticated Reports page supports inclusive custom date ranges up to 366 days and filters for all data, income, expenses, savings, or budget limits. Every query is built from the authenticated user's Eloquent relationships.
+The authenticated Reports page supports inclusive custom date ranges up to 366 days and filters for all data, income, expenses, savings, or budget limits, plus an optional expense-category filter. Every query is built from the authenticated user's Eloquent relationships.
 
 ## Exports
 - CSV includes a UTF-8 BOM. Text cells beginning with spreadsheet formula markers (=, +, @, or - after leading whitespace/control characters) are prefixed with an apostrophe.
-- PDF includes a financial summary and transaction/budget rows, split across pages by a dependency-free PDF renderer.
+- PDF includes a financial summary and transaction/budget rows, split across pages with page numbering by a dependency-free PDF renderer.
 - Downloads are returned with private/no-store headers; no report contents are persisted to temporary files or written to logs.
 
 ## Email
