@@ -33,7 +33,7 @@ class MpesaSmsParser
         }
 
         $amount = (float) str_replace(',', '', $amountMatch[1]);
-        if ($amount <= 0) {
+        if ($amount <= 0 || $amount > 999999999999) {
             return null;
         }
 
