@@ -19,7 +19,14 @@ class BillReminderController extends Controller
             ->orderByRaw("CASE WHEN status = 'active' THEN 0 WHEN status = 'paused' THEN 1 ELSE 2 END")
             ->orderBy('due_date')->paginate(15);
 
-        return view('finance.reminders.index', ['reminders' => $reminders]);
+        return view('finance.reminders.index', [
+            'reminders' => $reminders,
+            'summary' => [
+                'active' => $request->user()->billReminders()->where('status', 'active')->count(),
+                'paused' => $request->user()->billReminders()->where('status', 'paused')->count(),
+                'completed' => $request->user()->billReminders()->where('status', 'completed')->count(),
+            ],
+        ]);
     }
 
     public function store(Request $request): RedirectResponse
