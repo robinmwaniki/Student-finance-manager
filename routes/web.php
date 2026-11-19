@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DebtController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\IncomeController;
 use App\Http\Controllers\SavingsController;
@@ -41,4 +42,8 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/savings/goals', [SavingsController::class, 'storeGoal'])->name('savings.goals.store');
     Route::put('/savings/goals/{goal}', [SavingsController::class, 'updateGoal'])->whereNumber('goal')->name('savings.goals.update');
     Route::delete('/savings/goals/{goal}', [SavingsController::class, 'destroyGoal'])->whereNumber('goal')->name('savings.goals.destroy');
+    Route::get('/debts', [DebtController::class, 'index'])->name('debts.index');
+    Route::post('/debts', [DebtController::class, 'store'])->name('debts.store');
+    Route::put('/debts/{debt}', [DebtController::class, 'update'])->whereNumber('debt')->name('debts.update');
+    Route::delete('/debts/{debt}', [DebtController::class, 'destroy'])->whereNumber('debt')->name('debts.destroy');
 });
