@@ -69,3 +69,62 @@ test('payment references reject invalid merchant codes, references and amounts',
 test('unknown content types are rejected', () => {
     assert.equal(buildPayload('credential', { text: 'secret' }, true).valid, false);
 });
+
+test('browser generator renders a QR preview and exposes a local image download', () => {
+    const fs = require('node:fs');
+    const path = require('node:path');
+    const vm = require('node:vm');
+    const source = fs.readFileSync(path.join(__dirname, '../../public/js/qr-generator.js'), 'utf8');
+    const ids = [
+        'qr-generator-form', 'qr-content-type', 'qr-safe-confirmation', 'qr-error-level',
+        'qr-status', 'qr-preview', 'qr-preview-panel', 'qr-preview-empty', 'qr-download',
+        'qr-byte-count', 'qr-text', 'qr-url', 'qr-payment-method', 'qr-payment-code',
+        'qr-payment-reference', 'qr-payment-amount',
+    ];
+    const elements = Object.fromEntries(ids.map(id => [id, {
+        id,
+        value: id === 'qr-content-type' ? 'text' : id === 'qr-error-level' ? 'M' : id === 'qr-text' ? 'Browser-local QR payload' : '',
+        checked: id === 'qr-safe-confirmation',
+        hidden: false,
+        dataset: {},
+        listeners: {},
+        textContent: '',
+        addEventListener(name, callback) { this.listeners[name] = callback; },
+        removeAttribute(name) { delete this[name]; },
+    }]));
+    const panels = ['text', 'url', 'payment'].map(name => ({ dataset: { qrPanel: name }, hidden: false }));
+    let encodedPayload = null;
+    let made = false;
+    const document = {
+        getElementById(id) { return elements[id]; },
+        querySelectorAll() { return panels; },
+    };
+    const window = {
+        QrPayload: require('../../public/js/qr-payload.js'),
+        qrcode(type, level) {
+            assert.equal(type, 0);
+            assert.equal(level, 'M');
+            return {
+                addData(value) { encodedPayload = value; },
+                make() { made = true; },
+                createDataURL() { return 'data:image/gif;base64,QUJD'; },
+            };
+        },
+        setTimeout(callback) { callback(); },
+    };
+
+    vm.runInNewContext(source, { document, window, console });
+    let prevented = false;
+    elements['qr-generator-form'].listeners.submit({ preventDefault() { prevented = true; } });
+
+    assert.equal(prevented, true);
+    assert.equal(encodedPayload, 'Browser-local QR payload');
+    assert.equal(made, true);
+    assert.equal(elements['qr-preview-panel'].hidden, false);
+    assert.equal(elements['qr-preview-empty'].hidden, true);
+    assert.equal(elements['qr-preview'].src, 'data:image/gif;base64,QUJD');
+    assert.equal(elements['qr-download'].href, 'data:image/gif;base64,QUJD');
+    assert.equal(elements['qr-download'].download, 'student-finance-qr-code.gif');
+    assert.equal(elements['qr-download'].hidden, false);
+    assert.match(elements['qr-byte-count'].textContent, /UTF-8 bytes/);
+});
