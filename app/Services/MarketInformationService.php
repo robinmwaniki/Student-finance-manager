@@ -347,7 +347,7 @@ class MarketInformationService
             }
             $distance = $this->distanceKm($latitude, $longitude, (float) $lat, (float) $lon);
             $places[] = [
-                'name' => $this->safeText((string) ($tags['name'] ?? ($tags['amenity'] === 'atm' ? 'ATM' : 'Bank')), 100),
+                'name' => $this->safeText((string) ($tags['name'] ?? (($tags['amenity'] ?? '') === 'atm' ? 'ATM' : 'Bank')), 100),
                 'type' => ($tags['amenity'] ?? '') === 'atm' ? 'ATM' : 'Bank',
                 'distance_km' => round($distance, 2),
                 'address' => $this->safeText(implode(', ', array_filter([
