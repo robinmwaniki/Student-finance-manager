@@ -127,7 +127,7 @@ class ExpenseCaptureWorkflowTest extends TestCase
         $user = $this->makeUser();
 
         $this->actingAs($user)->post(route('expense-capture.receipt'), [
-            'receipt' => UploadedFile::fake()->image('receipt.png'),
+            'receipt' => $this->fakeReceipt(),
         ])->assertSessionHasErrors('consent');
 
         $this->actingAs($user)->post(route('expense-capture.receipt'), [
@@ -221,6 +221,13 @@ class ExpenseCaptureWorkflowTest extends TestCase
         $this->call('POST', '/api/expense-capture/mpesa-webhook', [], [], [], $headers, $body)
             ->assertStatus(202)
             ->assertJson(['accepted' => true, 'duplicate' => false]);
+    }
+
+    private function fakeReceipt(): UploadedFile
+    {
+        $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/r1sAAAAASUVORK5CYII=');
+
+        return UploadedFile::fake()->createWithContent('receipt.png', $png);
     }
 
     private function makeUser(string $email = 'capture@example.test'): User
