@@ -41,7 +41,7 @@ if [[ "${DB_CONNECTION:-pgsql}" == "pgsql" ]]; then
     echo "Waiting for PostgreSQL connectivity..."
     connected=false
     for attempt in $(seq 1 30); do
-        if php -r 'require "vendor/autoload.php"; $app = require "bootstrap/app.php"; $app->make(Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap(); Illuminate\\Support\\Facades\\DB::connection()->getPdo();' >/dev/null 2>&1; then
+        if php -r 'require "vendor/autoload.php"; $app = require "bootstrap/app.php"; $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap(); Illuminate\Support\Facades\DB::connection()->getPdo();' >/dev/null 2>&1; then
             connected=true
             break
         fi
