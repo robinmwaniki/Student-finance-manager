@@ -9,7 +9,7 @@
     'use strict';
 
     const MAX_BYTES = 1000;
-    const sensitiveField = /\\b(?:password|passwd|passcode|pin|otp|one[-_ ]time[-_ ]password|secret|token|api[_-]?key|access[_-]?token|refresh[_-]?token|session(?:[_-]?(?:id|token))?|private[_-]?key|authorization|account[_-]?number|card[_-]?number|cvv|cvc)\\b\\s*(?:[:=]|\\bis\\b)\\s*\\S+/i;
+    const sensitiveField = /\b(?:password|passwd|passcode|pin|otp|one[-_ ]time[-_ ]password|secret|token|api[_-]?key|access[_-]?token|refresh[_-]?token|session(?:[_-]?(?:id|token))?|private[_-]?key|authorization|account[_-]?number|card[_-]?number|cvv|cvc)\b\s*(?:[:=]|\bis\b)\s*\S+/i;
     const sensitiveQueryKeys = new Set([
         'password', 'passwd', 'passcode', 'pin', 'otp', 'secret', 'token', 'auth',
         'api_key', 'apikey', 'access_token', 'refresh_token',
