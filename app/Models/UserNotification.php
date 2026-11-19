@@ -11,11 +11,11 @@ class UserNotification extends Model
 
     public $timestamps = false;
 
-    protected $fillable = ['user_id', 'message', 'status', 'type', 'created_at'];
+    protected $fillable = ['user_id', 'message', 'status', 'type', 'created_at', 'deduplication_key', 'read_at'];
 
     protected function casts(): array
     {
-        return ['created_at' => 'datetime'];
+        return ['created_at' => 'datetime', 'read_at' => 'datetime'];
     }
 
     public function user(): BelongsTo
