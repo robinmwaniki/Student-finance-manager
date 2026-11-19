@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\RecurringTransaction;
 use App\Services\RecurringTransactionProcessor;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
