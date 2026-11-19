@@ -36,7 +36,7 @@ class JournalController extends Controller
         ]);
 
         try {
-            $request->user()->journalEntries()->create($data);
+            DB::transaction(fn () => $request->user()->journalEntries()->create($data));
         } catch (QueryException $exception) {
             if ($exception->getCode() !== '23505') {
                 throw $exception;
@@ -63,8 +63,8 @@ class JournalController extends Controller
         unset($data['lock_version']);
 
         try {
-            $updated = $user->journalEntries()->whereKey($entry)->where('lock_version', $version)
-                ->update([...$data, 'lock_version' => DB::raw('lock_version + 1')]);
+            $updated = DB::transaction(fn () => $user->journalEntries()->whereKey($entry)->where('lock_version', $version)
+                ->update([...$data, 'lock_version' => DB::raw('lock_version + 1')]));
         } catch (QueryException $exception) {
             if ($exception->getCode() !== '23505') {
                 throw $exception;
