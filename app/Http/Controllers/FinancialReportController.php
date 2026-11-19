@@ -17,7 +17,8 @@ class FinancialReportController extends Controller
     public function __construct(
         private readonly FinancialReportService $reports,
         private readonly SimplePdfReport $pdf,
-    ) {
+    )
+    {
     }
 
     public function index(Request $request): View
