@@ -19,6 +19,7 @@ RUN apt-get update \
         mbstring \
         opcache \
         pdo_pgsql \
+    && cp "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini" \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
