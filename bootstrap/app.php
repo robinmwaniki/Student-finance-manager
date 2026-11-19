@@ -16,6 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Add a safe correlation ID to every response and request log context.
         $middleware->append(RequestCorrelationId::class);
         $middleware->validateCsrfTokens(except: ['api/expense-capture/mpesa-webhook']);
+        $middleware->validateCsrfTokens(except: ['api/expense-capture/mpesa-webhook']);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Sentry is inert when SENTRY_LARAVEL_DSN is not configured.
