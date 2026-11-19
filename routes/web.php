@@ -71,13 +71,13 @@ Route::middleware('auth')->group(function (): void {
     Route::put('/income/{income}', [IncomeController::class, 'update'])->whereNumber('income')->name('income.update');
     Route::delete('/income/{income}', [IncomeController::class, 'destroy'])->whereNumber('income')->name('income.destroy');
     Route::get('/expenses/capture', [ExpenseCaptureController::class, 'index'])->name('expense-capture.index');
-    Route::post('/expenses/capture/mpesa', [ExpenseCaptureController::class, 'mpesa'])->name('expense-capture.mpesa');
+    Route::post('/expenses/capture/mpesa', [ExpenseCaptureController::class, 'mpesa'])->middleware('throttle:10,1')->name('expense-capture.mpesa');
     Route::post('/expenses/capture/receipt', [ExpenseCaptureController::class, 'receipt'])->middleware('throttle:5,1')->name('expense-capture.receipt');
-    Route::post('/expenses/capture/voice', [ExpenseCaptureController::class, 'voice'])->name('expense-capture.voice');
+    Route::post('/expenses/capture/voice', [ExpenseCaptureController::class, 'voice'])->middleware('throttle:10,1')->name('expense-capture.voice');
     Route::post('/expenses/capture/barcode', [ExpenseCaptureController::class, 'barcode'])->middleware('throttle:10,1')->name('expense-capture.barcode');
     Route::post('/expenses/capture/drafts/{draft}/confirm', [ExpenseCaptureController::class, 'confirm'])->whereNumber('draft')->name('expense-capture.confirm');
     Route::delete('/expenses/capture/drafts/{draft}', [ExpenseCaptureController::class, 'discard'])->whereNumber('draft')->name('expense-capture.discard');
-    Route::post('/expenses/capture/webhook/rotate', [ExpenseCaptureController::class, 'rotateWebhook'])->name('expense-capture.webhook.rotate');
+    Route::post('/expenses/capture/webhook/rotate', [ExpenseCaptureController::class, 'rotateWebhook'])->middleware('throttle:3,1')->name('expense-capture.webhook.rotate');
     Route::get('/expenses', [ExpenseController::class, 'index'])->name('expenses.index');
     Route::post('/expenses', [ExpenseController::class, 'store'])->name('expenses.store');
     Route::put('/expenses/{expense}', [ExpenseController::class, 'update'])->whereNumber('expense')->name('expenses.update');
