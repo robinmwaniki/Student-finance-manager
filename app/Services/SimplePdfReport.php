@@ -11,6 +11,7 @@ class SimplePdfReport
      */
     public function render(array $lines): string
     {
+        $newline = chr(10);
         $pages = array_chunk($lines, 48);
 
         if ($pages === []) {
@@ -27,14 +28,15 @@ class SimplePdfReport
             $pageId = $nextId++;
             $contentId = $nextId++;
             $pageIds[] = $pageId.' 0 R';
-            $stream = "BT\n/F1 10 Tf\n50 790 Td\n14 TL\n";
+            $stream = 'BT'.$newline.'/F1 10 Tf'.$newline.'50 790 Td'.$newline.'14 TL'.$newline;
 
             foreach ($pageLines as $line) {
-                $stream .= '('.$this->escapeText($line).") Tj\nT*\n";
+                $stream .= '('.$this->escapeText($line).') Tj'.$newline.'T*'.$newline;
             }
 
-            $stream .= "ET\nBT\n/F1 8 Tf\n500 25 Td\n(Page ".($pageIndex + 1).' of '.count($pages).") Tj\nET\n";
-            $objects[$contentId] = '<< /Length '.strlen($stream)." >>\nstream\n".$stream."endstream";
+            $stream .= 'ET'.$newline.'BT'.$newline.'/F1 8 Tf'.$newline.'500 25 Td'.$newline
+                .'(Page '.($pageIndex + 1).' of '.count($pages).') Tj'.$newline.'ET'.$newline;
+            $objects[$contentId] = '<< /Length '.strlen($stream)." >>".$newline.'stream'.$newline.$stream.'endstream';
             $objects[$pageId] = '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 '.$fontId.' 0 R >> >> /Contents '.$contentId.' 0 R >>';
         }
 
@@ -42,23 +44,23 @@ class SimplePdfReport
         $objects[$fontId] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>';
         ksort($objects);
 
-        $pdf = "%PDF-1.4\n";
+        $pdf = '%PDF-1.4'.$newline;
         $offsets = [0];
 
         foreach ($objects as $id => $object) {
             $offsets[$id] = strlen($pdf);
-            $pdf .= $id." 0 obj\n".$object."\nendobj\n";
+            $pdf .= $id.' 0 obj'.$newline.$object.$newline.'endobj'.$newline;
         }
 
         $xref = strlen($pdf);
         $count = max(array_keys($objects)) + 1;
-        $pdf .= "xref\n0 ".$count."\n0000000000 65535 f \n";
+        $pdf .= 'xref'.$newline.'0 '.$count.$newline.'0000000000 65535 f '.$newline;
 
         for ($id = 1; $id < $count; $id++) {
-            $pdf .= sprintf("%010d 00000 n \n", $offsets[$id] ?? 0);
+            $pdf .= sprintf('%010d 00000 n '.$newline, $offsets[$id] ?? 0);
         }
 
-        return $pdf."trailer\n<< /Size ".$count." /Root 1 0 R >>\nstartxref\n".$xref."\n%%EOF";
+        return $pdf.'trailer'.$newline.'<< /Size '.$count.' /Root 1 0 R >>'.$newline.'startxref'.$newline.$xref.$newline.'%%EOF';
     }
 
     private function escapeText(string $value): string
