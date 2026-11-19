@@ -19,6 +19,7 @@ use App\Http\Controllers\IncomeController;
 use App\Http\Controllers\MarketInformationController;
 use App\Http\Controllers\JournalController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\PublicInformationController;
 use App\Http\Controllers\RecurringTransactionController;
 use App\Http\Controllers\SavingsController;
 use Illuminate\Support\Facades\Route;
@@ -52,6 +53,9 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/market/weather', [MarketInformationController::class, 'weather'])->middleware('throttle:10,1')->name('market.weather');
     Route::post('/market/purchasing-power', [MarketInformationController::class, 'purchasingPower'])->middleware('throttle:10,1')->name('market.purchasing-power');
     Route::get('/tools', [FinancialToolsController::class, 'index'])->name('tools.index');
+    Route::get('/information', [PublicInformationController::class, 'index'])->name('information.index');
+    Route::get('/information/weather', [PublicInformationController::class, 'weather'])->middleware('throttle:20,1')->name('information.weather');
+    Route::get('/information/nearby', [PublicInformationController::class, 'nearby'])->middleware('throttle:10,1')->name('information.nearby');
     Route::post('/tools/loan', [FinancialToolsController::class, 'loan'])->middleware('throttle:20,1')->name('tools.loan');
     Route::post('/tools/split', [FinancialToolsController::class, 'split'])->middleware('throttle:20,1')->name('tools.split');
     Route::post('/tools/currency', [FinancialToolsController::class, 'currency'])->middleware('throttle:20,1')->name('tools.currency');
