@@ -65,11 +65,16 @@ class ExpenseController extends Controller
         }
 
         $convertedAmount = round($originalAmount * $quote['rate'], 2);
+        if ($convertedAmount > 999999999999.99) {
+            return back()->withErrors(['amount' => 'The converted KES amount exceeds the maximum supported expense value.']);
+        }
         $data['amount'] = $convertedAmount;
         $data['original_amount'] = $originalAmount;
         $data['original_currency'] = $originalCurrency;
         $data['exchange_rate'] = $quote['rate'];
         $data['converted_amount'] = $convertedAmount;
+        $data['exchange_rate_updated_at'] = $quote['updated_at'];
+        $data['exchange_rate_source'] = $quote['source'];
 
         $request->user()->expenses()->firstOrCreate(['submission_token' => $token], $data);
 
@@ -98,6 +103,8 @@ class ExpenseController extends Controller
         $data['original_currency'] = 'KES';
         $data['exchange_rate'] = 1;
         $data['converted_amount'] = $data['amount'];
+        $data['exchange_rate_updated_at'] = now();
+        $data['exchange_rate_source'] = 'Same currency';
 
         $updated = $request->user()->expenses()
             ->whereKey($expense)
