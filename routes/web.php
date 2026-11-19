@@ -9,6 +9,7 @@ use App\Http\Controllers\BudgetController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DebtController;
 use App\Http\Controllers\ExpenseController;
+use App\Http\Controllers\FinancialAssistantController;
 use App\Http\Controllers\FinancialLearningController;
 use App\Http\Controllers\FinancialReportController;
 use App\Http\Controllers\IncomeController;
@@ -33,6 +34,8 @@ Route::middleware('guest')->group(function (): void {
 
 Route::middleware('auth')->group(function (): void {
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
+    Route::get('/assistant', [FinancialAssistantController::class, 'index'])->name('assistant.index');
+    Route::post('/assistant', [FinancialAssistantController::class, 'ask'])->middleware('throttle:10,1')->name('assistant.ask');
     Route::get('/learning', [FinancialLearningController::class, 'index'])->name('learning.index');
     Route::post('/learning/quiz', [FinancialLearningController::class, 'submit'])->middleware('throttle:5,1')->name('learning.quiz.submit');
     Route::get('/reports', [FinancialReportController::class, 'index'])->name('reports.index');
