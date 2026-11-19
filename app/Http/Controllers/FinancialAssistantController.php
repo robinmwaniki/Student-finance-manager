@@ -26,7 +26,7 @@ class FinancialAssistantController extends Controller
             'include_financial_summary' => ['sometimes', 'boolean'],
         ]);
 
-        $result = $assistant->ask(
+        RateLimiter::hit($rateLimitKey, 60);\n\n        $result = $assistant->ask(
             $request->user(),
             $data['question'],
             $request->boolean('include_financial_summary'),
