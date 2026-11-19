@@ -122,6 +122,15 @@ class DebtWorkflowTest extends TestCase
             'due_date' => null,
             'status' => 'pending',
         ])->assertStatus(422);
+
+        $this->actingAs($user)->put(route('debts.update', $debt), [
+            'lock_version' => 1,
+            'description' => 'Corrected label',
+            'amount' => '1300.00',
+            'type' => 'borrowed',
+            'due_date' => null,
+            'status' => 'paid',
+        ])->assertStatus(422);
     }
 
     public function test_user_cannot_access_or_modify_another_users_debt(): void
