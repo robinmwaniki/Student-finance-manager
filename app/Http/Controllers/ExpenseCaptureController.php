@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\BarcodeLookupService;
+use App\Services\BarcodeLookupService;
 use App\Services\ExpenseCaptureService;
 use App\Services\MpesaSmsParser;
 use App\Services\ReceiptOcrService;
