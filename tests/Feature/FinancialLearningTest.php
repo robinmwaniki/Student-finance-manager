@@ -168,7 +168,6 @@ class FinancialLearningTest extends TestCase
             ->assertRedirect(route('login'));
     }
 
-
     public function test_quiz_and_streak_achievement_thresholds_award_bonus_points_once(): void
     {
         $user = $this->makeUser();
