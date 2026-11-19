@@ -1,0 +1,41 @@
+# Secrets and local environment
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+
+# Version control and editor state
+.git
+.github
+.idea
+.vscode
+.DS_Store
+
+# Dependencies are installed inside the image
+/vendor
+/node_modules
+
+# Local runtime data, logs and generated caches
+/storage/app
+/storage/logs
+/storage/framework/cache
+/storage/framework/sessions
+/storage/framework/views
+/bootstrap/cache/*
+/public/storage
+
+# Legacy application and possible local database exports/data
+/student_finance
+
+# Tests and developer-only files are not needed in the runtime image
+/tests
+/phpunit.xml
+/pint.json
+/.phpunit.cache
+/.phpunit.result.cache
+
+# Documentation does not need to ship with the runtime image
+/docs
+/README.md

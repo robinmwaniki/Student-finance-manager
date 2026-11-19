@@ -13,6 +13,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Trust the Render reverse proxy so Laravel detects HTTPS and the public host.
+        // The container is exposed through Render's managed proxy, not directly to clients.
+        $middleware->trustProxies(at: '*');
+
         // Add a safe correlation ID to every response and request log context.
         $middleware->append(RequestCorrelationId::class);
         $middleware->validateCsrfTokens(except: ['api/expense-capture/mpesa-webhook']);

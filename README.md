@@ -101,7 +101,7 @@ Do not create new feature work from the old `feature/laravel-13-postgresql-migra
 
 This repository does **not** currently establish a verified production host. The GitHub Pages homepage setting is not a deployment target for this application: GitHub Pages serves static files and cannot run Laravel/PHP, scheduled jobs, queue workers or PostgreSQL.
 
-Use a PHP-capable application host and a managed or separately provisioned PostgreSQL database. Follow [docs/PRODUCTION-DEPLOYMENT.md](docs/PRODUCTION-DEPLOYMENT.md) for the deployment checklist, required environment configuration, scheduler/queue operation, backup and restore guidance, and post-deployment smoke tests.
+Use a PHP-capable application host and a managed or separately provisioned PostgreSQL database. Follow [docs/PRODUCTION-DEPLOYMENT.md](docs/PRODUCTION-DEPLOYMENT.md) for the deployment checklist, required environment configuration, scheduler/queue operation, backup and restore guidance, and post-deployment smoke tests. For the disposable Render staging setup, see [docs/RENDER-STAGING.md](docs/RENDER-STAGING.md).
 
 Do not describe the application as live until a real deployment has been configured and the smoke tests have been completed.
 

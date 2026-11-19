@@ -17,6 +17,8 @@ GitHub Pages cannot host this stack. It serves static assets and does not execut
 
 For a multi-instance deployment, do not rely on local file sessions, file cache or local upload storage shared only by one instance. Configure shared services/storage and verify session, cache and file behavior before scaling out.
 
+For the repository's isolated Render staging Blueprint, follow [RENDER-STAGING.md](RENDER-STAGING.md). It is intentionally configured for temporary test use and must not be reused as a production configuration.
+
 ## 2. Prepare the database
 
 1. Provision a dedicated PostgreSQL database and least-privilege application user.
