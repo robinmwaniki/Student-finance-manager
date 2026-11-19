@@ -129,7 +129,7 @@ jobs:
           else
             printf 'Checking %s changed PHP file(s) with Pint.\n' "${#PHP_FILES[@]}"
             vendor/bin/pint --test "${PHP_FILES[@]}"
+          fi
 
       - name: Build Render staging Docker image
         run: docker build --pull --tag student-finance-manager:ci .
-          fi
