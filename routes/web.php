@@ -32,6 +32,8 @@ Route::middleware('guest')->group(function (): void {
 
 Route::middleware('auth')->group(function (): void {
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
+    Route::get('/learning', [FinancialLearningController::class, 'index'])->name('learning.index');
+    Route::post('/learning/quiz', [FinancialLearningController::class, 'submit'])->middleware('throttle:5,1')->name('learning.quiz.submit');
     Route::get('/reports', [FinancialReportController::class, 'index'])->name('reports.index');
     Route::get('/reports/export.csv', [FinancialReportController::class, 'csv'])->middleware('throttle:20,1')->name('reports.csv');
     Route::get('/reports/export.pdf', [FinancialReportController::class, 'pdf'])->middleware('throttle:10,1')->name('reports.pdf');
