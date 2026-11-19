@@ -23,6 +23,25 @@ class FinancialReportsTest extends TestCase
             ->assertViewHas('netBalance',33000.0)->assertSee('Salary')->assertDontSee('Private salary')->assertDontSee('Outside period');
     }
 
+
+    public function test_category_filter_limits_expenses_without_changing_income_totals(): void
+    {
+        $user = $this->makeUser();
+        $user->income()->create(['source' => 'Salary', 'amount' => '1000.00', 'transaction_date' => '2026-11-05']);
+        $user->expenses()->create(['category' => 'Food', 'amount' => '200.00', 'transaction_date' => '2026-11-06']);
+        $user->expenses()->create(['category' => 'Transport', 'amount' => '100.00', 'transaction_date' => '2026-11-07']);
+
+        $this->actingAs($user)->get(route('reports.index', [
+            'start_date' => '2026-11-01',
+            'end_date' => '2026-11-19',
+            'category' => 'Food',
+        ]))->assertOk()
+            ->assertViewHas('incomeTotal', 1000.0)
+            ->assertViewHas('expenseTotal', 200.0)
+            ->assertSee('Food')
+            ->assertDontSee('Transport');
+    }
+
     public function test_csv_export_escapes_formula_leading_cells(): void
     {
         $user=$this->makeUser();$user->income()->create(['source'=>'=HYPERLINK("https://bad.test")','amount'=>'10.00','transaction_date'=>'2026-11-05']);
