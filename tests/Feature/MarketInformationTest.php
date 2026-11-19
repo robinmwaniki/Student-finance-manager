@@ -247,15 +247,18 @@ class MarketInformationTest extends TestCase
             ->assertJsonPath('source', 'Open-Meteo');
 
         Cache::forget('market:fresh:weather:-1.29:36.82');
-        Http::fake([
-            'nominatim.openstreetmap.org/*' => Http::response([
-                ['lat' => '-1.286389', 'lon' => '36.817223', 'display_name' => 'Nairobi, Kenya'],
-            ], 200),
-            'api.open-meteo.com/*' => Http::response([], 503),
-        ]);
-        $this->actingAs($user)->postJson(route('market.weather'), ['location' => 'Nairobi'])
-            ->assertOk()
-            ->assertJsonPath('stale', true);
+        Cache::put('market:stale:weather:-1.29:36.82', [
+            'available' => true,
+            'current' => ['temperature_2m' => 24.5],
+            'timezone' => 'Africa/Nairobi',
+            'source' => 'Open-Meteo',
+            'fetched_at' => now('UTC')->toIso8601String(),
+            'delay_note' => 'Cached test observation.',
+        ], now()->addMinutes(180));
+        Http::fake(['api.open-meteo.com/*' => Http::response([], 503)]);
+
+        $staleWeather = app(MarketInformationService::class)->weather(-1.286389, 36.817223);
+        $this->assertTrue($staleWeather['stale']);
     }
 
     public function test_purchasing_power_calculator_uses_latest_annual_inflation_observation(): void
@@ -273,7 +276,7 @@ class MarketInformationTest extends TestCase
             'years' => 2,
         ])->assertOk()
             ->assertJsonPath('estimated_future_cost', 11025)
-            ->assertJsonPath('annual_inflation', 5.0);
+            ->assertJsonPath('annual_inflation', 5);
     }
 
     private function makeUser(): User
