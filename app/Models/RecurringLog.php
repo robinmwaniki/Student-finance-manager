@@ -11,7 +11,7 @@ class RecurringLog extends Model
 
     public $timestamps = false;
 
-    protected $fillable = ['recurring_id', 'user_id', 'applied_month', 'applied_at'];
+    protected $fillable = ['recurring_id', 'user_id', 'applied_month', 'period_key', 'income_id', 'expense_id', 'applied_at'];
 
     protected function casts(): array
     {

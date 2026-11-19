@@ -122,7 +122,7 @@ class FinancialWriteIntegrityTest extends TestCase
         $user->budgets()->create($budget);
     }
 
-    public function test_database_rejects_duplicate_recurring_processing_for_the_same_month(): void
+    public function test_database_rejects_duplicate_recurring_processing_for_the_same_period(): void
     {
         $user = $this->makeUser();
         $recurring = $user->recurringTransactions()->create([
@@ -135,6 +135,7 @@ class FinancialWriteIntegrityTest extends TestCase
             'recurring_id' => $recurring->id,
             'user_id' => $user->id,
             'applied_month' => now()->format('Y-m'),
+            'period_key' => 'M:'.now()->format('Y-m'),
         ];
 
         RecurringLog::create($log);
