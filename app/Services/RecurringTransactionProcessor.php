@@ -53,7 +53,7 @@ class RecurringTransactionProcessor
                 ->lockForUpdate()
                 ->first();
 
-            if (!$schedule || !$schedule->active || $schedule->status !== 'active' || !$schedule->next_due) {
+            if (! $schedule || ! $schedule->active || $schedule->status !== 'active' || ! $schedule->next_due) {
                 return false;
             }
 
