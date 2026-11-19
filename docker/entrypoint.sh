@@ -9,6 +9,12 @@ fi
 
 # Render terminates TLS at its proxy. Use its public URL for generated links
 # and static assets when an explicit canonical URL has not been configured.
+# Render generateValue creates a 32-byte base64 key without Laravel's prefix.
+# Prefix only the 44-character generated value; preserve standard Laravel keys.
+if [[ -n "${APP_KEY:-}" && "${APP_KEY}" != base64:* && ${#APP_KEY} -eq 44 ]]; then
+    export APP_KEY="base64:${APP_KEY}"
+fi
+
 if [[ -z "${APP_URL:-}" && -n "${RENDER_EXTERNAL_URL:-}" ]]; then
     export APP_URL="$RENDER_EXTERNAL_URL"
 fi
@@ -54,6 +60,7 @@ if [[ "${RUN_MIGRATIONS:-false}" == "true" ]]; then
     php artisan migrate --force --no-interaction
 fi
 
+php artisan storage:link
 php artisan config:cache
 
 exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
