@@ -276,11 +276,11 @@ class MarketInformationTest extends TestCase
             ->assertJsonPath('annual_inflation', 5.0);
     }
 
-    private function makeUser(): \App\Models\User
+    private function makeUser(): User
     {
-        return \App\Models\User::create([
+        return User::create([
             'fullname' => 'Market Test User',
-            'email' => 'market-'.\Illuminate\Support\Str::uuid().'@example.test',
+            'email' => 'market-'.Str::uuid().'@example.test',
             'password' => 'StrongPassword123',
         ]);
     }
