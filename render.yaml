@@ -6,7 +6,7 @@ services:
     plan: free
     region: singapore
     branch: develop
-    autoDeploy: false
+    autoDeployTrigger: "off"
     dockerfilePath: ./Dockerfile
     healthCheckPath: /up
     envVars:
