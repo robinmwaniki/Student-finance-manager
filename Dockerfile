@@ -12,6 +12,7 @@ RUN apt-get update \
         libpq-dev \
         nginx \
         supervisor \
+        unzip \
     && docker-php-ext-install -j"$(nproc)" \
         bcmath \
         curl \
