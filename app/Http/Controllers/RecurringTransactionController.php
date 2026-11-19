@@ -14,7 +14,7 @@ class RecurringTransactionController extends Controller
 {
     public function index(Request $request): View
     {
-        $records = $request->user()->recurringTransactions()->withCount('logs')
+        $records = $request->user()->recurringTransactions()->withCount('logs')->withMax('logs', 'applied_at')
             ->orderByDesc('active')->orderBy('next_due')->paginate(15);
 
         return view('finance.recurring.index', ['records' => $records]);
