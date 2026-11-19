@@ -25,6 +25,7 @@
 <a class="nav-link {{ request()->routeIs('journal.*') ? 'active' : '' }}" href="{{ route('journal.index') }}"><span class="nav-icon">▤</span>Journal</a>
 <a class="nav-link {{ request()->routeIs('reports.*') ? 'active' : '' }}" href="{{ route('reports.index') }}"><span class="nav-icon">▤</span>Reports</a>
 <a class="nav-link {{ request()->routeIs('learning.*') ? 'active' : '' }}" href="{{ route('learning.index') }}"><span class="nav-icon">✦</span>Learning</a>
+<a class="nav-link {{ request()->routeIs('assistant.*') ? 'active' : '' }}" href="{{ route('assistant.index') }}"><span class="nav-icon">✧</span>AI Assistant</a>
 <a class="nav-link {{ request()->routeIs('notifications.*') ? 'active' : '' }}" href="{{ route('notifications.index') }}"><span class="nav-icon">♧</span>Notifications @php($unreadNavCount = auth()->user()->userNotifications()->where('status', 'unread')->count()) @if($unreadNavCount > 0)<span style="margin-left:auto;background:#e9efff;color:#344a75;border-radius:10px;padding:2px 6px;font-size:10px">{{ $unreadNavCount }}</span>@endif</a>
 </nav><div class="sidebar-bottom"><div class="user-chip">{{ auth()->user()->fullname }}<small>{{ auth()->user()->email }}</small></div><form method="POST" action="{{ route('logout') }}">@csrf<button class="btn btn-light" style="width:100%">Sign out</button></form></div></aside>
 @endauth
