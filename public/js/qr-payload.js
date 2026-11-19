@@ -62,6 +62,10 @@
             return { valid: false, error: 'Only public HTTP or HTTPS links without embedded usernames or passwords are allowed.' };
         }
 
+        if (sensitiveField.test(parsed.hash)) {
+            return { valid: false, error: 'Remove confidential token or credential fragments from the link.' };
+        }
+
         for (const key of parsed.searchParams.keys()) {
             if (sensitiveQueryKeys.has(key.toLowerCase().replaceAll('-', '_'))) {
                 return { valid: false, error: 'Remove password, token, session or credential parameters from the link.' };
@@ -72,6 +76,10 @@
     }
 
     function buildPaymentReference(fields) {
+        if (!['paybill', 'till'].includes(fields.method)) {
+            return { valid: false, error: 'Choose Paybill or Till as the payment reference type.' };
+        }
+
         const method = fields.method === 'till' ? 'Till' : 'Paybill';
         const code = String(fields.code || '').trim();
         const reference = String(fields.reference || '').trim();
