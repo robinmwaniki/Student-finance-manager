@@ -21,6 +21,9 @@
 <a class="nav-link {{ request()->routeIs('savings.*') ? 'active' : '' }}" href="{{ route('savings.index') }}"><span class="nav-icon">◎</span>Savings</a>
 <a class="nav-link {{ request()->routeIs('debts.*') ? 'active' : '' }}" href="{{ route('debts.index') }}"><span class="nav-icon">▤</span>Debts</a>
 <a class="nav-link {{ request()->routeIs('recurring.*') ? 'active' : '' }}" href="{{ route('recurring.index') }}"><span class="nav-icon">⟳</span>Recurring</a>
+<a class="nav-link {{ request()->routeIs('reminders.*') ? 'active' : '' }}" href="{{ route('reminders.index') }}"><span class="nav-icon">◷</span>Reminders</a>
+<a class="nav-link {{ request()->routeIs('journal.*') ? 'active' : '' }}" href="{{ route('journal.index') }}"><span class="nav-icon">▤</span>Journal</a>
+<a class="nav-link {{ request()->routeIs('notifications.*') ? 'active' : '' }}" href="{{ route('notifications.index') }}"><span class="nav-icon">♧</span>Notifications @php($unreadNavCount = auth()->user()->userNotifications()->where('status', 'unread')->count()) @if($unreadNavCount > 0)<span style="margin-left:auto;background:#e9efff;color:#344a75;border-radius:10px;padding:2px 6px;font-size:10px">{{ $unreadNavCount }}</span>@endif</a>
 </nav><div class="sidebar-bottom"><div class="user-chip">{{ auth()->user()->fullname }}<small>{{ auth()->user()->email }}</small></div><form method="POST" action="{{ route('logout') }}">@csrf<button class="btn btn-light" style="width:100%">Sign out</button></form></div></aside>
 @endauth
 <main class="{{ auth()->check() ? 'main' : '' }}">
