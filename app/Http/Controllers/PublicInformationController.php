@@ -17,12 +17,21 @@ class PublicInformationController extends Controller
     public function weather(Request $request, PublicInformationService $information): JsonResponse
     {
         $data = $request->validate([
-            'latitude' => ['required', 'numeric', 'between:-90,90'],
-            'longitude' => ['required', 'numeric', 'between:-180,180'],
+            'place' => ['nullable', 'string', 'min:2', 'max:120', 'required_without:latitude'],
+            'latitude' => ['nullable', 'numeric', 'between:-90,90', 'required_with:longitude'],
+            'longitude' => ['nullable', 'numeric', 'between:-180,180', 'required_with:latitude'],
         ]);
-        $weather = $information->weather((float) $data['latitude'], (float) $data['longitude']);
+        $location = filled($data['place'] ?? null)
+            ? $information->geocode($data['place'])
+            : ['name' => 'Your selected location', 'latitude' => (float) $data['latitude'], 'longitude' => (float) $data['longitude']];
 
-        return response()->json($weather ?? ['message' => 'Weather data is temporarily unavailable.'], $weather ? 200 : 503);
+        if (! $location) {
+            return response()->json(['message' => 'We could not find that location. Try a nearby town or landmark.'], 422);
+        }
+
+        $weather = $information->weather($location['latitude'], $location['longitude']);
+
+        return response()->json($weather ? [...$weather, 'location' => $location] : ['message' => 'Weather data is temporarily unavailable.'], $weather ? 200 : 503);
     }
 
     public function nearby(Request $request, PublicInformationService $information): JsonResponse
