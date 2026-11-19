@@ -19,7 +19,6 @@ class ExpenseCaptureController extends Controller
         return view('finance.expenses.capture', [
             'drafts' => $request->user()->expenseCaptureDrafts()
                 ->where('status', 'pending')
-                ->where('expires_at', '>', now(config('app.timezone')))
                 ->latest()
                 ->get(),
             'ocrAvailable' => $ocr->isConfigured(),
