@@ -191,6 +191,38 @@ class ExpenseCaptureWorkflowTest extends TestCase
             ->assertSee('Nothing enters your expense ledger until you review and confirm');
     }
 
+    public function test_webhook_rotation_keeps_previous_credentials_valid_for_the_grace_period(): void
+    {
+        $user = $this->makeUser();
+
+        $this->actingAs($user)->post(route('expense-capture.webhook.rotate'))->assertRedirect();
+        $previous = session('webhook_credentials');
+        $this->actingAs($user)->post(route('expense-capture.webhook.rotate'))->assertRedirect();
+
+        $credential = $user->expenseCaptureWebhookCredential()->firstOrFail();
+        $this->assertSame(hash('sha256', $previous['token']), $credential->previous_token_hash);
+        $this->assertTrue($credential->previous_expires_at->isFuture());
+
+        $payload = [
+            'event_id' => 'rotation-grace-event-001',
+            'sms' => 'QK12ABCDEF Confirmed. Ksh1,500.00 sent to JOHN DOE 0712345678 on 19/11/26 at 10:30 AM.',
+        ];
+        $body = json_encode($payload, JSON_UNESCAPED_SLASHES);
+        $timestamp = (string) now()->timestamp;
+        $signature = hash_hmac('sha256', $timestamp.'.'.$body, $previous['secret']);
+        $headers = [
+            'HTTP_AUTHORIZATION' => 'Bearer '.$previous['token'],
+            'HTTP_X_WEBHOOK_TIMESTAMP' => $timestamp,
+            'HTTP_X_WEBHOOK_SIGNATURE' => $signature,
+            'CONTENT_TYPE' => 'application/json',
+            'HTTP_ACCEPT' => 'application/json',
+        ];
+
+        $this->call('POST', '/api/expense-capture/mpesa-webhook', [], [], [], $headers, $body)
+            ->assertStatus(202)
+            ->assertJson(['accepted' => true, 'duplicate' => false]);
+    }
+
     private function makeUser(string $email = 'capture@example.test'): User
     {
         static $counter = 0;
