@@ -34,6 +34,17 @@
             <td><div style="display:flex;gap:6px;flex-wrap:wrap">
                 <form method="POST" action="{{ route('recurring.toggle', $record) }}">@csrf @method('PATCH')<button class="btn btn-small btn-light" type="submit">{{ $record->active ? 'Pause' : 'Resume' }}</button></form>
                 <form method="POST" action="{{ route('recurring.process') }}">@csrf<input type="hidden" name="recurring_id" value="{{ $record->id }}"><button class="btn btn-small" type="submit" {{ !$record->active ? 'disabled' : '' }}>Process</button></form>
+                @if($record->active)<details><summary style="cursor:pointer;color:#5365b5;font-weight:700">Edit</summary>
+                    <form method="POST" action="{{ route('recurring.update', $record) }}" style="min-width:230px;padding:10px 0">@csrf @method('PUT')
+                        <div class="field" style="margin-bottom:7px"><label>Name</label><input name="label" maxlength="150" value="{{ $record->label }}"></div>
+                        <div class="field" style="margin-bottom:7px"><label>Type</label><select name="type"><option value="income" @selected($record->type === 'income')>Income</option><option value="expense" @selected($record->type === 'expense')>Expense</option></select></div>
+                        <div class="field" style="margin-bottom:7px"><label>Category (expenses)</label><input name="category" maxlength="50" value="{{ $record->category }}"></div>
+                        <div class="field" style="margin-bottom:7px"><label>Amount</label><input name="amount" type="number" min="0.01" step="0.01" value="{{ $record->amount }}" required></div>
+                        <div class="field" style="margin-bottom:7px"><label>Frequency</label><select name="frequency"><option value="daily" @selected($record->frequency === 'daily')>Daily</option><option value="weekly" @selected($record->frequency === 'weekly')>Weekly</option><option value="monthly" @selected($record->frequency === 'monthly')>Monthly</option></select></div>
+                        <div class="field" style="margin-bottom:7px"><label>Next due</label><input name="next_due" type="date" value="{{ $record->next_due?->format('Y-m-d') }}" required></div>
+                        <div class="field" style="margin-bottom:7px"><label>Monthly day (1–31)</label><input name="day_of_month" type="number" min="1" max="31" value="{{ $record->day_of_month }}"></div>
+                        <button class="btn btn-small" type="submit">Save changes</button>
+                    </form></details>@endif
                 @if($record->logs_count === 0)<form method="POST" action="{{ route('recurring.destroy', $record) }}" onsubmit="return confirm('Delete this schedule?')">@csrf @method('DELETE')<button class="btn btn-small btn-danger" type="submit">Delete</button></form>@endif
             </div></td>
         </tr>
