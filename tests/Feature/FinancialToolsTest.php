@@ -2,12 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Models\User;
 use App\Services\BillSplitService;
 use App\Services\CurrencyRateService;
 use App\Services\LoanCalculatorService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class FinancialToolsTest extends TestCase
@@ -88,6 +90,69 @@ class FinancialToolsTest extends TestCase
         Http::fake(['*' => Http::response([], 503)]);
 
         $this->assertNull(app(CurrencyRateService::class)->quote('USD', 'KES'));
+    }
+
+    public function test_tools_page_displays_the_three_calculators(): void
+    {
+        $user = User::create([
+            'fullname' => 'Tools User',
+            'email' => 'tools-'.Str::uuid().'@example.test',
+            'password' => 'StrongPassword123',
+        ]);
+
+        $this->actingAs($user)->get(route('tools.index'))
+            ->assertOk()
+            ->assertSee('Loan and interest calculator')
+            ->assertSee('Split a bill')
+            ->assertSee('Currency converter');
+    }
+
+    public function test_calculator_routes_return_results_in_the_session(): void
+    {
+        $user = User::create([
+            'fullname' => 'Tools User',
+            'email' => 'tools-'.Str::uuid().'@example.test',
+            'password' => 'StrongPassword123',
+        ]);
+
+        $this->actingAs($user)->post(route('tools.loan'), [
+            'principal' => 100000,
+            'annual_rate' => 12,
+            'term_months' => 12,
+            'frequency' => 'monthly',
+        ])->assertRedirect()->assertSessionHas('loan_result');
+
+        $this->actingAs($user)->post(route('tools.split'), [
+            'subtotal' => 1000,
+            'participants' => 3,
+            'tip_percent' => 10,
+        ])->assertRedirect()->assertSessionHas('split_result');
+    }
+
+    public function test_currency_converter_route_returns_amount_and_rate_provenance(): void
+    {
+        Http::fake([
+            'open.er-api.com/*' => Http::response([
+                'result' => 'success',
+                'time_last_update_utc' => 'Thu, 19 Nov 2026 00:00:01 +0000',
+                'rates' => ['KES' => 130, 'USD' => 1],
+            ], 200),
+        ]);
+        $user = User::create([
+            'fullname' => 'Tools User',
+            'email' => 'tools-'.Str::uuid().'@example.test',
+            'password' => 'StrongPassword123',
+        ]);
+
+        $this->actingAs($user)->post(route('tools.currency'), [
+            'amount' => '2.50',
+            'from' => 'USD',
+            'to' => 'KES',
+        ])->assertRedirect()->assertSessionHas('currency_result', function (array $result): bool {
+            return $result['converted'] === 325.0
+                && $result['rate'] === 130.0
+                && $result['source'] === 'open.er-api.com (Open Access)';
+        });
     }
 
     public function test_financial_tools_page_and_calculator_routes_require_authentication(): void
