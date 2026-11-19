@@ -18,6 +18,7 @@ class MarketInformationTest extends TestCase
 
     public function test_market_page_loads_without_calling_external_providers_or_requesting_location(): void
     {
+        Http::fake();
         $user = $this->makeUser();
 
         $this->actingAs($user)->get(route('market.index'))
@@ -175,6 +176,7 @@ class MarketInformationTest extends TestCase
 
     public function test_optional_stock_and_commodity_widgets_are_disabled_without_server_key(): void
     {
+        Http::fake();
         config(['services.alpha_vantage.key' => null]);
 
         $this->assertFalse(app(MarketInformationService::class)->stocks()['available']);
