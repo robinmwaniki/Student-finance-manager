@@ -42,12 +42,13 @@ class FinancialLearningController extends Controller
     public function submit(
         Request $request,
         FinancialLearningService $learning,
+        AchievementService $achievements,
     ): RedirectResponse {
         $data = $request->validate([
             'option' => ['required', 'string', Rule::in(['A', 'B', 'C', 'D'])],
         ]);
 
-        $result = $learning->submitAnswer($request->user(), $data['option']);
+        $result = $learning->submitAnswer($request->user(), $data['option'], $achievements);
         $message = $result['already_attempted']
             ? 'You have already completed today’s quiz. Your original result is shown below.'
             : ($result['attempt']->is_correct
