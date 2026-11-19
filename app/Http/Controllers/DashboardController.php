@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\MarketInformationService;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -9,7 +10,7 @@ use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
-    public function __invoke(Request $request): View
+    public function __invoke(Request $request, MarketInformationService $market): View
     {
         $month = $request->query('month', now(config('app.timezone'))->format('Y-m'));
         abort_unless(is_string($month) && preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $month) === 1, 404);
@@ -77,6 +78,7 @@ class DashboardController extends Controller
 
         return view('dashboard', [
             'month' => $month,
+            'dailyQuote' => $market->dailyQuote(),
             'monthLabel' => $monthStart->format('F Y'),
             'previousMonthLabel' => $previousStart->format('F Y'),
             'nextMonthLabel' => $monthStart->addMonth()->format('F Y'),
