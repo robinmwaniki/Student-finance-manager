@@ -20,7 +20,7 @@ class FinancialReportController extends Controller
     }
     public function csv(Request $request)
     {
-        $filters=$this->validatedFilters($request);$report=$this->reports->build($request->user(),$filters['start'],$filters['end'],$filters['type']);
+        $filters=$this->validatedFilters($request);$report=$this->reports->build($request->user(),$filters['start'],$filters['end'],$filters['type'],$filters['category']);
         $filename='financial-report-'.$filters['start']->format('Ymd').'-'.$filters['end']->format('Ymd').'.csv';
         return response()->streamDownload(function() use($report):void {
             $output=fopen('php://output','w');fwrite($output,"\xEF\xBB\xBF");
@@ -35,7 +35,7 @@ class FinancialReportController extends Controller
     }
     public function pdf(Request $request)
     {
-        $filters=$this->validatedFilters($request);$report=$this->reports->build($request->user(),$filters['start'],$filters['end'],$filters['type']);
+        $filters=$this->validatedFilters($request);$report=$this->reports->build($request->user(),$filters['start'],$filters['end'],$filters['type'],$filters['category']);
         return response($this->pdf->render($this->pdfLines($report)),200,['Content-Type'=>'application/pdf','Content-Disposition'=>'attachment; filename="financial-report-'.$filters['start']->format('Ymd').'-'.$filters['end']->format('Ymd').'.pdf"','Cache-Control'=>'private, no-store']);
     }
     public function email(Request $request): RedirectResponse
