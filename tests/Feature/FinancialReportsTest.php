@@ -38,8 +38,7 @@ class FinancialReportsTest extends TestCase
         ]))->assertOk()
             ->assertViewHas('incomeTotal', 1000.0)
             ->assertViewHas('expenseTotal', 200.0)
-            ->assertSee('Food')
-            ->assertDontSee('Transport');
+            ->assertViewHas('expenses', fn ($rows) => $rows->count() === 1 && $rows->first()->category === 'Food');
     }
 
     public function test_csv_export_escapes_formula_leading_cells(): void
