@@ -56,7 +56,7 @@ class ExpenseController extends Controller
 
         $quote = $currencies->quote($originalCurrency, 'KES');
         if ($quote === null) {
-            return back()->withErrors(['currency' => 'An exchange rate is not available. Choose KES or try again later.']);
+            return back()->withErrors(['currency' => 'An exchange rate is not available. Choose KES or try again later.'])->withInput();
         }
         if ($quote['stale'] && ! $request->boolean('accept_stale_rate')) {
             return back()->withErrors(['currency' => 'The provider is unavailable. Review and explicitly accept the cached rate before saving.'])
@@ -66,7 +66,7 @@ class ExpenseController extends Controller
 
         $convertedAmount = round($originalAmount * $quote['rate'], 2);
         if ($convertedAmount > 999999999999.99) {
-            return back()->withErrors(['amount' => 'The converted KES amount exceeds the maximum supported expense value.']);
+            return back()->withErrors(['amount' => 'The converted KES amount exceeds the maximum supported expense value.'])->withInput();
         }
         $data['amount'] = $convertedAmount;
         $data['original_amount'] = $originalAmount;
