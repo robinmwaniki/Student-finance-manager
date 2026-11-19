@@ -50,7 +50,7 @@ class ReminderJournalNotificationTest extends TestCase
         $this->actingAs($user)->patch(route('reminders.toggle', $reminder))->assertRedirect();
         $this->assertDatabaseHas('bill_reminders', ['id' => $reminder->id, 'status' => 'active']);
 
-        $this->actingAs($user)->delete(route('reminders.destroy', $reminder), ['lock_version' => 1])->assertRedirect();
+        $this->actingAs($user)->delete(route('reminders.destroy', $reminder), ['lock_version' => 3])->assertRedirect();
         $this->assertDatabaseMissing('bill_reminders', ['id' => $reminder->id]);
     }
 
