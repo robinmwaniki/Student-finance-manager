@@ -34,7 +34,7 @@ class RecurringTransactionProcessor
             // overdue occurrences remain due and can be processed on the next run.
             for ($attempt = 0; $attempt < 366; $attempt++) {
                 $applied = $this->processNextOccurrence($userId, (int) $id);
-                if (!$applied) {
+                if (! $applied) {
                     break;
                 }
                 $processed++;
@@ -71,7 +71,7 @@ class RecurringTransactionProcessor
             };
 
             $alreadyApplied = $schedule->logs()->where('period_key', $periodKey)->exists();
-            if (!$alreadyApplied) {
+            if (! $alreadyApplied) {
                 $ledger = [
                     'user_id' => $userId,
                     'amount' => $schedule->amount,
