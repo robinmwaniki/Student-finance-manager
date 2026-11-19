@@ -73,5 +73,11 @@
             </div>
         @endif
     </section>
+
+    <section class="card">
+        <h2 class="section-heading">QR code generator</h2>
+        <p class="muted" style="font-size:11px;line-height:1.6">Create a shareable QR image for safe text, public web links or M-Pesa payment references. Generation runs in your browser; content is not sent to a QR service.</p>
+        <a class="btn" href="{{ route('tools.qr') }}">Open QR code generator</a>
+    </section>
 </div>
 @endsection
