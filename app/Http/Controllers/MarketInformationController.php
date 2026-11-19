@@ -39,21 +39,21 @@ class MarketInformationController extends Controller
             'location' => ['required_without:latitude', 'nullable', 'string', 'max:120'],
         ]);
 
-        if (filled($data['location'] ?? null)) {
-            $place = $market->geocode($data['location']);
-            if ($place === null) {
-                return response()->json(['message' => 'We could not find that location. Try a town, estate or landmark.'], 422);
-            }
-            $latitude = $place['latitude'];
-            $longitude = $place['longitude'];
-            $label = $place['label'];
-        } else {
-            $latitude = (float) $data['latitude'];
-            $longitude = (float) $data['longitude'];
-            $label = 'Location selected in your browser';
-        }
-
         try {
+            if (filled($data['location'] ?? null)) {
+                $place = $market->geocode($data['location']);
+                if ($place === null) {
+                    return response()->json(['message' => 'We could not find that location. Try a town, estate or landmark.'], 422);
+                }
+                $latitude = $place['latitude'];
+                $longitude = $place['longitude'];
+                $label = $place['label'];
+            } else {
+                $latitude = (float) $data['latitude'];
+                $longitude = (float) $data['longitude'];
+                $label = 'Location selected in your browser';
+            }
+
             return response()->json([...$market->nearby($latitude, $longitude), 'searched_location' => $label]);
         } catch (Throwable) {
             return response()->json(['message' => 'Nearby bank and ATM data is temporarily unavailable. Try again or search manually later.'], 503);
@@ -68,21 +68,21 @@ class MarketInformationController extends Controller
             'location' => ['required_without:latitude', 'nullable', 'string', 'max:120'],
         ]);
 
-        if (filled($data['location'] ?? null)) {
-            $place = $market->geocode($data['location']);
-            if ($place === null) {
-                return response()->json(['message' => 'We could not find that location.'], 422);
-            }
-            $latitude = $place['latitude'];
-            $longitude = $place['longitude'];
-            $label = $place['label'];
-        } else {
-            $latitude = (float) $data['latitude'];
-            $longitude = (float) $data['longitude'];
-            $label = 'Location selected in your browser';
-        }
-
         try {
+            if (filled($data['location'] ?? null)) {
+                $place = $market->geocode($data['location']);
+                if ($place === null) {
+                    return response()->json(['message' => 'We could not find that location.'], 422);
+                }
+                $latitude = $place['latitude'];
+                $longitude = $place['longitude'];
+                $label = $place['label'];
+            } else {
+                $latitude = (float) $data['latitude'];
+                $longitude = (float) $data['longitude'];
+                $label = 'Location selected in your browser';
+            }
+
             return response()->json([...$market->weather($latitude, $longitude), 'location' => $label]);
         } catch (Throwable) {
             return response()->json(['message' => 'Weather information is temporarily unavailable.'], 503);
