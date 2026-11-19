@@ -2,12 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Models\User;
 use App\Services\MarketInformationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request as ClientRequest;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class MarketInformationTest extends TestCase
