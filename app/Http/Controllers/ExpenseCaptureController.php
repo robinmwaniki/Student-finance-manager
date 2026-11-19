@@ -37,7 +37,7 @@ class ExpenseCaptureController extends Controller
             $request->user(),
             'mpesa',
             [...$candidate, 'tag' => 'M-Pesa'.($candidate['merchant'] ? ' · '.$candidate['merchant'] : '')],
-            hash('sha256', 'mpesa|'.strtoupper(trim($data['message']))),
+            hash('sha256', 'mpesa|'.($candidate['reference'] ?? strtoupper(preg_replace('/\\s+/', ' ', trim($data['message']))))),
         );
 
         return back()->with('success', 'M-Pesa details extracted. Review the draft before saving it as an expense.')->with('captured_draft_id', $draft->id);
@@ -122,7 +122,7 @@ class ExpenseCaptureController extends Controller
             'transaction_date' => ['required', 'date', 'before_or_equal:today'],
             'tag' => ['nullable', 'string', 'max:50'],
         ]);
-        $capture->confirm($request->user(), $draft, (int) $data['lock_version'], $data);
+        $version = (int) $data['lock_version'];\n        unset($data['lock_version']);\n        $capture->confirm($request->user(), $draft, $version, $data);
 
         return redirect()->route('expenses.index')->with('success', 'Verified expense saved to your existing expense ledger.');
     }
