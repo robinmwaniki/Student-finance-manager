@@ -122,7 +122,9 @@ class ExpenseCaptureController extends Controller
             'transaction_date' => ['required', 'date', 'before_or_equal:today'],
             'tag' => ['nullable', 'string', 'max:50'],
         ]);
-        $version = (int) $data['lock_version'];\n        unset($data['lock_version']);\n        $capture->confirm($request->user(), $draft, $version, $data);
+        $version = (int) $data['lock_version'];
+        unset($data['lock_version']);
+        $capture->confirm($request->user(), $draft, $version, $data);
 
         return redirect()->route('expenses.index')->with('success', 'Verified expense saved to your existing expense ledger.');
     }
