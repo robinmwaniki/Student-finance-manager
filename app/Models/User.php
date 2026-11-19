@@ -71,4 +71,14 @@ class User extends Authenticatable
     {
         return $this->hasMany(UserNotification::class);
     }
+
+    public function billReminders()
+    {
+        return $this->hasMany(BillReminder::class);
+    }
+
+    public function journalEntries()
+    {
+        return $this->hasMany(JournalEntry::class);
+    }
 }
