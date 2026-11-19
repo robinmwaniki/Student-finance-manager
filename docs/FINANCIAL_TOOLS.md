@@ -21,3 +21,8 @@ The split calculator supports 1 to 100 participants and a 0–100% tip. The tip 
 - Original amount, original currency, exchange rate, converted amount, provider timestamp and source are stored as metadata. Editing an expense through the existing KES editor resets its metadata to KES at a 1:1 rate. Historical rows with null currency metadata are treated as KES.
 
 Rates are indicative reference rates and may differ from bank, card-network, M-Pesa or cash-exchange rates. Confirm the actual rate and fees with the provider before making a transaction.
+
+
+## QR code generator
+
+See [QR_GENERATOR.md](QR_GENERATOR.md) for the browser-local QR generator, payload restrictions, supported M-Pesa Paybill/Till reference format, download behaviour and privacy model. The QR generator is available at `/tools/qr` and does not submit payloads to the Laravel server.
