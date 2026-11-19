@@ -17,6 +17,11 @@ class FinancialToolsController extends Controller
         return view('finance.tools.index', ['currencies' => $currencies->currencies()]);
     }
 
+    public function qr(): View
+    {
+        return view('finance.tools.qr');
+    }
+
     public function loan(Request $request, LoanCalculatorService $calculator): RedirectResponse
     {
         $data = $request->validate([
