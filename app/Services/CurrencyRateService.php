@@ -106,9 +106,7 @@ class CurrencyRateService
         }
 
         $minorUnits = (int) round($amount * 100);
-        $convertedMinorUnits = (int) round($minorUnits * $rate);
-
-        return number_format($convertedMinorUnits / 100, 2, '.', '');
+        $convertedMinorUnits = (int) round($minorUnits * $rate);\n        if ($convertedMinorUnits > 99999999999999) {\n            return null;\n        }\n\n        return number_format($convertedMinorUnits / 100, 2, '.', '');
     }
 
     /**
@@ -129,8 +127,7 @@ class CurrencyRateService
 
         $minorUnits = (int) round($amount * 100);
         $convertedMinorUnits = (int) round($minorUnits * $quote['rate']);
-
-        return [
+        if ($convertedMinorUnits > 99999999999999) {\n            return null;\n        }\n\n        return [
             'amount' => number_format($convertedMinorUnits / 100, 2, '.', ''),
             'rate' => $quote['rate'],
             'source' => $quote['source'],
