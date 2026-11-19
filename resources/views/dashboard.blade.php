@@ -18,13 +18,17 @@
 </div>
 
 
+@if($dashboardPreferences['show_daily_quote'] || $dashboardPreferences['show_weather'])
 <div class="grid two-col" style="margin-bottom:18px">
+    @if($dashboardPreferences['show_daily_quote'])
     <section class="card">
         <div class="eyebrow">Daily reminder · {{ $dailyQuote['date'] }}</div>
         <h2 class="section-heading" style="margin:7px 0">{{ $dailyQuote['text'] }}</h2>
         <p class="muted" style="font-size:10px;margin:0">{{ $dailyQuote['attribution'] }}</p>
         <a class="btn btn-light btn-small" href="{{ route('market.index') }}" style="margin-top:12px">Kenya and market information</a>
     </section>
+    @endif
+    @if($dashboardPreferences['show_weather'])
     <section class="card">
         <h2 class="section-heading">Weather · optional</h2>
         <p class="muted" style="font-size:11px">Search for a city or request browser location only when you choose. No location is requested automatically.</p>
@@ -35,7 +39,9 @@
         <button class="btn btn-light btn-small" type="button" id="dashboard-weather-location" style="margin-top:8px">Use my location</button>
         <div id="dashboard-weather-result" class="muted" style="font-size:11px;margin-top:10px" aria-live="polite"></div>
     </section>
+    @endif
 </div>
+@endif
 
 <div class="grid stats" style="margin-bottom:18px">
     <section class="card"><div class="stat-label">Income</div><div class="stat-value">KES {{ number_format($totalIncome, 2) }}</div>
@@ -54,7 +60,8 @@
     <section class="card"><div class="stat-label">Available balance</div><div class="stat-value" style="color:{{ $netBalance >= 0 ? '#16835b' : '#c24141' }}">KES {{ number_format($netBalance, 2) }}</div><div class="stat-note">Income less expenses and savings</div></section>
 </div>
 
-<div class="grid two-col" style="margin-top:0;margin-bottom:18px">
+<div class="grid {{ $dashboardPreferences['show_forecast'] ? 'two-col' : '' }}" style="margin-top:0;margin-bottom:18px">
+    @if($dashboardPreferences['show_forecast'])
     <section class="card">
         <h2 class="section-heading">Cash-flow estimate · {{ $forecastMonthLabel }}</h2>
         <div class="grid" style="grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
@@ -65,6 +72,7 @@
         </div>
         <p class="muted" style="font-size:11px;line-height:1.6;margin:14px 0 0">Estimate, not an actual result. Uses a simple average of the three complete months before the selected month ({{ $forecastBasis }}); zero-activity months are included. It assumes no growth or seasonal adjustment.</p>
     </section>
+    @endif
     <section class="card">
         <h2 class="section-heading">Budget alerts</h2>
         @forelse($budgetAlerts as $alert)

@@ -18,6 +18,8 @@ class User extends Authenticatable
         'password',
         'points',
         'avatar',
+        'theme',
+        'dashboard_preferences',
     ];
 
     protected $hidden = [
@@ -31,6 +33,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'points' => 'integer',
+            'dashboard_preferences' => 'array',
         ];
     }
 

@@ -84,6 +84,7 @@ class ExpenseCaptureWorkflowTest extends TestCase
         ])->assertNotFound();
 
         $draft->update(['expires_at' => now()->subMinute()]);
+        $this->flushSession();
         $this->actingAs($owner)->get(route('expense-capture.index'))->assertSee('This draft has expired');
         $this->actingAs($owner)->post(route('expense-capture.confirm', $draft), [
             'lock_version' => 0,
