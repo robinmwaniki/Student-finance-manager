@@ -7,11 +7,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Expense extends Model
 {
-    protected $fillable = ['user_id', 'category', 'amount', 'transaction_date', 'tag', 'submission_token', 'original_amount', 'original_currency', 'exchange_rate', 'converted_amount'];
+    protected $fillable = ['user_id', 'category', 'amount', 'transaction_date', 'tag', 'submission_token', 'original_amount', 'original_currency', 'exchange_rate', 'converted_amount', 'exchange_rate_updated_at', 'exchange_rate_source'];
 
     protected function casts(): array
     {
-        return ['amount' => 'decimal:2', 'transaction_date' => 'date', 'original_amount' => 'decimal:2', 'exchange_rate' => 'decimal:10', 'converted_amount' => 'decimal:2'];
+        return ['amount' => 'decimal:2', 'transaction_date' => 'date', 'original_amount' => 'decimal:2', 'exchange_rate' => 'decimal:10', 'converted_amount' => 'decimal:2', 'exchange_rate_updated_at' => 'datetime'];
     }
 
     public function user(): BelongsTo
