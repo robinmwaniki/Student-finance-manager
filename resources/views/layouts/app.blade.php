@@ -27,7 +27,6 @@
 <a class="nav-link {{ request()->routeIs('learning.*') ? 'active' : '' }}" href="{{ route('learning.index') }}"><span class="nav-icon">✦</span>Learning</a>
 <a class="nav-link {{ request()->routeIs('assistant.*') ? 'active' : '' }}" href="{{ route('assistant.index') }}"><span class="nav-icon">✧</span>AI Assistant</a>
 <a class="nav-link {{ request()->routeIs('notifications.*') ? 'active' : '' }}" href="{{ route('notifications.index') }}"><span class="nav-icon">♧</span>Notifications @php($unreadNavCount = auth()->user()->userNotifications()->where('status', 'unread')->count()) @if($unreadNavCount > 0)<span style="margin-left:auto;background:#e9efff;color:#344a75;border-radius:10px;padding:2px 6px;font-size:10px">{{ $unreadNavCount }}</span>@endif</a>
-<a class="nav-link {{ request()->routeIs('assistant.*') ? 'active' : '' }}" href="{{ route('assistant.index') }}"><span class="nav-icon">✧</span>AI assistant</a></nav><div class="sidebar-bottom"><div class="user-chip">{{ auth()->user()->fullname }}<small>{{ auth()->user()->email }}</small></div><form method="POST" action="{{ route('logout') }}">@csrf<button class="btn btn-light" style="width:100%">Sign out</button></form></div></aside>
 @endauth
 <main class="{{ auth()->check() ? 'main' : '' }}">
 @auth<header class="topbar"><div><div class="eyebrow">Personal finance workspace</div><h1 class="page-title">@yield('heading', 'Overview')</h1></div><div class="muted" style="font-size:12px">{{ now(config('app.timezone'))->format('D, d M Y') }}</div></header>@endauth
