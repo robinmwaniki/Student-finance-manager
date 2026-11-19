@@ -1,0 +1,1 @@
+<p>Your requested Student Finance Manager report for <strong>{{ $periodLabel }}</strong> is attached as a PDF.</p><p>This email was generated automatically. If you did not request it, you can ignore this message.</p>
