@@ -5,6 +5,8 @@ namespace App\Services;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use RuntimeException;
+use SimpleXMLElement;
 use Throwable;
 
 class MarketInformationService
