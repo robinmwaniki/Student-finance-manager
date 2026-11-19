@@ -17,6 +17,26 @@
     </div>
 </div>
 
+
+<div class="grid two-col" style="margin-bottom:18px">
+    <section class="card">
+        <div class="eyebrow">Daily reminder · {{ $dailyQuote['date'] }}</div>
+        <h2 class="section-heading" style="margin:7px 0">{{ $dailyQuote['text'] }}</h2>
+        <p class="muted" style="font-size:10px;margin:0">{{ $dailyQuote['attribution'] }}</p>
+        <a class="btn btn-light btn-small" href="{{ route('market.index') }}" style="margin-top:12px">Kenya and market information</a>
+    </section>
+    <section class="card">
+        <h2 class="section-heading">Weather · optional</h2>
+        <p class="muted" style="font-size:11px">Search for a city or request browser location only when you choose. No location is requested automatically.</p>
+        <form id="dashboard-weather-search" style="display:flex;gap:8px">
+            <input name="location" type="text" maxlength="120" placeholder="e.g. Nairobi" required style="min-width:0;flex:1">
+            <button class="btn btn-small" type="submit">Get weather</button>
+        </form>
+        <button class="btn btn-light btn-small" type="button" id="dashboard-weather-location" style="margin-top:8px">Use my location</button>
+        <div id="dashboard-weather-result" class="muted" style="font-size:11px;margin-top:10px" aria-live="polite"></div>
+    </section>
+</div>
+
 <div class="grid stats" style="margin-bottom:18px">
     <section class="card"><div class="stat-label">Income</div><div class="stat-value">KES {{ number_format($totalIncome, 2) }}</div>
         <div class="stat-note">Received during {{ $monthLabel }}</div>
@@ -104,6 +124,48 @@
     </tbody></table></div>
 </section>
 @endsection
+
+@push('scripts')
+<script>
+(() => {
+    const result = document.getElementById('dashboard-weather-result');
+    const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
+    if (!result) return;
+    const requestWeather = async payload => {
+        result.textContent = 'Loading weather…';
+        try {
+            const response = await fetch('/market/weather', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf },
+                body: JSON.stringify(payload)
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Weather is unavailable.');
+            result.textContent = data.location + ' · ' + data.current.temperature_2m + '°C · Feels like ' + data.current.apparent_temperature + '°C · Updated ' + data.fetched_at + ' · ' + data.source;
+        } catch (error) {
+            result.textContent = error.message;
+        }
+    };
+    document.getElementById('dashboard-weather-search')?.addEventListener('submit', event => {
+        event.preventDefault();
+        requestWeather({ location: new FormData(event.currentTarget).get('location') });
+    });
+    document.getElementById('dashboard-weather-location')?.addEventListener('click', () => {
+        if (!navigator.geolocation) {
+            result.textContent = 'Location is not supported. Search for a city instead.';
+            return;
+        }
+        result.textContent = 'Requesting location permission after your action…';
+        navigator.geolocation.getCurrentPosition(
+            position => requestWeather({ latitude: position.coords.latitude, longitude: position.coords.longitude }),
+            () => { result.textContent = 'Location permission was denied or unavailable. Search for a city instead.'; },
+            { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }
+        );
+    });
+})();
+</script>
+@endpush
+
 
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
