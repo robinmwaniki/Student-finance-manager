@@ -127,7 +127,7 @@ class ExpenseCaptureWorkflowTest extends TestCase
         $user = $this->makeUser();
 
         $this->actingAs($user)->post(route('expense-capture.receipt'), [
-            'receipt' => UploadedFile::fake()->create('receipt.png', 50, 'image/png'),
+            'receipt' => UploadedFile::fake()->image('receipt.png'),
         ])->assertSessionHasErrors('consent');
 
         $this->actingAs($user)->post(route('expense-capture.receipt'), [
