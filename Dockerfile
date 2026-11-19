@@ -49,7 +49,8 @@ COPY docker/php/zz-pool.conf /usr/local/etc/php-fpm.d/www.conf
 COPY docker/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint
 
-RUN chmod 0755 /usr/local/bin/entrypoint
+RUN php-fpm -tt \
+    && chmod 0755 /usr/local/bin/entrypoint
 
 EXPOSE 10000
 
