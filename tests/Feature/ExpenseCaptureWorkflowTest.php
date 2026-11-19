@@ -108,6 +108,58 @@ class ExpenseCaptureWorkflowTest extends TestCase
         $this->assertSame(0, $user->expenses()->count());
     }
 
+    public function test_barcode_lookup_creates_a_product_draft_without_assuming_a_purchase_price(): void
+    {
+        Http::fake([
+            'world.openfoodfacts.org/*' => Http::response([
+                'status' => 1,
+                'product' => ['product_name' => 'Maize Flour', 'brands' => 'Example Brand'],
+            ], 200),
+        ]);
+        $user = $this->makeUser();
+
+        $this->actingAs($user)->post(route('expense-capture.barcode'), [
+            'barcode' => '1234567890123',
+        ])->assertRedirect();
+
+        $draft = $user->expenseCaptureDrafts()->firstOrFail();
+        $this->assertSame('barcode', $draft->source);
+        $this->assertSame('Maize Flour', $draft->merchant);
+        $this->assertSame('Groceries', $draft->category);
+        $this->assertNull($draft->amount);
+        $this->assertSame(0, $user->expenses()->count());
+    }
+
+    public function test_receipt_ocr_extracts_a_candidate_but_waits_for_user_confirmation(): void
+    {
+        config(['ai.provider' => 'gemini', 'ai.api_key' => 'server-test-key']);
+        Http::fake([
+            '*' => Http::response([
+                'candidates' => [[
+                    'content' => ['parts' => [['text' => json_encode([
+                        'merchant' => 'Naivas',
+                        'date' => '2026-11-19',
+                        'amount' => 450.00,
+                        'category' => 'Groceries',
+                    ])]]],
+                ]],
+            ], 200),
+        ]);
+        $user = $this->makeUser();
+
+        $this->actingAs($user)->post(route('expense-capture.receipt'), [
+            'receipt' => $this->fakeReceipt(),
+            'consent' => '1',
+        ])->assertRedirect();
+
+        $draft = $user->expenseCaptureDrafts()->firstOrFail();
+        $this->assertSame('receipt', $draft->source);
+        $this->assertSame('Naivas', $draft->merchant);
+        $this->assertSame('450.00', $draft->amount);
+        $this->assertSame('2026-11-19', $draft->transaction_date->format('Y-m-d'));
+        $this->assertSame(0, $user->expenses()->count());
+    }
+
     public function test_barcode_no_match_returns_manual_entry_fallback(): void
     {
         Http::fake(['*' => Http::response(['status' => 0], 200)]);
