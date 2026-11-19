@@ -9,6 +9,7 @@ use App\Http\Controllers\BudgetController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DebtController;
 use App\Http\Controllers\ExpenseController;
+use App\Http\Controllers\FinancialReportController;
 use App\Http\Controllers\IncomeController;
 use App\Http\Controllers\JournalController;
 use App\Http\Controllers\NotificationController;
@@ -31,6 +32,10 @@ Route::middleware('guest')->group(function (): void {
 
 Route::middleware('auth')->group(function (): void {
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
+    Route::get('/reports', [FinancialReportController::class, 'index'])->name('reports.index');
+    Route::get('/reports/export.csv', [FinancialReportController::class, 'csv'])->middleware('throttle:20,1')->name('reports.csv');
+    Route::get('/reports/export.pdf', [FinancialReportController::class, 'pdf'])->middleware('throttle:10,1')->name('reports.pdf');
+    Route::post('/reports/email', [FinancialReportController::class, 'email'])->middleware('throttle:5,1')->name('reports.email');
     Route::get('/budgets', [BudgetController::class, 'index'])->name('budgets.index');
     Route::post('/budgets', [BudgetController::class, 'store'])->name('budgets.store');
     Route::put('/budgets/{budget}', [BudgetController::class, 'update'])->whereNumber('budget')->name('budgets.update');
