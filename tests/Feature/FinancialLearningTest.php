@@ -129,7 +129,8 @@ class FinancialLearningTest extends TestCase
             ->assertOk()
             ->assertSee('Test your money knowledge')
             ->assertSee('Submit answer')
-            ->assertSee('Total points');
+            ->assertSee('Total points')
+            ->assertSee('Achievement progress');
     }
 
     public function test_user_cannot_read_another_users_quiz_attempts_or_awards(): void
@@ -165,6 +166,44 @@ class FinancialLearningTest extends TestCase
         $this->app['auth']->forgetGuards();
         $this->post(route('learning.quiz.submit'), ['option' => 'A'])
             ->assertRedirect(route('login'));
+    }
+
+
+    public function test_quiz_and_streak_achievement_thresholds_award_bonus_points_once(): void
+    {
+        $user = $this->makeUser();
+        $question = QuizQuestion::query()->firstOrFail();
+
+        for ($day = 0; $day < 25; $day++) {
+            $date = CarbonImmutable::parse('2026-01-01')->addDays($day);
+            $user->quizAttempts()->create([
+                'question_id' => $question->id,
+                'quiz_date' => $date->toDateString(),
+                'selected_option' => $question->correct_option,
+                'is_correct' => true,
+                'points_awarded' => 10,
+                'answered_at' => $date->setTime(12, 0),
+            ]);
+        }
+
+        $user->financialStreak()->create([
+            'current_streak' => 7,
+            'longest_streak' => 7,
+            'last_activity_date' => '2026-01-25',
+            'timezone' => 'UTC',
+        ]);
+
+        $service = app(AchievementService::class);
+
+        $this->assertSame(5, $service->evaluate($user));
+        $this->assertSame(0, $service->evaluate($user));
+        $this->assertSame(170, (int) $user->fresh()->points);
+        $this->assertSame(5, $user->achievements()->count());
+
+        $progress = collect($service->progress($user))->keyBy('code');
+        $this->assertTrue($progress['quiz_correct_10']['unlocked']);
+        $this->assertTrue($progress['quiz_correct_25']['unlocked']);
+        $this->assertTrue($progress['streak_7']['unlocked']);
     }
 
     private function makeUser(string $email = 'learning@example.test'): User
