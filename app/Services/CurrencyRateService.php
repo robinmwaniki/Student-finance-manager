@@ -96,6 +96,22 @@ class CurrencyRateService
     }
 
     /**
+     * Convert using a user-confirmed manual rate when the public provider has no usable quote.
+     */
+    public function convertWithRate(float $amount, float $rate): ?string
+    {
+        if (! is_finite($amount) || ! is_finite($rate) || $amount <= 0 || $rate <= 0
+            || $amount > 999999999999 || $rate > 1000000) {
+            return null;
+        }
+
+        $minorUnits = (int) round($amount * 100);
+        $convertedMinorUnits = (int) round($minorUnits * $rate);
+
+        return number_format($convertedMinorUnits / 100, 2, '.', '');
+    }
+
+    /**
      * Convert to the nearest minor unit; callers retain the returned rate and source metadata.
      *
      * @return array{amount: string, rate: float, source: string, as_of: string, stale: bool}|null
