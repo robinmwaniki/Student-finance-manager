@@ -21,7 +21,7 @@ use App\Http\Controllers\RecurringTransactionController;
 use App\Http\Controllers\SavingsController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', fn () => auth()->check() ? redirect()->route('dashboard') : view('welcome'))->name('home');\n\n// Signed external webhook; CSRF is exempted for this path in bootstrap/app.php.\nRoute::post('/api/expense-capture/mpesa-webhook', [ExpenseCaptureWebhookController::class, 'ingest'])\n    ->middleware('throttle:60,1')\n    ->name('expense-capture.webhook.ingest');
+Route::get('/', fn () => auth()->check() ? redirect()->route('dashboard') : view('welcome'))->name('home');
 
 Route::middleware('guest')->group(function (): void {
     Route::get('/register', [RegisteredUserController::class, 'create'])->name('register');
@@ -36,7 +36,6 @@ Route::middleware('guest')->group(function (): void {
 
 Route::post('/api/expense-capture/mpesa-webhook', [ExpenseCaptureWebhookController::class, 'ingest'])
     ->middleware('throttle:30,1')
-    ->withoutMiddleware(\Illuminate\\Foundation\\Http\\Middleware\\ValidateCsrfToken::class)
     ->name('expense-capture.webhook.ingest');
 
 Route::middleware('auth')->group(function (): void {
@@ -79,7 +78,7 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/expenses/capture/drafts/{draft}/confirm', [ExpenseCaptureController::class, 'confirm'])->whereNumber('draft')->name('expense-capture.confirm');
     Route::delete('/expenses/capture/drafts/{draft}', [ExpenseCaptureController::class, 'discard'])->whereNumber('draft')->name('expense-capture.discard');
     Route::post('/expenses/capture/webhook/rotate', [ExpenseCaptureController::class, 'rotateWebhook'])->name('expense-capture.webhook.rotate');
-    Route::get('/expense-capture', [ExpenseCaptureController::class, 'index'])->name('expense-capture.index');\n    Route::post('/expense-capture/mpesa', [ExpenseCaptureController::class, 'mpesa'])->middleware('throttle:10,1')->name('expense-capture.mpesa');\n    Route::post('/expense-capture/voice', [ExpenseCaptureController::class, 'voice'])->middleware('throttle:10,1')->name('expense-capture.voice');\n    Route::post('/expense-capture/barcode', [ExpenseCaptureController::class, 'barcode'])->middleware('throttle:10,1')->name('expense-capture.barcode');\n    Route::post('/expense-capture/receipt', [ExpenseCaptureController::class, 'receipt'])->middleware('throttle:5,1')->name('expense-capture.receipt');\n    Route::post('/expense-capture/drafts/{draft}/confirm', [ExpenseCaptureController::class, 'confirm'])->whereNumber('draft')->name('expense-capture.confirm');\n    Route::delete('/expense-capture/drafts/{draft}', [ExpenseCaptureController::class, 'discard'])->whereNumber('draft')->name('expense-capture.discard');\n    Route::post('/expense-capture/webhook/rotate', [ExpenseCaptureController::class, 'rotateWebhook'])->middleware('throttle:3,1')->name('expense-capture.webhook.rotate');\n    Route::get('/expenses', [ExpenseController::class, 'index'])->name('expenses.index');
+    Route::get('/expenses', [ExpenseController::class, 'index'])->name('expenses.index');
     Route::post('/expenses', [ExpenseController::class, 'store'])->name('expenses.store');
     Route::put('/expenses/{expense}', [ExpenseController::class, 'update'])->whereNumber('expense')->name('expenses.update');
     Route::delete('/expenses/{expense}', [ExpenseController::class, 'destroy'])->whereNumber('expense')->name('expenses.destroy');
