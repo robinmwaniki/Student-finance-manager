@@ -1,42 +1,38 @@
-# AI Financial Assistant
-
-## Overview
-
-The authenticated Financial Assistant page provides a conversational financial-literacy helper and locally calculated monthly tips. It is optional: finance entry, reports, budgets and other core workflows do not depend on an AI provider.
+# AI financial assistant and personalized tips
 
 ## Provider configuration
 
-Configure these server-side environment variables; never place provider credentials in Blade, JavaScript, public configuration or source control:
+The assistant uses Laravel's HTTP client and supports server-configured Gemini and Groq chat providers. No AI SDK or additional Composer package is required.
 
-| Variable | Purpose | Default |
-|---|---|---|
-| `FINANCIAL_ASSISTANT_PROVIDER` | `gemini` or `groq` | `gemini` |
-| `FINANCIAL_ASSISTANT_API_KEY` | Server-side provider key | unset |
-| `FINANCIAL_ASSISTANT_MODEL` | Provider model identifier | `gemini-2.5-flash` |
-| `FINANCIAL_ASSISTANT_BASE_URL` | Optional compatible API base URL | Provider default |
-| `FINANCIAL_ASSISTANT_TIMEOUT` | Total request timeout in seconds | 20 |
-| `FINANCIAL_ASSISTANT_CONNECT_TIMEOUT` | Connection timeout in seconds | 5 |
-| `FINANCIAL_ASSISTANT_MAX_OUTPUT_CHARS` | Maximum displayed response characters | 5000 |
+Set these values in the server environment:
 
-For Groq, set `FINANCIAL_ASSISTANT_PROVIDER=groq` and configure an available Groq model. A compatible OpenAI chat-completions endpoint can be configured with `FINANCIAL_ASSISTANT_BASE_URL`.
+| Variable | Purpose |
+| --- | --- |
+| `AI_PROVIDER` | `gemini`, `groq` or `none` |
+| `AI_API_KEY` | Provider key, kept only in server environment |
+| `AI_MODEL` | Provider model name |
+| `AI_BASE_URL` | Optional full endpoint override for compatible providers |
 
-After changing deployment environment variables, refresh Laravel's configuration cache using the normal deployment process. Do not commit real API keys.
+The default provider is `none`, so the feature is disabled until configured. Never put provider credentials in Blade, JavaScript, HTML, source control or a browser request. Clear the configuration cache after changing environment values.
 
 ## Privacy and consent
 
-- A user must explicitly tick the consent checkbox on each request before current-month aggregates are included.
-- Without consent, the provider receives the question and safety instructions only.
-- With consent, only bounded totals and ratios (income, expenses, savings, budget, savings rate and budget usage) are sent. Transaction rows, dates, categories, names, account identifiers and user IDs are not sent.
-- Questions and responses are not persisted by this feature. Provider credentials are only read server-side and are never returned to the browser.
-- The configured provider is an external processor; disclose its use in the deployment privacy notice before enabling chat.
-- Do not enter passwords, reset tokens, session values or sensitive identifiers into chat.
+- General questions send only the submitted question and fixed assistant instructions.
+- A separate, unchecked consent control must be selected before any financial context is included.
+- With consent, the provider receives only the user's own 30-day aggregate KES income, expenses and savings totals, net-after-savings figure, reporting period and current-month budget total.
+- No individual transaction rows, categories, source labels, user IDs, names, email addresses, passwords or session data are sent.
+- The assistant does not persist chat history. Provider requests and responses are not written to application logs.
+- Personalized tips are calculated locally from the authenticated user's own records and do not call an AI provider.
 
-## Local tips and safety
+## Reliability and safety
 
-Personalised tips are calculated from the authenticated user's own current-month Eloquent relationships. They remain available if the provider is missing, unavailable or times out. AI responses are informational only and are not regulated financial, investment, tax or legal advice.
+- The assistant endpoint is authenticated and rate-limited to 10 requests per minute.
+- Provider connections use a 3-second connect timeout and an 8-second overall timeout.
+- Questions are limited to 1,000 characters and answers to 2,500 characters.
+- Provider failures return a generic safe message; they do not affect income, expense, savings or other finance workflows.
+- System instructions treat user content as untrusted, reject prompt override requests and limit the assistant to financial-literacy information.
+- AI output may be inaccurate and is not regulated financial, tax, legal or investment advice. The assistant cannot execute transactions or modify account records.
 
-The chat endpoint is authenticated and rate-limited to five requests per user per minute. Requests have bounded input/output sizes and provider connection/total timeouts. User prompts are treated as untrusted input.
+## Deterministic tips
 
-## Operations
-
-No queue, scheduler, migration or third-party package is required. The feature is available at `/assistant`. Configure a provider key only in the deployment environment or secret manager.
+Local tips compare the user's last 30 days of income, expenses and savings and evaluate current-month category budgets. Thresholds are explanatory prompts, not financial guarantees or personalized investment recommendations.
