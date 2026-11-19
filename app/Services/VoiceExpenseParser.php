@@ -13,12 +13,16 @@ class VoiceExpenseParser
             return null;
         }
 
-        if (preg_match('/(?:KES|KSH|SHS?|SHILLINGS?)?\s*([0-9][0-9,]*(?:\.\d{1,2})?)/i', $text, $amountMatch) !== 1) {
+        $amountPattern = '/(?:KES|KSH|SHS?|SHILLINGS?)\\s*([0-9][0-9,]*(?:\\.\\d{1,2})?)/i';
+        $spokenAmountPattern = '/(?:spent|paid|cost(?:\\s+me)?|bought(?:\\s+for)?|amount(?:\\s+of)?)\\s+(?:KES|KSH|SHS?|SHILLINGS?)?\\s*([0-9][0-9,]*(?:\\.\\d{1,2})?)/i';
+
+        if (preg_match($amountPattern, $text, $amountMatch) !== 1
+            && preg_match($spokenAmountPattern, $text, $amountMatch) !== 1) {
             return null;
         }
 
         $amount = (float) str_replace(',', '', $amountMatch[1]);
-        if ($amount <= 0) {
+        if ($amount <= 0 || $amount > 999999999999) {
             return null;
         }
 
@@ -31,7 +35,7 @@ class VoiceExpenseParser
 
         $merchant = null;
         if (preg_match('/\b(?:on|at|for)\s+([a-z][a-z0-9 &-]{1,45})/i', $text, $merchantMatch) === 1) {
-            $merchant = trim($merchantMatch[1]);
+            $merchant = trim(preg_replace('/\\b(today|yesterday)\\b/i', '', $merchantMatch[1]) ?? $merchantMatch[1]);
         }
 
         $category = match (true) {
