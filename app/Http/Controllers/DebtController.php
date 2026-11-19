@@ -84,9 +84,9 @@ class DebtController extends Controller
         $user = $request->user();
         $record = $user->debts()->whereKey($debt)->firstOrFail();
 
-        // Paid debts are terminal. Correcting an accidental payment should be an audited,
-        // separate adjustment rather than silently reopening a settled liability/receivable.
-        abort_if($record->status === 'paid' && $data['status'] !== 'paid', 422, 'A paid debt cannot be reopened.');
+        // Paid debts are immutable in the ordinary workflow. Any correction requires a
+        // separate audited adjustment rather than editing a settled liability/receivable.
+        abort_if($record->status === 'paid', 422, 'A paid debt cannot be edited.');
         $version = (int) $data['lock_version'];
         unset($data['lock_version']);
 
