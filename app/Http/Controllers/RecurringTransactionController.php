@@ -68,7 +68,7 @@ class RecurringTransactionController extends Controller
     public function toggle(Request $request, int $recurring): RedirectResponse
     {
         $record = $request->user()->recurringTransactions()->whereKey($recurring)->firstOrFail();
-        $active = !$record->active;
+        $active = ! $record->active;
         $record->forceFill(['active' => $active, 'status' => $active ? 'active' : 'paused'])->save();
 
         return back()->with('success', $active ? 'Recurring transaction resumed.' : 'Recurring transaction paused.');
