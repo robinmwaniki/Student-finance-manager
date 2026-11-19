@@ -6,12 +6,12 @@ use Illuminate\Support\Collection;
 class FinancialReportService
 {
     /** Build a bounded report using only the authenticated user's relationships. */
-    public function build(User $user, CarbonImmutable $start, CarbonImmutable $end, string $type = 'all'): array
+    public function build(User $user, CarbonImmutable $start, CarbonImmutable $end, string $type = 'all', ?string $category = null): array
     {
         $from=$start->toDateString(); $to=$end->toDateString();
         $include=fn(string $candidate): bool => $type==='all' || $type===$candidate;
         $income=$include('income')?$user->income()->whereBetween('transaction_date',[$from,$to])->orderBy('transaction_date')->get():collect();
-        $expenses=$include('expenses')?$user->expenses()->whereBetween('transaction_date',[$from,$to])->orderBy('transaction_date')->get():collect();
+        $expenses=$include('expenses')?$user->expenses()->whereBetween('transaction_date',[$from,$to])->when($category !== null,fn($query)=>$query->where('category',$category))->orderBy('transaction_date')->get():collect();
         $savings=$include('savings')?$user->savings()->whereBetween('transaction_date',[$from,$to])->orderBy('transaction_date')->get():collect();
         $budgets=$include('budgets')?$user->budgets()->whereBetween('budget_month',[$start->format('Y-m'),$end->format('Y-m')])->orderBy('budget_month')->orderBy('category')->get():collect();
         $incomeTotal=(float)$income->sum(fn($r):float=>(float)$r->amount);
