@@ -11,10 +11,6 @@ use Illuminate\Support\Facades\DB;
 
 class FinancialLearningService
 {
-    public function __construct(private readonly AchievementService $achievements)
-    {
-    }
-
     public function questionForDate(CarbonImmutable $date): QuizQuestion
     {
         $questionCount = QuizQuestion::query()->where('is_active', true)->count();
@@ -35,7 +31,7 @@ class FinancialLearningService
      *
      * @return array{attempt: QuizAttempt, streak: UserFinancialStreak, already_attempted: bool}
      */
-    public function submitAnswer(User $user, string $selectedOption): array
+    public function submitAnswer(User $user, string $selectedOption, AchievementService $achievements): array
     {
         return DB::transaction(function () use ($user, $selectedOption): array {
             $lockedUser = User::query()->whereKey($user->getKey())->lockForUpdate()->firstOrFail();
@@ -96,7 +92,7 @@ class FinancialLearningService
             $streak->lock_version++;
             $streak->save();
 
-            $this->achievements->evaluate($lockedUser);
+            $achievements->evaluate($lockedUser);
 
             return [
                 'attempt' => $attempt->load('question'),
