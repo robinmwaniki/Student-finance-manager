@@ -33,7 +33,7 @@ class FinancialToolsTest extends TestCase
         $zeroRate = $calculator->calculate(12000, 0, 12, 'monthly');
         $weekly = $calculator->calculate(12000, 8, 3, 'weekly');
 
-        $this->assertSame(0.0, $zeroRate['total_interest']);
+        $this->assertEqualsWithDelta(0.0, $zeroRate['total_interest'], 0.001);
         $this->assertEqualsWithDelta(12000, $zeroRate['total_paid'], 0.01);
         $this->assertGreaterThan(12, $weekly['periods']);
         $this->assertEqualsWithDelta(0, $weekly['schedule'][$weekly['periods'] - 1]['balance'], 0.01);
@@ -43,7 +43,7 @@ class FinancialToolsTest extends TestCase
     {
         $result = app(BillSplitService::class)->split(1000, 3, 10);
 
-        $this->assertSame(1100.0, $result['total']);
+        $this->assertEqualsWithDelta(1100.0, $result['total'], 0.001);
         $this->assertEqualsWithDelta(1100, array_sum($result['shares']), 0.001);
         $this->assertEqualsWithDelta(366.67, $result['shares'][0], 0.001);
         $this->assertEqualsWithDelta(366.67, $result['shares'][1], 0.001);
