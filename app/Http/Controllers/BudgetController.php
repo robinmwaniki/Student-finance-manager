@@ -180,17 +180,10 @@ class BudgetController extends Controller
 
     private function validatedBudget(Request $request, ?int $ignoreId = null): array
     {
-        $unique = Rule::unique('budgets', 'category')
-            ->where(fn ($query) => $query->where('user_id', $request->user()->id)
-                ->where('budget_month', CarbonImmutable::parse($request->input('date', now()->toDateString()))->format('Y-m')));
-        if ($ignoreId !== null) {
-            $unique->ignore($ignoreId);
-        }
-
         return $request->validate([
             'submission_token' => [$ignoreId === null ? 'required' : 'nullable', 'uuid'],
             'lock_version' => [$ignoreId === null ? 'nullable' : 'required', 'integer', 'min:0'],
-            'category' => ['required', 'string', 'max:50', $unique],
+            'category' => ['required', 'string', 'max:50'],
             'amount' => ['required', 'numeric', 'gt:0', 'decimal:0,2', 'max:999999999999'],
             'date' => ['required', 'date'],
         ]);
