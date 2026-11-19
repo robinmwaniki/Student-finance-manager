@@ -8,8 +8,8 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DebtController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\IncomeController;
-use App\Http\Controllers\SavingsController;
 use App\Http\Controllers\RecurringTransactionController;
+use App\Http\Controllers\SavingsController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn () => auth()->check() ? redirect()->route('dashboard') : view('welcome'))->name('home');
