@@ -52,7 +52,7 @@ class CurrencyRateService
             'to' => $to,
             'rate' => (float) $rate,
             'updated_at' => $rates['updated_at'],
-            'source' => 'Open Exchange Rates API (open.er-api.com)',
+            'source' => 'open.er-api.com (Open Access)',
             'stale' => $rates['stale'],
         ];
     }
