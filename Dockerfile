@@ -7,18 +7,11 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         ca-certificates \
         curl \
-        libcurl4-openssl-dev \
-        libonig-dev \
         libpq-dev \
         nginx \
         supervisor \
         unzip \
-    && docker-php-ext-install -j"$(nproc)" \
-        bcmath \
-        curl \
-        mbstring \
-        opcache \
-        pdo_pgsql \
+    && docker-php-ext-install -j"$(nproc)" pdo_pgsql \
     && cp "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini" \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
