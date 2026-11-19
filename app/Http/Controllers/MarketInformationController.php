@@ -83,7 +83,12 @@ class MarketInformationController extends Controller
                 $label = 'Location selected in your browser';
             }
 
-            return response()->json([...$market->weather($latitude, $longitude), 'location' => $label]);
+            $result = $market->weather($latitude, $longitude);
+            if (! ($result['available'] ?? false)) {
+                return response()->json(['message' => $result['message'] ?? 'Weather information is unavailable.'], 503);
+            }
+
+            return response()->json([...$result, 'location' => $label]);
         } catch (Throwable) {
             return response()->json(['message' => 'Weather information is temporarily unavailable.'], 503);
         }
