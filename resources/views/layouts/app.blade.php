@@ -25,6 +25,7 @@
 <a class="nav-link {{ request()->routeIs('reminders.*') ? 'active' : '' }}" href="{{ route('reminders.index') }}"><span class="nav-icon">◷</span>Reminders</a>
 <a class="nav-link {{ request()->routeIs('journal.*') ? 'active' : '' }}" href="{{ route('journal.index') }}"><span class="nav-icon">▤</span>Journal</a>
 <a class="nav-link {{ request()->routeIs('tools.*') ? 'active' : '' }}" href="{{ route('tools.index') }}"><span class="nav-icon">∑</span>Tools</a>
+<a class="nav-link {{ request()->routeIs('information.*') ? 'active' : '' }}" href="{{ route('information.index') }}"><span class="nav-icon">◉</span>Market & Kenya</a>
 <a class="nav-link {{ request()->routeIs('market.*') ? 'active' : '' }}" href="{{ route('market.index') }}"><span class="nav-icon">◎</span>Market info</a>
 <a class="nav-link {{ request()->routeIs('reports.*') ? 'active' : '' }}" href="{{ route('reports.index') }}"><span class="nav-icon">▤</span>Reports</a>
 <a class="nav-link {{ request()->routeIs('learning.*') ? 'active' : '' }}" href="{{ route('learning.index') }}"><span class="nav-icon">✦</span>Learning</a>
