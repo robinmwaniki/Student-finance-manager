@@ -36,7 +36,7 @@ class ExpenseCaptureController extends Controller
         $draft = $capture->createDraft(
             $request->user(),
             'mpesa',
-            [...$candidate, 'tag' => 'M-Pesa'.($candidate['merchant'] ? ' · '.$candidate['merchant'] : '')],
+            [...$candidate, 'tag' => mb_substr('M-Pesa'.($candidate['merchant'] ? ' · '.$candidate['merchant'] : ''), 0, 50)],
             hash('sha256', 'mpesa|'.($candidate['reference'] ?? strtoupper(preg_replace('/\\s+/', ' ', trim($data['message']))))),
         );
 
@@ -62,29 +62,24 @@ class ExpenseCaptureController extends Controller
         return back()->with('success', 'Voice transcript converted to a draft. Confirm its amount, category and date before saving.')->with('captured_draft_id', $draft->id);
     }
 
-    public function barcode(Request $request, ExpenseCaptureService $capture): RedirectResponse
+    public function barcode(Request $request, BarcodeLookupService $barcode, ExpenseCaptureService $capture): RedirectResponse
     {
-        $data = $request->validate(['barcode' => ['required', 'regex:/^\d{8,14}$/']]);
-        $response = Http::acceptJson()
-            ->withHeaders(['User-Agent' => 'StudentFinanceManager/1.0 (barcode product lookup)'])
-            ->timeout(5)
-            ->get('https://world.openfoodfacts.org/api/v2/product/'.$data['barcode'].'.json');
+        $data = $request->validate(['barcode' => ['required', 'regex:/^\\d{8,14}$/']]);
+        $product = $barcode->lookup($data['barcode']);
 
-        if (! $response->successful() || data_get($response->json(), 'status') !== 1) {
+        if ($product === null) {
             return back()->withErrors(['barcode' => 'No product match was found. Enter the expense manually instead.']);
-        }
-
-        $product = data_get($response->json(), 'product');
-        $name = trim((string) data_get($product, 'product_name', ''));
-        if ($name === '') {
-            return back()->withErrors(['barcode' => 'The catalog returned no usable product name. Enter the expense manually instead.']);
         }
 
         $draft = $capture->createDraft(
             $request->user(),
             'barcode',
-            ['merchant' => mb_substr($name, 0, 150), 'category' => 'Groceries', 'tag' => 'Barcode lookup'],
-            hash('sha256', 'barcode|'.$data['barcode']),
+            [
+                'merchant' => $product['name'],
+                'category' => 'Groceries',
+                'tag' => 'Barcode lookup',
+            ],
+            hash('sha256', 'barcode|'.$data['barcode'].'|'.Str::uuid()),
         );
 
         return back()->with('success', 'Product found. Add the amount and date, then review the draft before saving.')->with('captured_draft_id', $draft->id);
