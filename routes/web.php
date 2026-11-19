@@ -10,6 +10,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DebtController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\FinancialReportController;
+use App\Http\Controllers\FinancialLearningController;
 use App\Http\Controllers\IncomeController;
 use App\Http\Controllers\JournalController;
 use App\Http\Controllers\NotificationController;
