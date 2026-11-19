@@ -26,6 +26,10 @@ body[data-theme="dark"] .btn-light{background:#25354d;color:#dbe6f5}
 body[data-theme="dark"] .btn-light:hover{background:#314561}
 body[data-theme="dark"] .info-result,body[data-theme="dark"] .alert{background:#1c2b42;color:#dbe6f5}
 body[data-theme="dark"] .sidebar-bottom{border-color:#293950}
+body[data-theme="dark"] .settings-field label{color:#a9b6ca}
+body[data-theme="dark"] .settings-check{color:#c5d0df;border-color:#293950}
+body[data-theme="dark"] .settings-check small{color:#94a3b8}
+body[data-theme="dark"] .avatar-preview{border-color:#34465f;background:#1c2b42}
 </style>
 @stack('head')
 </head><body data-theme="{{ auth()->check() ? auth()->user()->theme : 'light' }}"><div class="shell">
