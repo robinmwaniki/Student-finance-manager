@@ -246,11 +246,14 @@ class MarketInformationTest extends TestCase
             ->assertJsonPath('current.temperature_2m', 24.5)
             ->assertJsonPath('source', 'Open-Meteo');
 
-        Cache::forget('market:fresh:weather:-1.29:36.82');
-        Cache::forget('market:stale:weather:-1.29:36.82');
+    }
+
+    public function test_weather_provider_failure_returns_a_graceful_unavailable_state(): void
+    {
         Http::fake(['api.open-meteo.com/*' => Http::response([], 503)]);
 
         $unavailableWeather = app(MarketInformationService::class)->weather(-2.0, 37.0);
+
         $this->assertFalse($unavailableWeather['available']);
         $this->assertStringContainsString('temporarily unavailable', $unavailableWeather['message']);
     }
