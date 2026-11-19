@@ -22,7 +22,12 @@ class FinancialAssistantController extends Controller
 
     public function ask(Request $request, FinancialAssistantService $assistant): RedirectResponse
     {
-        $rateLimitKey = 'financial-assistant:'.$request->user()->getKey();
+        $data = $request->validate([
+            'question' => ['required', 'string', 'min:8', 'max:1000'],
+            'include_financial_summary' => ['sometimes', 'boolean'],
+        ]);
+
+        $rateLimitKey = 'financial-assistant:'.$request->user()->getAuthIdentifier();
 
         if (RateLimiter::tooManyAttempts($rateLimitKey, 5)) {
             return back()->withErrors([
@@ -30,16 +35,11 @@ class FinancialAssistantController extends Controller
             ]);
         }
 
-        $data = $request->validate([
-            'question' => ['required', 'string', 'min:8', 'max:'.(int) config('ai.max_question_length', 1000)],
-            'include_financial_summary' => ['sometimes', 'boolean'],
-        ]);
-
         RateLimiter::hit($rateLimitKey, 60);
 
         $result = $assistant->ask(
             $request->user(),
-            trim($data['question']),
+            $data['question'],
             $request->boolean('include_financial_summary'),
         );
 
