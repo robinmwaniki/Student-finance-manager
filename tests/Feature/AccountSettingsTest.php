@@ -53,13 +53,14 @@ class AccountSettingsTest extends TestCase
     public function test_profile_validation_rejects_invalid_name_without_changing_email(): void
     {
         $user = $this->makeUser();
+        $originalEmail = $user->email;
 
         $this->actingAs($user)->put(route('settings.profile.update'), [
             'fullname' => str_repeat('x', 101),
             'email' => 'changed@example.test',
         ])->assertSessionHasErrors('fullname');
 
-        $this->assertSame('settings@example.test', $user->fresh()->email);
+        $this->assertSame($originalEmail, $user->fresh()->email);
         $this->assertSame('Student User', $user->fresh()->fullname);
     }
 
@@ -119,7 +120,7 @@ class AccountSettingsTest extends TestCase
 
         $this->actingAs($user)->get(route('settings.index'))
             ->assertOk()
-            ->assertSee('Appearance &amp; dashboard')
+            ->assertSee('Appearance & dashboard')
             ->assertSee('Permanently delete account');
     }
 
