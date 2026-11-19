@@ -18,6 +18,6 @@ The split calculator supports 1 to 100 participants and a 0–100% tip. The tip 
 - If no rate is available, foreign-currency conversion is rejected gracefully; users can still record a KES expense.
 - The supported list includes KES, USD, EUR, GBP, TZS, UGX, ZAR, AED, INR, CAD, AUD, JPY, CHF, CNY and NGN.
 - The expense ledger's amount remains the KES-normalized value, so existing dashboards, budgets and reports continue to sum consistently in KES.
-- Original amount, original currency, exchange rate and converted amount are stored as metadata. Editing an expense through the existing KES editor resets its metadata to KES at a 1:1 rate. Historical rows with null currency metadata are treated as KES.
+- Original amount, original currency, exchange rate, converted amount, provider timestamp and source are stored as metadata. Editing an expense through the existing KES editor resets its metadata to KES at a 1:1 rate. Historical rows with null currency metadata are treated as KES.
 
 Rates are indicative reference rates and may differ from bank, card-network, M-Pesa or cash-exchange rates. Confirm the actual rate and fees with the provider before making a transaction.
