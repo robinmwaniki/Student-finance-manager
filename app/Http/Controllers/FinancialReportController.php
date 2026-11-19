@@ -14,17 +14,10 @@ use Illuminate\View\View;
 
 class FinancialReportController extends Controller
 {
-    public function __construct(
-        private readonly FinancialReportService $reports,
-        private readonly SimplePdfReport $pdf,
-    )
-    {
-    }
-
-    public function index(Request $request): View
+    public function index(Request $request, FinancialReportService $reports): View
     {
         $filters = $this->validatedFilters($request);
-        $report = $this->reports->build(
+        $report = $reports->build(
             $request->user(),
             $filters['start'],
             $filters['end'],
@@ -43,7 +36,7 @@ class FinancialReportController extends Controller
         ]);
     }
 
-    public function csv(Request $request)
+    public function csv(Request $request, FinancialReportService $reports)
     {
         $filters = $this->validatedFilters($request);
         $report = $this->reports->build(
@@ -97,7 +90,7 @@ class FinancialReportController extends Controller
         ]);
     }
 
-    public function pdf(Request $request)
+    public function pdf(Request $request, FinancialReportService $reports, SimplePdfReport $pdf)
     {
         $filters = $this->validatedFilters($request);
         $report = $this->reports->build(
@@ -108,14 +101,14 @@ class FinancialReportController extends Controller
             $filters['category'],
         );
 
-        return response($this->pdf->render($this->pdfLines($report)), 200, [
+        return response($pdf->render($this->pdfLines($report)), 200, [
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => 'attachment; filename="financial-report-'.$filters['start']->format('Ymd').'-'.$filters['end']->format('Ymd').'.pdf"',
             'Cache-Control' => 'private, no-store',
         ]);
     }
 
-    public function email(Request $request): RedirectResponse
+    public function email(Request $request, FinancialReportService $reports): RedirectResponse
     {
         $data = $request->validate([
             'start_date' => ['required', 'date', 'before_or_equal:today'],
