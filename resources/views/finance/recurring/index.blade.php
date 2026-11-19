@@ -24,13 +24,13 @@
 </div>
 <div class="card">
     <h2 class="section-heading">Your schedules</h2>
-    <div class="table-wrap"><table><thead><tr><th>Name</th><th>Type</th><th>Amount</th><th>Frequency</th><th>Next due</th><th>Status</th><th>History</th><th>Actions</th></tr></thead><tbody>
+    <div class="table-wrap"><table><thead><tr><th>Name</th><th>Type</th><th>Amount</th><th>Frequency</th><th>Next due</th><th>Status</th><th>History</th><th>Last applied</th><th>Actions</th></tr></thead><tbody>
     @forelse($records as $record)
         <tr>
             <td><strong>{{ $record->label ?: ($record->category ?: ucfirst($record->type)) }}</strong></td>
             <td>{{ ucfirst($record->type) }}</td><td class="amount">KES {{ number_format((float) $record->amount, 2) }}</td>
             <td>{{ ucfirst($record->frequency) }}</td><td>{{ $record->next_due?->format('d M Y') ?? '—' }}</td>
-            <td>{{ $record->active ? 'Active' : 'Paused' }}</td><td>{{ $record->logs_count }} applied</td>
+            <td>{{ $record->active ? 'Active' : 'Paused' }}</td><td>{{ $record->logs_count }} applied</td><td>{{ $record->logs_max_applied_at ? \Illuminate\Support\Carbon::parse($record->logs_max_applied_at)->format('d M Y H:i') : 'Never' }}</td>
             <td><div style="display:flex;gap:6px;flex-wrap:wrap">
                 <form method="POST" action="{{ route('recurring.toggle', $record) }}">@csrf @method('PATCH')<button class="btn btn-small btn-light" type="submit">{{ $record->active ? 'Pause' : 'Resume' }}</button></form>
                 <form method="POST" action="{{ route('recurring.process') }}">@csrf<input type="hidden" name="recurring_id" value="{{ $record->id }}"><button class="btn btn-small" type="submit" {{ !$record->active ? 'disabled' : '' }}>Process</button></form>
@@ -48,7 +48,7 @@
                 @if($record->logs_count === 0)<form method="POST" action="{{ route('recurring.destroy', $record) }}" onsubmit="return confirm('Delete this schedule?')">@csrf @method('DELETE')<button class="btn btn-small btn-danger" type="submit">Delete</button></form>@endif
             </div></td>
         </tr>
-    @empty<tr><td colspan="8" class="muted">No recurring schedules yet.</td></tr>@endforelse
+    @empty<tr><td colspan="9" class="muted">No recurring schedules yet.</td></tr>@endforelse
     </tbody></table></div>
     {{ $records->links('pagination::simple-tailwind') }}
 </div>
