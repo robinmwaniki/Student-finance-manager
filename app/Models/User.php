@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable
@@ -77,8 +79,23 @@ class User extends Authenticatable
         return $this->hasMany(BillReminder::class);
     }
 
-    public function journalEntries()
+    public function journalEntries(): HasMany
     {
         return $this->hasMany(JournalEntry::class);
+    }
+
+    public function achievements(): HasMany
+    {
+        return $this->hasMany(Achievement::class);
+    }
+
+    public function quizAttempts(): HasMany
+    {
+        return $this->hasMany(QuizAttempt::class);
+    }
+
+    public function financialStreak(): HasOne
+    {
+        return $this->hasOne(UserFinancialStreak::class);
     }
 }
