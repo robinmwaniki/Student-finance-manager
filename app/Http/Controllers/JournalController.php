@@ -81,6 +81,7 @@ class JournalController extends Controller
     public function destroy(Request $request, int $entry): RedirectResponse
     {
         $data = $request->validate(['lock_version' => ['required', 'integer', 'min:0']]);
+        $request->user()->journalEntries()->whereKey($entry)->firstOrFail();
         $deleted = $request->user()->journalEntries()->whereKey($entry)
             ->where('lock_version', (int) $data['lock_version'])->delete();
 
