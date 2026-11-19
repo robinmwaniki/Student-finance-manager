@@ -126,9 +126,10 @@ class FinancialAssistantService
         if ($provider === 'gemini') {
             $url = filled($baseUrl)
                 ? $baseUrl
-                : 'https://generativelanguage.googleapis.com/v1beta/models/'.rawurlencode($model).':generateContent?key='.urlencode($apiKey);
+                : 'https://generativelanguage.googleapis.com/v1beta/models/'.rawurlencode($model).':generateContent';
 
-            return Http::acceptJson()
+            return Http::withHeaders(['x-goog-api-key' => $apiKey])
+                ->acceptJson()
                 ->timeout($timeout)
                 ->connectTimeout($connectTimeout)
                 ->post($url, [
