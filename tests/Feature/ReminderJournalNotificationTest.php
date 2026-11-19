@@ -58,7 +58,7 @@ class ReminderJournalNotificationTest extends TestCase
     {
         Carbon::setTestNow('2026-11-16 08:00:00');
         $user = $this->makeUser();
-        $user->billReminders()->create([
+        $reminder = $user->billReminders()->create([
             'title' => 'Internet',
             'amount' => '3000.00',
             'due_date' => '2026-11-19',
@@ -76,7 +76,7 @@ class ReminderJournalNotificationTest extends TestCase
             'user_id' => $user->id,
             'type' => 'bill_reminder',
             'status' => 'unread',
-            'deduplication_key' => 'bill-reminder:1:2026-11-19:due_soon',
+            'deduplication_key' => 'bill-reminder:'.$reminder->id.':2026-11-19:due_soon',
         ]);
     }
 
@@ -97,8 +97,8 @@ class ReminderJournalNotificationTest extends TestCase
         Artisan::call('finance:generate-reminders');
 
         $this->assertDatabaseHas('bill_reminders', ['id' => $reminder->id, 'due_date' => '2026-04-30', 'status' => 'active']);
-        $this->assertDatabaseHas('user_notifications', ['deduplication_key' => 'bill-reminder:1:2026-02-28:overdue']);
-        $this->assertDatabaseHas('user_notifications', ['deduplication_key' => 'bill-reminder:1:2026-03-31:overdue']);
+        $this->assertDatabaseHas('user_notifications', ['deduplication_key' => 'bill-reminder:'.$reminder->id.':2026-02-28:overdue']);
+        $this->assertDatabaseHas('user_notifications', ['deduplication_key' => 'bill-reminder:'.$reminder->id.':2026-03-31:overdue']);
         $this->assertDatabaseCount('user_notifications', 2);
     }
 
@@ -146,7 +146,7 @@ class ReminderJournalNotificationTest extends TestCase
         config(['app.timezone' => 'Africa/Nairobi']);
         Carbon::setTestNow(Carbon::parse('2026-11-18 22:30:00', 'UTC'));
         $user = $this->makeUser();
-        $user->billReminders()->create([
+        $reminder = $user->billReminders()->create([
             'title' => 'Morning payment',
             'amount' => '100.00',
             'due_date' => '2026-11-19',
@@ -158,7 +158,7 @@ class ReminderJournalNotificationTest extends TestCase
 
         Artisan::call('finance:generate-reminders');
 
-        $this->assertDatabaseHas('user_notifications', ['deduplication_key' => 'bill-reminder:1:2026-11-19:due_soon']);
+        $this->assertDatabaseHas('user_notifications', ['deduplication_key' => 'bill-reminder:'.$reminder->id.':2026-11-19:due_soon']);
     }
 
     public function test_monthly_journal_entry_is_unique_and_can_be_updated(): void
