@@ -81,7 +81,10 @@ class BillReminderController extends Controller
     {
         $record = $request->user()->billReminders()->whereKey($reminder)->firstOrFail();
         abort_if($record->status === 'completed', 422, 'A completed one-time reminder cannot be resumed.');
-        $record->forceFill(['status' => $record->status === 'active' ? 'paused' : 'active'])->save();
+        $record->forceFill([
+            'status' => $record->status === 'active' ? 'paused' : 'active',
+            'lock_version' => $record->lock_version + 1,
+        ])->save();
 
         return back()->with('success', $record->status === 'active' ? 'Reminder resumed.' : 'Reminder paused.');
     }
