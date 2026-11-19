@@ -88,5 +88,5 @@ body[data-theme="dark"] .qr-note{background:#1c2b42;color:#c5d0df}
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@2.0.4/dist/qrcode_UTF8.js" defer referrerpolicy="no-referrer"></script>
 <script src="{{ asset('js/qr-payload.js') }}" defer></script>
-<script src="{{ asset('js/qr-generator.js') }}" defer="defer""></script>
+<script src="{{ asset('js/qr-generator.js') }}" defer></script>
 @endpush
