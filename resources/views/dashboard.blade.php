@@ -141,7 +141,7 @@
             });
             const data = await response.json();
             if (!response.ok) throw new Error(data.message || 'Weather is unavailable.');
-            result.textContent = data.location + ' · ' + data.current.temperature_2m + '°C · Feels like ' + data.current.apparent_temperature + '°C · Updated ' + data.fetched_at + ' · ' + data.source;
+            result.textContent = data.location + ' · ' + data.current.temperature_2m + '°C · Feels like ' + data.current.apparent_temperature + '°C · Observed ' + (data.current.time || data.fetched_at) + (data.stale ? ' · cached / stale' : '') + ' · ' + data.source;
         } catch (error) {
             result.textContent = error.message;
         }
