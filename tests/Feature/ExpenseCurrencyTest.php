@@ -35,6 +35,8 @@ class ExpenseCurrencyTest extends TestCase
         $this->assertSame('USD', $expense->original_currency);
         $this->assertSame('130.0000000000', $expense->exchange_rate);
         $this->assertSame('1300.00', $expense->converted_amount);
+        $this->assertNotNull($expense->exchange_rate_updated_at);
+        $this->assertSame('Open Exchange Rates API (open.er-api.com)', $expense->exchange_rate_source);
         $this->assertEquals(1300, $user->expenses()->sum('amount'));
     }
 
@@ -50,6 +52,7 @@ class ExpenseCurrencyTest extends TestCase
         $this->assertSame('250.00', $expense->amount);
         $this->assertSame('KES', $expense->original_currency);
         $this->assertSame('1.0000000000', $expense->exchange_rate);
+        $this->assertSame('Same currency', $expense->exchange_rate_source);
     }
 
     public function test_stale_rate_requires_explicit_confirmation_before_expense_is_saved(): void
