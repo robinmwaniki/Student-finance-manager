@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\BillReminderController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
@@ -9,6 +10,8 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DebtController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\IncomeController;
+use App\Http\Controllers\JournalController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\RecurringTransactionController;
 use App\Http\Controllers\SavingsController;
 use Illuminate\Support\Facades\Route;
@@ -34,6 +37,18 @@ Route::middleware('auth')->group(function (): void {
     Route::delete('/budgets/{budget}', [BudgetController::class, 'destroy'])->whereNumber('budget')->name('budgets.destroy');
     Route::post('/budgets/copy', [BudgetController::class, 'copy'])->middleware('throttle:10,1')->name('budgets.copy');
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
+    Route::get('/reminders', [BillReminderController::class, 'index'])->name('reminders.index');
+    Route::post('/reminders', [BillReminderController::class, 'store'])->name('reminders.store');
+    Route::put('/reminders/{reminder}', [BillReminderController::class, 'update'])->whereNumber('reminder')->name('reminders.update');
+    Route::patch('/reminders/{reminder}/toggle', [BillReminderController::class, 'toggle'])->whereNumber('reminder')->name('reminders.toggle');
+    Route::delete('/reminders/{reminder}', [BillReminderController::class, 'destroy'])->whereNumber('reminder')->name('reminders.destroy');
+    Route::get('/journal', [JournalController::class, 'index'])->name('journal.index');
+    Route::post('/journal', [JournalController::class, 'store'])->name('journal.store');
+    Route::put('/journal/{entry}', [JournalController::class, 'update'])->whereNumber('entry')->name('journal.update');
+    Route::delete('/journal/{entry}', [JournalController::class, 'destroy'])->whereNumber('entry')->name('journal.destroy');
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::patch('/notifications/{notification}/read', [NotificationController::class, 'markRead'])->whereNumber('notification')->name('notifications.read');
+    Route::patch('/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.read-all');
     Route::get('/income', [IncomeController::class, 'index'])->name('income.index');
     Route::post('/income', [IncomeController::class, 'store'])->name('income.store');
     Route::put('/income/{income}', [IncomeController::class, 'update'])->whereNumber('income')->name('income.update');
