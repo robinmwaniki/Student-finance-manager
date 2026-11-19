@@ -67,10 +67,11 @@ class RecurringTransactionWorkflowTest extends TestCase
             'amount' => '150.00',
             'transaction_date' => '2026-11-19',
         ]);
+        $expense = $user->expenses()->firstOrFail();
         $this->assertDatabaseHas('recurring_log', [
             'recurring_id' => $schedule->id,
             'period_key' => 'D:2026-11-19',
-            'expense_id' => 1,
+            'expense_id' => $expense->id,
         ]);
         $this->assertDatabaseHas('recurring_transactions', ['id' => $schedule->id, 'next_due' => '2026-11-20']);
 
