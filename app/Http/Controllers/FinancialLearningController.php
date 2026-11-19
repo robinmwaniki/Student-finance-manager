@@ -34,6 +34,7 @@ class FinancialLearningController extends Controller
             'question' => $question,
             'attempt' => $attempt,
             'achievements' => $user->achievements()->whereNotNull('unlocked_at')->latest('unlocked_at')->get(),
+            'achievementProgress' => $achievements->progress($user),
             'attempts' => $user->quizAttempts()->with('question')->latest('answered_at')->limit(10)->get(),
             'timezone' => $timezone,
         ]);
