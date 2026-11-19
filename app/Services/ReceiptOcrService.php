@@ -38,7 +38,7 @@ class ReceiptOcrService
                             ]],
                         ],
                     ]],
-                    'generationConfig' => ['temperature' => 0, 'maxOutputTokens' => 256],
+                    'generationConfig' => ['temperature' => 0, 'maxOutputTokens' => 256, 'responseMimeType' => 'application/json'],
                 ]);
 
             $response->throw();
@@ -54,9 +54,19 @@ class ReceiptOcrService
             }
 
             $amount = is_numeric($data['amount'] ?? null) ? (float) $data['amount'] : null;
-            $date = is_string($data['date'] ?? null) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $data['date'])
-                ? $data['date']
-                : null;
+            $date = null;
+            if (is_string($data['date'] ?? null) && preg_match('/^\\d{4}-\\d{2}-\\d{2}$/', $data['date']) === 1) {
+                try {
+                    $parsedDate = CarbonImmutable::createFromFormat('!Y-m-d', $data['date'], config('app.timezone'));
+                    $dateErrors = CarbonImmutable::getLastErrors();
+                    if ($parsedDate !== false && ($dateErrors === false || ($dateErrors['warning_count'] === 0 && $dateErrors['error_count'] === 0))
+                        && ! $parsedDate->isFuture()) {
+                        $date = $parsedDate->toDateString();
+                    }
+                } catch (\\Throwable) {
+                    $date = null;
+                }
+            }
 
             return [
                 'merchant' => is_string($data['merchant'] ?? null) ? mb_substr($data['merchant'], 0, 150) : null,
