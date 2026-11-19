@@ -120,7 +120,7 @@ class AccountSettingsTest extends TestCase
 
         $this->actingAs($user)->get(route('settings.index'))
             ->assertOk()
-            ->assertSee('Appearance & dashboard')
+            ->assertSee('Appearance & dashboard', false)
             ->assertSee('Permanently delete account');
     }
 
