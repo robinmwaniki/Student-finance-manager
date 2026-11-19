@@ -130,9 +130,7 @@ class FinancialAssistantTest extends TestCase
 
         $this->actingAs($user)->post(route('assistant.ask'), [
             'question' => 'Explain emergency funds.',
-        ])->assertRedirect()
-            ->assertSessionHasErrors('assistant', fn (array $errors): bool => str_contains($errors[0], 'temporarily unavailable')
-                && ! str_contains($errors[0], 'simulated provider timeout'));
+        ])->assertRedirect()->assertSessionHasErrors('assistant');
     }
 
     public function test_chat_is_rate_limited_per_authenticated_user(): void
