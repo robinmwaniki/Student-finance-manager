@@ -16,6 +16,11 @@ class DashboardController extends Controller
         abort_unless(is_string($month) && preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $month) === 1, 404);
 
         $user = $request->user();
+        $dashboardPreferences = array_merge([
+            'show_daily_quote' => true,
+            'show_weather' => true,
+            'show_forecast' => true,
+        ], $user->dashboard_preferences ?? []);
         $monthStart = CarbonImmutable::parse($month.'-01')->startOfMonth();
         $monthEnd = $monthStart->endOfMonth();
         $previousStart = $monthStart->subMonth()->startOfMonth();
@@ -78,6 +83,7 @@ class DashboardController extends Controller
 
         return view('dashboard', [
             'month' => $month,
+            'dashboardPreferences' => $dashboardPreferences,
             'dailyQuote' => $market->dailyQuote(),
             'monthLabel' => $monthStart->format('F Y'),
             'previousMonthLabel' => $previousStart->format('F Y'),
