@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Services\MarketInformationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\Request as ClientRequest;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -101,6 +103,72 @@ class MarketInformationTest extends TestCase
         $this->assertSame(8450000.0, $result['quotes'][0]['kes']);
         $this->assertNotNull($result['quotes'][0]['updated_at']);
         $this->assertSame('CoinGecko', $result['source']);
+    }
+
+    public function test_optional_stock_and_commodity_provider_responses_are_normalized(): void
+    {
+        config(['services.alpha_vantage.key' => 'server-side-test-key']);
+        Http::fake(function (ClientRequest $request) {
+            if (str_contains($request->url(), 'GLOBAL_QUOTE')) {
+                return Http::response([
+                    'Global Quote' => [
+                        '01. symbol' => 'AAPL',
+                        '05. price' => '234.50',
+                        '07. latest trading day' => '2026-11-18',
+                        '10. change percent' => '1.25%',
+                    ],
+                ], 200);
+            }
+
+            return Http::response(['data' => [['date' => '2026-10-01', 'value' => '72.50']]], 200);
+        });
+
+        $market = app(MarketInformationService::class);
+        $stocks = $market->stocks();
+        $commodities = $market->commodities();
+
+        $this->assertCount(3, $stocks['quotes']);
+        $this->assertSame('AAPL', $stocks['quotes'][0]['symbol']);
+        $this->assertSame(234.5, $stocks['quotes'][0]['price']);
+        $this->assertCount(2, $commodities['quotes']);
+        $this->assertSame(72.5, $commodities['quotes'][0]['price']);
+        $this->assertSame('USD', $commodities['quotes'][0]['currency']);
+    }
+
+    public function test_expired_fresh_inflation_cache_is_refetched_from_provider(): void
+    {
+        Cache::put('market:fresh:kenya-inflation', [
+            'available' => true,
+            'values' => [['year' => 2023, 'inflation' => 7.7]],
+            'latest' => ['year' => 2023, 'inflation' => 7.7],
+            'data_as_of' => '2023',
+            'source' => 'World Bank',
+        ], now()->subMinute());
+        Http::fake([
+            'api.worldbank.org/*' => Http::response([
+                ['page' => 1],
+                [['date' => '2025', 'value' => 4.0]],
+            ], 200),
+        ]);
+
+        $result = app(MarketInformationService::class)->inflation();
+
+        $this->assertSame(2025, $result['latest']['year']);
+        Http::assertSentCount(1);
+    }
+
+    public function test_world_bank_timeout_returns_a_graceful_unavailable_state(): void
+    {
+        Http::fake([
+            'api.worldbank.org/*' => function () {
+                throw new ConnectionException('simulated timeout');
+            },
+        ]);
+
+        $result = app(MarketInformationService::class)->inflation();
+
+        $this->assertFalse($result['available']);
+        $this->assertStringContainsString('temporarily unavailable', $result['message']);
     }
 
     public function test_optional_stock_and_commodity_widgets_are_disabled_without_server_key(): void
