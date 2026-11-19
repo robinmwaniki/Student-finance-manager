@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\ExpenseCaptureWebhookCredential;
 use App\Models\User;
 use App\Services\MpesaSmsParser;
+use App\Services\VoiceExpenseParser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
