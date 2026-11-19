@@ -19,6 +19,8 @@ class BudgetController extends Controller
         abort_unless($this->validMonth($month), 404);
         $category = $request->query('category');
         abort_if($category !== null && (! is_string($category) || mb_strlen($category) > 50), 404);
+        $editId = $request->query('edit');
+        abort_if($editId !== null && ! ctype_digit((string) $editId), 404);
 
         $user = $request->user();
         $query = $user->budgets()->where('budget_month', $month);
@@ -27,7 +29,7 @@ class BudgetController extends Controller
         }
 
         $budgets = $query->orderBy('category')->paginate(15)->withQueryString();
-        $start = CarbonImmutable::createFromFormat('!Y-m', $month)->startOfMonth();
+        $start = CarbonImmutable::parse($month.'-01')->startOfMonth();
         $end = $start->endOfMonth();
         $spent = $user->expenses()
             ->whereBetween('transaction_date', [$start->toDateString(), $end->toDateString()])
@@ -59,8 +61,8 @@ class BudgetController extends Controller
             'spentTotal' => $spentTotal,
             'remainingTotal' => $budgetTotal - $spentTotal,
             'submissionToken' => (string) Str::uuid(),
-            'editBudget' => isset($request->query('edit'))
-                ? $user->budgets()->where('budget_month', $month)->whereKey((int) $request->query('edit'))->firstOrFail()
+            'editBudget' => $editId !== null
+                ? $user->budgets()->where('budget_month', $month)->whereKey((int) $editId)->firstOrFail()
                 : null,
         ]);
     }
