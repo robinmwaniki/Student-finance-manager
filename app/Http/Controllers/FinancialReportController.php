@@ -15,8 +15,8 @@ class FinancialReportController extends Controller
     public function index(Request $request): View
     {
         $filters=$this->validatedFilters($request);
-        $report=$this->reports->build($request->user(),$filters['start'],$filters['end'],$filters['type']);
-        return view('finance.reports.index',[...$report,'filters'=>$filters]);
+        $report=$this->reports->build($request->user(),$filters['start'],$filters['end'],$filters['type'],$filters['category']);
+        return view('finance.reports.index',[...$report,'filters'=>$filters,'categories'=>$request->user()->expenses()->select('category')->distinct()->orderBy('category')->pluck('category')]);
     }
     public function csv(Request $request)
     {
@@ -40,20 +40,20 @@ class FinancialReportController extends Controller
     }
     public function email(Request $request): RedirectResponse
     {
-        $data=$request->validate(['start_date'=>['required','date','before_or_equal:today'],'end_date'=>['required','date','after_or_equal:start_date','before_or_equal:today'],'type'=>['required','in:all,income,expenses,savings,budgets'],'email'=>['required','email:rfc','max:254']]);
+        $data=$request->validate(['start_date'=>['required','date','before_or_equal:today'],'end_date'=>['required','date','after_or_equal:start_date','before_or_equal:today'],'type'=>['required','in:all,income,expenses,savings,budgets'],'category'=>['nullable','string','max:50'],'email'=>['required','email:rfc','max:254']]);
         $start=CarbonImmutable::parse($data['start_date'])->startOfDay();$end=CarbonImmutable::parse($data['end_date'])->endOfDay();
         abort_if($start->diffInDays($end)>366,422,'Choose a reporting period of no more than 366 days.');
-        $report=$this->reports->build($request->user(),$start,$end,$data['type']);
+        $report=$this->reports->build($request->user(),$start,$end,$data['type'],$data['category']??null);
         Mail::to($data['email'])->queue(new FinancialReportMail($start->format('d M Y').' – '.$end->format('d M Y'),$this->pdfLines($report)));
         return back()->with('success','Your report has been queued for email delivery.');
     }
     private function validatedFilters(Request $request): array
     {
-        $data=$request->validate(['start_date'=>['nullable','date','before_or_equal:today'],'end_date'=>['nullable','date','after_or_equal:start_date','before_or_equal:today'],'type'=>['nullable','in:all,income,expenses,savings,budgets']]);
+        $data=$request->validate(['start_date'=>['nullable','date','before_or_equal:today'],'end_date'=>['nullable','date','after_or_equal:start_date','before_or_equal:today'],'type'=>['nullable','in:all,income,expenses,savings,budgets'],'category'=>['nullable','string','max:50']]);
         $end=isset($data['end_date'])?CarbonImmutable::parse($data['end_date'])->endOfDay():CarbonImmutable::now(config('app.timezone'))->endOfDay();
         $start=isset($data['start_date'])?CarbonImmutable::parse($data['start_date'])->startOfDay():$end->startOfMonth();
         abort_if($start->diffInDays($end)>366,422,'Choose a reporting period of no more than 366 days.');
-        return ['start'=>$start,'end'=>$end,'type'=>$data['type']??'all'];
+        return ['start'=>$start,'end'=>$end,'type'=>$data['type']??'all','category'=>$data['category']??null];
     }
     /** @param array<string,mixed> $report @return array<int,string> */
     private function pdfLines(array $report): array
