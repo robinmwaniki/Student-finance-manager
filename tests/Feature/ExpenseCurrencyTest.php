@@ -36,7 +36,7 @@ class ExpenseCurrencyTest extends TestCase
         $this->assertSame('130.0000000000', $expense->exchange_rate);
         $this->assertSame('1300.00', $expense->converted_amount);
         $this->assertNotNull($expense->exchange_rate_updated_at);
-        $this->assertSame('Open Exchange Rates API (open.er-api.com)', $expense->exchange_rate_source);
+        $this->assertSame('open.er-api.com (Open Access)', $expense->exchange_rate_source);
         $this->assertEquals(1300, $user->expenses()->sum('amount'));
     }
 
