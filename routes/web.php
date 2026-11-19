@@ -8,6 +8,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DebtController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\IncomeController;
+use App\Http\Controllers\RecurringTransactionController;
 use App\Http\Controllers\SavingsController;
 use Illuminate\Support\Facades\Route;
 
@@ -46,4 +47,10 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/debts', [DebtController::class, 'store'])->name('debts.store');
     Route::put('/debts/{debt}', [DebtController::class, 'update'])->whereNumber('debt')->name('debts.update');
     Route::delete('/debts/{debt}', [DebtController::class, 'destroy'])->whereNumber('debt')->name('debts.destroy');
+    Route::get('/recurring', [RecurringTransactionController::class, 'index'])->name('recurring.index');
+    Route::post('/recurring', [RecurringTransactionController::class, 'store'])->name('recurring.store');
+    Route::put('/recurring/{recurring}', [RecurringTransactionController::class, 'update'])->whereNumber('recurring')->name('recurring.update');
+    Route::patch('/recurring/{recurring}/toggle', [RecurringTransactionController::class, 'toggle'])->whereNumber('recurring')->name('recurring.toggle');
+    Route::delete('/recurring/{recurring}', [RecurringTransactionController::class, 'destroy'])->whereNumber('recurring')->name('recurring.destroy');
+    Route::post('/recurring/process', [RecurringTransactionController::class, 'process'])->middleware('throttle:10,1')->name('recurring.process');
 });
