@@ -7,11 +7,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Debt extends Model
 {
-    protected $fillable = ['user_id', 'description', 'amount', 'type', 'due_date', 'status'];
+    protected $fillable = ['user_id', 'description', 'amount', 'type', 'due_date', 'status', 'submission_token'];
 
     protected function casts(): array
     {
-        return ['amount' => 'decimal:2', 'due_date' => 'date'];
+        return ['amount' => 'decimal:2', 'due_date' => 'date', 'lock_version' => 'integer'];
     }
 
     public function user(): BelongsTo
