@@ -184,6 +184,9 @@ class ReminderJournalNotificationTest extends TestCase
         ])->assertRedirect();
 
         $this->assertDatabaseHas('journal_entries', ['id' => $entry->id, 'content' => 'I improved my savings habit.', 'mood' => 'great', 'lock_version' => 1]);
+
+        $this->actingAs($user)->delete(route('journal.destroy', $entry), ['lock_version' => 1])->assertRedirect();
+        $this->assertDatabaseMissing('journal_entries', ['id' => $entry->id]);
     }
 
     public function test_user_cannot_view_or_modify_another_users_reminders_journal_or_notifications(): void
