@@ -67,7 +67,7 @@ class ExpenseCaptureWebhookController extends Controller
             $capture->createDraft(
                 $credential->user,
                 'mpesa',
-                [...$candidate, 'tag' => 'M-Pesa webhook'.($candidate['merchant'] ? ' · '.$candidate['merchant'] : '')],
+                [...$candidate, 'tag' => mb_substr('M-Pesa webhook'.($candidate['merchant'] ? ' · '.$candidate['merchant'] : ''), 0, 50)],
                 hash('sha256', 'mpesa|'.($candidate['reference'] ?? strtoupper(trim(preg_replace('/\s+/', ' ', $data['sms']) ?? '')))),
             );
 
