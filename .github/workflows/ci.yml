@@ -89,6 +89,14 @@ jobs:
           DB_USERNAME: student_finance
           DB_PASSWORD: student_finance_test_password
 
+      - name: Set up Node.js for browser policy tests
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run browser payload policy tests
+        run: node --test tests/JavaScript/qr-payload.test.cjs
+
       - name: Check Pint formatting on changed PHP files
         env:
           EVENT_NAME: ${{ github.event_name }}
