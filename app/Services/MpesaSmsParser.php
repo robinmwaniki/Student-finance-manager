@@ -61,7 +61,7 @@ class MpesaSmsParser
         }
 
         $merchant = isset($merchantMatch[1])
-            ? trim(preg_replace('/\b\d{9,13}\b/', '', $merchantMatch[1]) ?? '', " .,-")
+            ? trim(preg_replace('/\b\d{9,13}\b/', '', $merchantMatch[1]) ?? '', ' .,-')
             : null;
 
         return [
