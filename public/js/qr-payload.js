@@ -11,10 +11,10 @@
     const MAX_BYTES = 1000;
     const sensitiveField = /(?:^|[\s&?;])(?:password|passwd|passcode|pin|otp|one[-_ ]time[-_ ]password|secret|api[_-]?key|access[_-]?token|refresh[_-]?token|session(?:[_-]?(?:id|token))?|private[_-]?key|authorization)\s*[:=]/i;
     const sensitiveQueryKeys = new Set([
-        'password', 'passwd', 'passcode', 'pin', 'otp', 'secret',
+        'password', 'passwd', 'passcode', 'pin', 'otp', 'secret', 'token', 'auth',
         'api_key', 'apikey', 'access_token', 'refresh_token',
         'session', 'session_id', 'session_token', 'authorization',
-        'private_key', 'credential',
+        'private_key', 'credential', 'account_number', 'card_number', 'cvv', 'cvc', 'sessionid',
     ]);
 
     function byteLength(value) {
