@@ -7,6 +7,7 @@ use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\IncomeController;
+use App\Http\Controllers\SavingsController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn () => auth()->check() ? redirect()->route('dashboard') : view('welcome'))->name('home');
@@ -33,4 +34,11 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/expenses', [ExpenseController::class, 'store'])->name('expenses.store');
     Route::put('/expenses/{expense}', [ExpenseController::class, 'update'])->whereNumber('expense')->name('expenses.update');
     Route::delete('/expenses/{expense}', [ExpenseController::class, 'destroy'])->whereNumber('expense')->name('expenses.destroy');
+    Route::get('/savings', [SavingsController::class, 'index'])->name('savings.index');
+    Route::post('/savings', [SavingsController::class, 'store'])->name('savings.store');
+    Route::put('/savings/{saving}', [SavingsController::class, 'update'])->whereNumber('saving')->name('savings.update');
+    Route::delete('/savings/{saving}', [SavingsController::class, 'destroy'])->whereNumber('saving')->name('savings.destroy');
+    Route::post('/savings/goals', [SavingsController::class, 'storeGoal'])->name('savings.goals.store');
+    Route::put('/savings/goals/{goal}', [SavingsController::class, 'updateGoal'])->whereNumber('goal')->name('savings.goals.update');
+    Route::delete('/savings/goals/{goal}', [SavingsController::class, 'destroyGoal'])->whereNumber('goal')->name('savings.goals.destroy');
 });
