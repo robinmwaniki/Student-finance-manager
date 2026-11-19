@@ -98,4 +98,14 @@ class User extends Authenticatable
     {
         return $this->hasOne(UserFinancialStreak::class);
     }
+
+    public function expenseCaptureDrafts(): HasMany
+    {
+        return $this->hasMany(ExpenseCaptureDraft::class);
+    }
+
+    public function expenseCaptureWebhookCredential(): HasOne
+    {
+        return $this->hasOne(ExpenseCaptureWebhookCredential::class);
+    }
 }

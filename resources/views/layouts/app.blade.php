@@ -17,6 +17,7 @@
 <a class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}"><span class="nav-icon">▦</span>Overview</a>
 <a class="nav-link {{ request()->routeIs('income.*') ? 'active' : '' }}" href="{{ route('income.index') }}"><span class="nav-icon">↗</span>Income</a>
 <a class="nav-link {{ request()->routeIs('expenses.*') ? 'active' : '' }}" href="{{ route('expenses.index') }}"><span class="nav-icon">↘</span>Expenses</a>
+<a class="nav-link {{ request()->routeIs('expense-capture.*') ? 'active' : '' }}" href="{{ route('expense-capture.index') }}"><span class="nav-icon">⌁</span>Capture</a>
 <a class="nav-link {{ request()->routeIs('budgets.*') ? 'active' : '' }}" href="{{ route('budgets.index') }}"><span class="nav-icon">▥</span>Budgets</a>
 <a class="nav-link {{ request()->routeIs('savings.*') ? 'active' : '' }}" href="{{ route('savings.index') }}"><span class="nav-icon">◎</span>Savings</a>
 <a class="nav-link {{ request()->routeIs('debts.*') ? 'active' : '' }}" href="{{ route('debts.index') }}"><span class="nav-icon">▤</span>Debts</a>

@@ -8,6 +8,8 @@ use App\Http\Controllers\BillReminderController;
 use App\Http\Controllers\BudgetController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DebtController;
+use App\Http\Controllers\ExpenseCaptureController;
+use App\Http\Controllers\ExpenseCaptureWebhookController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\FinancialAssistantController;
 use App\Http\Controllers\FinancialLearningController;
@@ -31,6 +33,10 @@ Route::middleware('guest')->group(function (): void {
     Route::get('/reset-password/{token}', [NewPasswordController::class, 'create'])->name('password.reset');
     Route::post('/reset-password', [NewPasswordController::class, 'store'])->name('password.store');
 });
+
+Route::post('/api/expense-capture/mpesa-webhook', [ExpenseCaptureWebhookController::class, 'ingest'])
+    ->middleware('throttle:30,1')
+    ->name('expense-capture.webhook.ingest');
 
 Route::middleware('auth')->group(function (): void {
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
@@ -64,6 +70,14 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/income', [IncomeController::class, 'store'])->name('income.store');
     Route::put('/income/{income}', [IncomeController::class, 'update'])->whereNumber('income')->name('income.update');
     Route::delete('/income/{income}', [IncomeController::class, 'destroy'])->whereNumber('income')->name('income.destroy');
+    Route::get('/expenses/capture', [ExpenseCaptureController::class, 'index'])->name('expense-capture.index');
+    Route::post('/expenses/capture/mpesa', [ExpenseCaptureController::class, 'mpesa'])->middleware('throttle:10,1')->name('expense-capture.mpesa');
+    Route::post('/expenses/capture/receipt', [ExpenseCaptureController::class, 'receipt'])->middleware('throttle:5,1')->name('expense-capture.receipt');
+    Route::post('/expenses/capture/voice', [ExpenseCaptureController::class, 'voice'])->middleware('throttle:10,1')->name('expense-capture.voice');
+    Route::post('/expenses/capture/barcode', [ExpenseCaptureController::class, 'barcode'])->middleware('throttle:10,1')->name('expense-capture.barcode');
+    Route::post('/expenses/capture/drafts/{draft}/confirm', [ExpenseCaptureController::class, 'confirm'])->whereNumber('draft')->name('expense-capture.confirm');
+    Route::delete('/expenses/capture/drafts/{draft}', [ExpenseCaptureController::class, 'discard'])->whereNumber('draft')->name('expense-capture.discard');
+    Route::post('/expenses/capture/webhook/rotate', [ExpenseCaptureController::class, 'rotateWebhook'])->middleware('throttle:3,1')->name('expense-capture.webhook.rotate');
     Route::get('/expenses', [ExpenseController::class, 'index'])->name('expenses.index');
     Route::post('/expenses', [ExpenseController::class, 'store'])->name('expenses.store');
     Route::put('/expenses/{expense}', [ExpenseController::class, 'update'])->whereNumber('expense')->name('expenses.update');
