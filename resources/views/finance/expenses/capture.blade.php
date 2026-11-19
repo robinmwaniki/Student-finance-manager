@@ -71,6 +71,9 @@
                 <strong style="font-size:12px">{{ strtoupper($draft->source) }} · {{ $draft->merchant ?: 'Unidentified merchant' }}</strong>
                 <span class="muted" style="font-size:10px">Expires {{ $draft->expires_at?->format('d M Y H:i') }}</span>
             </div>
+            @if($draft->expires_at?->isPast())
+                <p class="muted" style="font-size:11px;margin:12px 0">This draft has expired. It cannot be confirmed; discard it and capture the transaction again.</p>
+            @else
             <form method="POST" action="{{ route('expense-capture.confirm', $draft) }}" class="form-grid" style="margin-top:12px">
                 @csrf
                 <input type="hidden" name="lock_version" value="{{ $draft->lock_version }}">
@@ -80,6 +83,7 @@
                 <div class="field"><label>Tag</label><input name="tag" maxlength="50" value="{{ old('tag', $draft->tag) }}"></div>
                 <div><button class="btn" type="submit">Confirm and save expense</button></div>
             </form>
+            @endif
             @if($draft->source_reference)<p class="muted" style="font-size:10px;margin:8px 0 0">Reference: {{ $draft->source_reference }}</p>@endif
             <form method="POST" action="{{ route('expense-capture.discard', $draft) }}" style="margin-top:8px">@csrf @method('DELETE')<input type="hidden" name="lock_version" value="{{ $draft->lock_version }}"><button class="btn btn-danger btn-small" type="submit">Discard draft</button></form>
         </article>
