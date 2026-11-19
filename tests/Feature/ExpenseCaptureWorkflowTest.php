@@ -83,6 +83,7 @@ class ExpenseCaptureWorkflowTest extends TestCase
         ])->assertNotFound();
 
         $draft->update(['expires_at' => now()->subMinute()]);
+        $this->actingAs($owner)->get(route('expense-capture.index'))->assertSee('This draft has expired');
         $this->actingAs($owner)->post(route('expense-capture.confirm', $draft), [
             'lock_version' => 0,
             'category' => 'Food',
@@ -96,6 +97,7 @@ class ExpenseCaptureWorkflowTest extends TestCase
     public function test_voice_transcript_creates_a_reviewable_draft_without_booking_expense(): void
     {
         $user = $this->makeUser();
+        $this->assertNull(app(\\App\\Services\\VoiceExpenseParser::class)->parse('I went shopping in 2026.'));
 
         $this->actingAs($user)->post(route('expense-capture.voice'), [
             'transcript' => 'I spent 350 shillings on lunch today.',
