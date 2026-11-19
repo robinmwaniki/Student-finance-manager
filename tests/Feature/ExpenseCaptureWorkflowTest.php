@@ -241,7 +241,7 @@ class ExpenseCaptureWorkflowTest extends TestCase
 
         $this->actingAs($user)->get(route('expense-capture.index'))
             ->assertOk()
-            ->assertSee('type the expense instead')
+            ->assertSee('Browser speech recognition requires microphone permission')
             ->assertSee('Nothing enters your expense ledger until you review and confirm');
     }
 
