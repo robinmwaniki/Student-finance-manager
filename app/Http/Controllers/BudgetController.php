@@ -131,7 +131,7 @@ class BudgetController extends Controller
             'from_month' => ['required', 'regex:/^\d{4}-(0[1-9]|1[0-2])$/'],
             'to_month' => ['required', 'regex:/^\d{4}-(0[1-9]|1[0-2])$/', 'different:from_month'],
             'strategy' => ['required', Rule::in(['skip', 'report', 'replace'])],
-            'confirm_replace' => ['required_if:strategy,replace', 'accepted'],
+            'confirm_replace' => ['exclude_unless:strategy,replace', 'required', 'accepted'],
         ]);
         abort_unless($data['to_month'] > $data['from_month'], 422, 'Budgets can only be copied to a later month.');
 
