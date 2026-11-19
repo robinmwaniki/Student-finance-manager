@@ -13,7 +13,6 @@
     const emptyPreview = document.getElementById('qr-preview-empty');
     const download = document.getElementById('qr-download');
     const byteCount = document.getElementById('qr-byte-count');
-    const generateButton = document.getElementById('qr-generate');
 
     function message(text, isError = false) {
         status.textContent = text;
