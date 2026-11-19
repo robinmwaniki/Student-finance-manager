@@ -19,6 +19,7 @@
 <a class="nav-link {{ request()->routeIs('expenses.*') ? 'active' : '' }}" href="{{ route('expenses.index') }}"><span class="nav-icon">↘</span>Expenses</a>
 <a class="nav-link {{ request()->routeIs('savings.*') ? 'active' : '' }}" href="{{ route('savings.index') }}"><span class="nav-icon">◎</span>Savings</a>
 <a class="nav-link {{ request()->routeIs('debts.*') ? 'active' : '' }}" href="{{ route('debts.index') }}"><span class="nav-icon">▤</span>Debts</a>
+<a class="nav-link {{ request()->routeIs('recurring.*') ? 'active' : '' }}" href="{{ route('recurring.index') }}"><span class="nav-icon">⟳</span>Recurring</a>
 </nav><div class="sidebar-bottom"><div class="user-chip">{{ auth()->user()->fullname }}<small>{{ auth()->user()->email }}</small></div><form method="POST" action="{{ route('logout') }}">@csrf<button class="btn btn-light" style="width:100%">Sign out</button></form></div></aside>
 @endauth
 <main class="{{ auth()->check() ? 'main' : '' }}">
