@@ -39,7 +39,7 @@ class FinancialReportController extends Controller
     public function csv(Request $request, FinancialReportService $reports)
     {
         $filters = $this->validatedFilters($request);
-        $report = $this->reports->build(
+        $report = $reports->build(
             $request->user(),
             $filters['start'],
             $filters['end'],
@@ -93,7 +93,7 @@ class FinancialReportController extends Controller
     public function pdf(Request $request, FinancialReportService $reports, SimplePdfReport $pdf)
     {
         $filters = $this->validatedFilters($request);
-        $report = $this->reports->build(
+        $report = $reports->build(
             $request->user(),
             $filters['start'],
             $filters['end'],
@@ -122,7 +122,7 @@ class FinancialReportController extends Controller
 
         abort_if($start->diffInDays($end) > 366, 422, 'Choose a reporting period of no more than 366 days.');
 
-        $report = $this->reports->build(
+        $report = $reports->build(
             $request->user(),
             $start,
             $end,
