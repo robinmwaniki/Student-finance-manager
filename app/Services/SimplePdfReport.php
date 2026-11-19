@@ -7,7 +7,7 @@ class SimplePdfReport
     {
         $pages=array_chunk($lines,48); if($pages===[])$pages=[['No report data']];
         $objects=[]; $pageIds=[]; $fontId=3; $nextId=4; $objects[1]='<< /Type /Catalog /Pages 2 0 R >>';
-        foreach($pages as $pageLines){
+        foreach($pages as $pageIndex => $pageLines){
             $pageId=$nextId++; $contentId=$nextId++; $pageIds[]=$pageId.' 0 R';
             $stream="BT\n/F1 10 Tf\n50 790 Td\n14 TL\n";
             foreach($pageLines as $line)$stream.='('.$this->escapeText($line).") Tj\nT*\n";
