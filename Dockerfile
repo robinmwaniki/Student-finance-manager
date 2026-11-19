@@ -50,7 +50,7 @@ RUN composer dump-autoload --no-dev --no-interaction --optimize \
 
 COPY docker/nginx/default.conf /etc/nginx/sites-available/default
 COPY docker/php/zz-app.ini /usr/local/etc/php/conf.d/zz-app.ini
-COPY docker/php/zz-pool.conf /usr/local/etc/php-fpm.d/zz-app.conf
+COPY docker/php/zz-pool.conf /usr/local/etc/php-fpm.d/www.conf
 COPY docker/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint
 
