@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\BudgetController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DebtController;
 use App\Http\Controllers\ExpenseController;
@@ -27,6 +28,11 @@ Route::middleware('guest')->group(function (): void {
 
 Route::middleware('auth')->group(function (): void {
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
+    Route::get('/budgets', [BudgetController::class, 'index'])->name('budgets.index');
+    Route::post('/budgets', [BudgetController::class, 'store'])->name('budgets.store');
+    Route::put('/budgets/{budget}', [BudgetController::class, 'update'])->whereNumber('budget')->name('budgets.update');
+    Route::delete('/budgets/{budget}', [BudgetController::class, 'destroy'])->whereNumber('budget')->name('budgets.destroy');
+    Route::post('/budgets/copy', [BudgetController::class, 'copy'])->middleware('throttle:10,1')->name('budgets.copy');
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
     Route::get('/income', [IncomeController::class, 'index'])->name('income.index');
     Route::post('/income', [IncomeController::class, 'store'])->name('income.store');
