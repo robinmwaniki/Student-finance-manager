@@ -147,29 +147,38 @@ class BudgetController extends Controller
                 ->withErrors(['copy' => 'No budgets were copied. Existing categories: '.$conflicts->implode(', ').'.']);
         }
 
-        $copied = DB::transaction(function () use ($user, $source, $target, $conflicts, $data): int {
-            if ($data['strategy'] === 'replace') {
-                $user->budgets()->where('budget_month', $data['to_month'])->delete();
-            }
-
-            $count = 0;
-            foreach ($source as $budget) {
-                if ($data['strategy'] === 'skip' && $target->has($budget->category)) {
-                    continue;
+        try {
+            $copied = DB::transaction(function () use ($user, $source, $target, $data): int {
+                if ($data['strategy'] === 'replace') {
+                    $user->budgets()->where('budget_month', $data['to_month'])->delete();
                 }
 
-                $user->budgets()->create([
-                    'category' => $budget->category,
-                    'amount' => $budget->amount,
-                    'limit_amount' => $budget->limit_amount,
-                    'date' => $data['to_month'].'-01',
-                    'budget_month' => $data['to_month'],
-                ]);
-                $count++;
+                $count = 0;
+                foreach ($source as $budget) {
+                    if ($data['strategy'] === 'skip' && $target->has($budget->category)) {
+                        continue;
+                    }
+
+                    $user->budgets()->create([
+                        'category' => $budget->category,
+                        'amount' => $budget->amount,
+                        'limit_amount' => $budget->limit_amount,
+                        'date' => $data['to_month'].'-01',
+                        'budget_month' => $data['to_month'],
+                    ]);
+                    $count++;
+                }
+
+                return $count;
+            });
+        } catch (QueryException $exception) {
+            if (! $this->isUniqueViolation($exception)) {
+                throw $exception;
             }
 
-            return $count;
-        });
+            return redirect()->route('budgets.index', ['month' => $data['to_month']])
+                ->withErrors(['copy' => 'The target month changed while copying. Refresh the budgets and retry.']);
+        }
 
         $message = $data['strategy'] === 'replace'
             ? "Replaced the target month's budgets with {$copied} copied categories."
