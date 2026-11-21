@@ -7,6 +7,7 @@
 <form method="POST" action="{{ route('income.store') }}" class="form-grid">@csrf<input type="hidden" name="submission_token" value="{{ old('submission_token', $submissionToken) }}">
 <div class="field"><label for="source">Income source</label><input id="source" name="source" maxlength="100" placeholder="e.g. Allowance, salary" value="{{ old('source') }}" required></div>
 <div class="field"><label for="amount">Amount (KES)</label><input id="amount" name="amount" type="number" min="0.01" step="0.01" placeholder="0.00" value="{{ old('amount') }}" required></div>
+<div class="field"><label for="income-wallet">Deposit to wallet</label><select id="income-wallet" name="wallet_id" required>@foreach($wallets as $wallet)<option value="{{ $wallet->id }}" @selected(old('wallet_id', $wallet->is_default ? $wallet->id : null) == $wallet->id)>{{ $wallet->name }}</option>@endforeach</select></div>
 <div class="field"><label for="transaction_date">Date received</label><input id="transaction_date" name="transaction_date" type="date" max="{{ now(config('app.timezone'))->toDateString() }}" value="{{ old('transaction_date',now(config('app.timezone'))->toDateString()) }}" required></div>
 <div class="field"><label for="tag">Tag (optional)</label><input id="tag" name="tag" maxlength="50" placeholder="e.g. Part-time"></div>
 <div><button class="btn" type="submit">+ Save income</button></div>
