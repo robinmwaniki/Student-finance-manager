@@ -109,7 +109,7 @@
             if (nextLabel === null) return;
             const nextAmount = prompt('Amount', entry.payload.amount || '');
             if (nextAmount === null) return;
-            if (!nextLabel.trim() || !/^\\d+(?:\\.\\d{1,2})?$/.test(nextAmount) || Number(nextAmount) <= 0) {
+            if (!nextLabel.trim() || !/^\d+(?:\.\d{1,2})?$/.test(nextAmount) || Number(nextAmount) <= 0) {
                 detail.textContent = 'Enter a description and a positive amount with up to two decimal places.';
                 return;
             }

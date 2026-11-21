@@ -65,6 +65,14 @@ class OfflineTransactionSyncTest extends TestCase
         $this->assertSame(0, $user->expenses()->count());
     }
 
+    public function test_offline_outbox_amount_editor_accepts_plain_decimal_values(): void
+    {
+        $script = file_get_contents(public_path('offline-transactions.js'));
+
+        $this->assertIsString($script);
+        $this->assertStringContainsString('/^\\d+(?:\\.\\d{1,2})?$/', $script);
+    }
+
     private function makeUser(): User
     {
         return User::create([
