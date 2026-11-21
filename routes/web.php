@@ -120,6 +120,7 @@ Route::middleware(['auth', 'auth.session'])->group(function (): void {
     Route::delete('/savings/goals/{goal}', [SavingsController::class, 'destroyGoal'])->whereNumber('goal')->name('savings.goals.destroy');
     Route::get('/debts', [DebtController::class, 'index'])->name('debts.index');
     Route::post('/debts', [DebtController::class, 'store'])->name('debts.store');
+    Route::post('/debts/{debt}/repayments', [DebtController::class, 'repay'])->whereNumber('debt')->middleware('throttle:10,1')->name('debts.repayments.store');
     Route::put('/debts/{debt}', [DebtController::class, 'update'])->whereNumber('debt')->name('debts.update');
     Route::delete('/debts/{debt}', [DebtController::class, 'destroy'])->whereNumber('debt')->name('debts.destroy');
     Route::get('/recurring', [RecurringTransactionController::class, 'index'])->name('recurring.index');
