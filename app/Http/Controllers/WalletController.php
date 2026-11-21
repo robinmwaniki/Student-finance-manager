@@ -33,7 +33,7 @@ class WalletController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'name' => ['required', 'string', 'max:80'],
+            'name' => ['required', 'string', 'max:80', Rule::unique('wallets', 'name')->where('user_id', $request->user()->id)],
             'type' => ['required', 'in:cash,bank,mpesa,other'],
             'opening_balance' => ['required', 'numeric', 'min:0', 'decimal:0,2', 'max:999999999999.99'],
         ]);
@@ -65,8 +65,9 @@ class WalletController extends Controller
             if ($existing) {
                 $sameRequest = (int) $existing->from_wallet_id === (int) $data['from_wallet_id']
                     && (int) $existing->to_wallet_id === (int) $data['to_wallet_id']
-                    && $existing->amount === number_format((float) $data['amount'], 2, '.', '')
-                    && $existing->transfer_date->toDateString() === $data['transfer_date'];
+                    && self::toCents((string) $existing->amount) === self::toCents((string) $data['amount'])
+                    && $existing->transfer_date->toDateString() === $data['transfer_date']
+                    && $existing->note === ($data['note'] ?? null);
 
                 if (! $sameRequest) {
                     throw ValidationException::withMessages(['submission_token' => 'This transfer form has already been used. Refresh the page and try again.']);
