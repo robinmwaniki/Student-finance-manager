@@ -132,7 +132,7 @@ PHP;
         $this->assertSame('written-by-first-php-process', $result['value'] ?? null);
     }
 
-    public function test_separate_php_processes_share_redis_locks_rate_limits_and_queue_jobs(): void
+    public function test_separate_php_processes_share_redis_locks_rate_limits_and_queue_transport(): void
     {
         $script = <<<'PHP'
 require $argv[1].'/vendor/autoload.php';
@@ -158,12 +158,10 @@ if ($mode === 'lock-acquire' || $mode === 'lock-check') {
         echo json_encode(['limited' => $limiter->tooManyAttempts($key, 1)], JSON_THROW_ON_ERROR);
     }
 } elseif ($mode === 'queue-push') {
-    app('queue')->connection('redis')->pushRaw($argv[4], $key);
+    app('redis')->connection('queue')->rpush('queues:'.$key, $argv[4]);
     echo json_encode(['pushed' => true], JSON_THROW_ON_ERROR);
 } elseif ($mode === 'queue-pop') {
-    $job = app('queue')->connection('redis')->pop($key);
-    $body = $job?->getRawBody();
-    $job?->delete();
+    $body = app('redis')->connection('queue')->lpop('queues:'.$key);
     echo json_encode(['body' => $body], JSON_THROW_ON_ERROR);
 }
 PHP;
