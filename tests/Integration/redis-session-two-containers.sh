@@ -14,6 +14,7 @@ LOGIN_RESPONSE="$(mktemp)"
 SESSION_HEADERS="$(mktemp)"
 SESSION_BODY="$(mktemp)"
 APP_KEY_VALUE="${APP_KEY:-$(sed -n 's/^APP_KEY=//p' .env | head -n 1)}"
+USER_ID=""
 
 cleanup() {
     local status=$?
@@ -24,6 +25,16 @@ cleanup() {
     fi
 
     docker rm -f "$CONTAINER_A" "$CONTAINER_B" >/dev/null 2>&1 || true
+
+    if [[ -n "$USER_ID" ]]; then
+        php -r '
+        require "vendor/autoload.php";
+        $app = require "bootstrap/app.php";
+        $app->make(Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();
+        Illuminate\\Support\\Facades\\DB::table("users")->where("id", (int) $argv[1])->delete();
+        ' "$USER_ID" >/dev/null 2>&1 || true
+    fi
+
     rm -f "$COOKIE_JAR" "$LOGIN_HTML" "$LOGIN_RESPONSE" "$SESSION_HEADERS" "$SESSION_BODY"
     exit "$status"
 }
