@@ -15,6 +15,7 @@ SESSION_HEADERS="$(mktemp)"
 SESSION_BODY="$(mktemp)"
 APP_KEY_VALUE="${APP_KEY:-$(sed -n 's/^APP_KEY=//p' .env | head -n 1)}"
 USER_ID=""
+REQUEST_TMP_DIR="$(mktemp -d)"
 
 cleanup() {
     local status=$?
@@ -32,11 +33,14 @@ cleanup() {
         require "vendor/autoload.php";
         $app = require "bootstrap/app.php";
         $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+        Illuminate\Support\Facades\DB::table("income")->where("user_id", (int) $argv[1])->delete();
+        Illuminate\Support\Facades\DB::table("expenses")->where("user_id", (int) $argv[1])->delete();
         Illuminate\Support\Facades\DB::table("users")->where("id", (int) $argv[1])->delete();
         ' "$USER_ID" >/dev/null 2>&1 || true
     fi
 
     rm -f "$COOKIE_JAR" "$LOGIN_HTML" "$LOGIN_RESPONSE" "$SESSION_HEADERS" "$SESSION_BODY"
+    rm -rf "$REQUEST_TMP_DIR"
     exit "$status"
 }
 trap cleanup EXIT
@@ -220,3 +224,172 @@ fi
 
 echo "PASS: authenticated Redis session created on container A was accepted by container B and remained valid on A."
 echo "PASS: unauthenticated access was rejected and the offline session response was private/no-store."
+
+# Read a fresh CSRF token after authentication; login regenerates the session token.
+AUTH_HTML="$REQUEST_TMP_DIR/auth.html"
+INCOME_A_BODY="$REQUEST_TMP_DIR/income-a.json"
+INCOME_B_BODY="$REQUEST_TMP_DIR/income-b.json"
+INCOME_REPLAY_BODY="$REQUEST_TMP_DIR/income-replay.json"
+EXPENSE_A_BODY="$REQUEST_TMP_DIR/expense-a.json"
+EXPENSE_B_BODY="$REQUEST_TMP_DIR/expense-b.json"
+EXPENSE_REPLAY_BODY="$REQUEST_TMP_DIR/expense-replay.json"
+INCOME_A_STATUS="$REQUEST_TMP_DIR/income-a.status"
+INCOME_B_STATUS="$REQUEST_TMP_DIR/income-b.status"
+EXPENSE_A_STATUS="$REQUEST_TMP_DIR/expense-a.status"
+EXPENSE_B_STATUS="$REQUEST_TMP_DIR/expense-b.status"
+
+curl --silent --show-error --fail --cookie "$COOKIE_JAR" "$BASE_A/income" --output "$AUTH_HTML"
+AUTH_CSRF_TOKEN="$(grep -oE 'name="_token" value="[^"]+"' "$AUTH_HTML" | sed -E 's/.*value="([^"]+)"/\1/' | head -n 1)"
+
+if [[ -z "$AUTH_CSRF_TOKEN" ]]; then
+    echo "Could not extract an authenticated CSRF token for financial-write integration." >&2
+    exit 1
+fi
+
+TODAY="$(php -r 'require "vendor/autoload.php"; $app = require "bootstrap/app.php"; $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap(); echo now(config("app.timezone"))->toDateString();')"
+INCOME_TOKEN="$(cat /proc/sys/kernel/random/uuid)"
+EXPENSE_TOKEN="$(cat /proc/sys/kernel/random/uuid)"
+
+post_income() {
+    local base_url="$1"
+    local response_file="$2"
+
+    curl --silent --show-error \
+        --output "$response_file" \
+        --write-out '%{http_code}' \
+        --cookie "$COOKIE_JAR" \
+        --header 'Accept: application/json' \
+        --header "X-CSRF-TOKEN: $AUTH_CSRF_TOKEN" \
+        --data-urlencode "submission_token=$INCOME_TOKEN" \
+        --data-urlencode 'source=Concurrent CI Income' \
+        --data-urlencode 'amount=1250.50' \
+        --data-urlencode "transaction_date=$TODAY" \
+        "$base_url/income"
+}
+
+post_expense() {
+    local base_url="$1"
+    local response_file="$2"
+
+    curl --silent --show-error \
+        --output "$response_file" \
+        --write-out '%{http_code}' \
+        --cookie "$COOKIE_JAR" \
+        --header 'Accept: application/json' \
+        --header "X-CSRF-TOKEN: $AUTH_CSRF_TOKEN" \
+        --data-urlencode "submission_token=$EXPENSE_TOKEN" \
+        --data-urlencode 'category=Concurrent CI Expense' \
+        --data-urlencode 'amount=350.25' \
+        --data-urlencode 'currency=KES' \
+        --data-urlencode "transaction_date=$TODAY" \
+        "$base_url/expenses"
+}
+
+post_income "$BASE_A" "$INCOME_A_BODY" > "$INCOME_A_STATUS" &
+INCOME_A_PID=$!
+post_income "$BASE_B" "$INCOME_B_BODY" > "$INCOME_B_STATUS" &
+INCOME_B_PID=$!
+wait "$INCOME_A_PID"
+wait "$INCOME_B_PID"
+
+INCOME_A_CODE="$(cat "$INCOME_A_STATUS")"
+INCOME_B_CODE="$(cat "$INCOME_B_STATUS")"
+if [[ "$INCOME_A_CODE" != "201" || "$INCOME_B_CODE" != "201" ]]; then
+    echo "Concurrent income requests returned HTTP $INCOME_A_CODE and $INCOME_B_CODE; expected 201 for both." >&2
+    cat "$INCOME_A_BODY" "$INCOME_B_BODY" >&2
+    exit 1
+fi
+
+json_field() {
+    php -r '
+    $data = json_decode(file_get_contents($argv[1]), true, 512, JSON_THROW_ON_ERROR);
+    echo $data[$argv[2]] ?? "";
+    ' "$1" "$2"
+}
+
+INCOME_A_ID="$(json_field "$INCOME_A_BODY" record_id)"
+INCOME_B_ID="$(json_field "$INCOME_B_BODY" record_id)"
+if [[ -z "$INCOME_A_ID" || "$INCOME_A_ID" != "$INCOME_B_ID" ]]; then
+    echo "Concurrent income requests did not resolve to the same record ID ($INCOME_A_ID vs $INCOME_B_ID)." >&2
+    exit 1
+fi
+
+# A conflicting replay must return the original row without changing its values.
+INCOME_REPLAY_CODE="$(curl --silent --show-error --output "$INCOME_REPLAY_BODY" --write-out '%{http_code}' \
+    --cookie "$COOKIE_JAR" --header 'Accept: application/json' --header "X-CSRF-TOKEN: $AUTH_CSRF_TOKEN" \
+    --data-urlencode "submission_token=$INCOME_TOKEN" --data-urlencode 'source=Conflicting replay' \
+    --data-urlencode 'amount=9999.99' --data-urlencode "transaction_date=$TODAY" "$BASE_B/income")"
+if [[ "$INCOME_REPLAY_CODE" != "201" || "$(json_field "$INCOME_REPLAY_BODY" record_id)" != "$INCOME_A_ID" ]]; then
+    echo "Conflicting income replay did not resolve to the original record." >&2
+    cat "$INCOME_REPLAY_BODY" >&2
+    exit 1
+fi
+
+INCOME_RECORD="$(php -r '
+require "vendor/autoload.php";
+$app = require "bootstrap/app.php";
+$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+$query = Illuminate\Support\Facades\DB::table("income")->where("user_id", (int) $argv[1])->where("submission_token", $argv[2]);
+$record = $query->first();
+echo json_encode(["count" => $query->count(), "id" => $record?->id, "amount" => $record?->amount, "source" => $record?->source], JSON_THROW_ON_ERROR);
+' "$USER_ID" "$INCOME_TOKEN")"
+INCOME_COUNT="$(php -r '$d=json_decode($argv[1], true, 512, JSON_THROW_ON_ERROR); echo $d["count"];' "$INCOME_RECORD")"
+INCOME_AMOUNT="$(php -r '$d=json_decode($argv[1], true, 512, JSON_THROW_ON_ERROR); echo $d["amount"];' "$INCOME_RECORD")"
+INCOME_SOURCE="$(php -r '$d=json_decode($argv[1], true, 512, JSON_THROW_ON_ERROR); echo $d["source"];' "$INCOME_RECORD")"
+if [[ "$INCOME_COUNT" != "1" || "$INCOME_AMOUNT" != "1250.50" || "$INCOME_SOURCE" != "Concurrent CI Income" ]]; then
+    echo "Income idempotency invariant failed: $INCOME_RECORD" >&2
+    exit 1
+fi
+
+post_expense "$BASE_A" "$EXPENSE_A_BODY" > "$EXPENSE_A_STATUS" &
+EXPENSE_A_PID=$!
+post_expense "$BASE_B" "$EXPENSE_B_BODY" > "$EXPENSE_B_STATUS" &
+EXPENSE_B_PID=$!
+wait "$EXPENSE_A_PID"
+wait "$EXPENSE_B_PID"
+
+EXPENSE_A_CODE="$(cat "$EXPENSE_A_STATUS")"
+EXPENSE_B_CODE="$(cat "$EXPENSE_B_STATUS")"
+if [[ ! "$EXPENSE_A_CODE" =~ ^(200|201)$ || ! "$EXPENSE_B_CODE" =~ ^(200|201)$ ]]; then
+    echo "Concurrent expense requests returned HTTP $EXPENSE_A_CODE and $EXPENSE_B_CODE." >&2
+    cat "$EXPENSE_A_BODY" "$EXPENSE_B_BODY" >&2
+    exit 1
+fi
+
+EXPENSE_A_ID="$(json_field "$EXPENSE_A_BODY" record_id)"
+EXPENSE_B_ID="$(json_field "$EXPENSE_B_BODY" record_id)"
+if [[ -z "$EXPENSE_A_ID" || "$EXPENSE_A_ID" != "$EXPENSE_B_ID" ]]; then
+    echo "Concurrent expense requests did not resolve to the same record ID ($EXPENSE_A_ID vs $EXPENSE_B_ID)." >&2
+    exit 1
+fi
+
+EXPENSE_REPLAY_CODE="$(curl --silent --show-error --output "$EXPENSE_REPLAY_BODY" --write-out '%{http_code}' \
+    --cookie "$COOKIE_JAR" --header 'Accept: application/json' --header "X-CSRF-TOKEN: $AUTH_CSRF_TOKEN" \
+    --data-urlencode "submission_token=$EXPENSE_TOKEN" --data-urlencode 'category=Conflicting replay' \
+    --data-urlencode 'amount=9999.99' --data-urlencode 'currency=KES' \
+    --data-urlencode "transaction_date=$TODAY" "$BASE_B/expenses")"
+if [[ "$EXPENSE_REPLAY_CODE" != "200" || "$(json_field "$EXPENSE_REPLAY_BODY" record_id)" != "$EXPENSE_A_ID" ]]; then
+    echo "Conflicting expense replay did not resolve to the original record." >&2
+    cat "$EXPENSE_REPLAY_BODY" >&2
+    exit 1
+fi
+
+EXPENSE_RECORD="$(php -r '
+require "vendor/autoload.php";
+$app = require "bootstrap/app.php";
+$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+$query = Illuminate\Support\Facades\DB::table("expenses")->where("user_id", (int) $argv[1])->where("submission_token", $argv[2]);
+$record = $query->first();
+echo json_encode(["count" => $query->count(), "id" => $record?->id, "amount" => $record?->amount, "category" => $record?->category], JSON_THROW_ON_ERROR);
+' "$USER_ID" "$EXPENSE_TOKEN")"
+EXPENSE_COUNT="$(php -r '$d=json_decode($argv[1], true, 512, JSON_THROW_ON_ERROR); echo $d["count"];' "$EXPENSE_RECORD")"
+EXPENSE_AMOUNT="$(php -r '$d=json_decode($argv[1], true, 512, JSON_THROW_ON_ERROR); echo $d["amount"];' "$EXPENSE_RECORD")"
+EXPENSE_CATEGORY="$(php -r '$d=json_decode($argv[1], true, 512, JSON_THROW_ON_ERROR); echo $d["category"];' "$EXPENSE_RECORD")"
+if [[ "$EXPENSE_COUNT" != "1" || "$EXPENSE_AMOUNT" != "350.25" || "$EXPENSE_CATEGORY" != "Concurrent CI Expense" ]]; then
+    echo "Expense idempotency invariant failed: $EXPENSE_RECORD" >&2
+    exit 1
+fi
+
+echo "PASS: concurrent income requests across containers created one row and returned the same ID."
+echo "PASS: concurrent expense requests across containers created one row and returned the same ID."
+echo "PASS: conflicting replays did not overwrite the original income or expense."
