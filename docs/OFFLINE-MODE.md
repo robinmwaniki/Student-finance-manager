@@ -8,7 +8,7 @@
 - Income and expense creation forms can be queued in IndexedDB while offline. Each form uses its existing per-user UUID submission token; the database unique constraint makes server retries idempotent.
 - When the user returns online while signed in, the page sends queued records to the normal authenticated endpoints. The server remains authoritative for validation, wallet ownership, currency conversion and persistence.
 - Temporary network failures, HTTP 408/429 and HTTP 5xx responses use exponential backoff starting at 5 seconds, capped at 5 minutes, with at most 8 automatic attempts per item. The next retry is scheduled while an authenticated page remains open; pending items remain stored if the browser closes.
-- HTTP validation/conflict errors and expired sessions are not retried automatically. The user can edit the item or refresh the session, then select Sync now for a manual retry. Items are never silently discarded.
+- HTTP validation/conflict errors and expired sessions are not retried automatically. The user can edit the item or refresh the session, then select Sync now for a manual retry. If another tab signs into a different account, the stale page hides its outbox and refuses to sync; the pending entries remain on-device until the original account signs in again. Items are never silently discarded.
 
 ## Important limitations
 
@@ -20,8 +20,10 @@
 
 ## Local data and shared-device safety
 
-IndexedDB is origin-local browser storage and is not encrypted by this application. Pending records contain only the fields needed to submit the transaction and the owning account ID; passwords, session cookies and CSRF tokens are not stored. The outbox is filtered by account ID so one signed-in account cannot submit another account's queued items. However, anyone with access to the same unlocked browser profile may inspect local browser storage. Do not enable offline transaction entry on a shared or public device. Clear browser site data when retiring a device, and do not assume pending data survives browser storage eviction or device loss.
+IndexedDB is origin-local browser storage and is not encrypted by this application. Pending records contain only the fields needed to submit the transaction and the owning account ID; passwords, session cookies and CSRF tokens are not stored. The outbox is filtered by account ID. While online, the page checks the current authenticated session before showing or syncing pending records. Queued writes also include their original owner ID, which the server compares with the authenticated account and rejects with HTTP 409 if they differ. This prevents a stale tab from attributing one account's pending transaction to another account. However, anyone with access to the same unlocked browser profile may inspect local browser storage. Do not enable offline transaction entry on a shared or public device. Clear browser site data when retiring a device, and do not assume pending data survives browser storage eviction or device loss.
 
 ## Verification
 
-Use a staging account and synthetic financial data. Test offline queueing, page reload, browser restart, reconnect, repeated delivery of the same submission token, account switching, session expiry, invalid payloads, local storage denial and service-worker updates and retry/backoff behavior. Never test with real financial exports or production data.
+Automated coverage includes service-worker runtime policy, client outbox sync/account isolation, transient retry scheduling, idempotent server writes and cross-account rejection. These tests use Node VM/IndexedDB mocks and Laravel feature tests; they are not a substitute for real-browser/device validation.
+
+Before declaring offline mode fully accepted, use a staging account and synthetic financial data to verify installability, offline shell loading, queueing, page reload, browser restart, reconnect, repeated delivery, account switching, session expiry, invalid payloads, local storage denial, service-worker updates, mobile layout and keyboard/screen-reader accessibility on the supported browser/device matrix. Never test with real financial exports or production data.
