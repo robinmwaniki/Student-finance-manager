@@ -65,8 +65,13 @@ async function outboxCount(page) {
         context = await openContext();
         let page = context.pages()[0] || await context.newPage();
         const pageErrors = [];
+        const browserConsole = [];
         const retryPolicyResponses = [];
         page.on('pageerror', error => pageErrors.push(error.message));
+        page.on('console', message => browserConsole.push({ type: message.type(), text: message.text() }));
+        page.on('requestfailed', request => {
+            if (request.url().endsWith('/offline-retry-policy.js')) browserConsole.push({ type: 'requestfailed', text: request.failure()?.errorText || 'unknown' });
+        });
         page.on('response', response => {
             if (response.url().endsWith('/offline-retry-policy.js')) {
                 retryPolicyResponses.push({ status: response.status(), contentType: response.headers()['content-type'] || null });
@@ -98,13 +103,16 @@ async function outboxCount(page) {
             retryPolicyLoaded: Boolean(window.OfflineRetryPolicy),
             queueType: document.querySelector('form[action$="/income"]')?.dataset.offlineQueue || null,
             scriptLoaded: [...document.scripts].some(script => script.src.endsWith('/offline-transactions.js')),
+            retryScript: (() => { const script = [...document.scripts].find(item => item.src.endsWith('/offline-retry-policy.js')); return script ? { src: script.src, type: script.type, defer: script.defer, async: script.async } : null; })(),
+            readyState: document.readyState,
+            retryPolicyType: typeof window.OfflineRetryPolicy,
             invalidControls: [...document.querySelectorAll('form[action$="/income"] :invalid')].map(element => ({
                 name: element.name || element.id || element.tagName,
                 validity: element.validationMessage,
             })),
         }));
         assert.ok(runtime.userId, 'authenticated layout must expose the current user ID to the offline runtime');
-        assert.equal(runtime.retryPolicyLoaded, true, `offline retry policy must be loaded; runtime=${JSON.stringify(runtime)}; responses=${JSON.stringify(retryPolicyResponses)}; pageErrors=${JSON.stringify(pageErrors)}`);
+        assert.equal(runtime.retryPolicyLoaded, true, `offline retry policy must be loaded; runtime=${JSON.stringify(runtime)}; responses=${JSON.stringify(retryPolicyResponses)}; pageErrors=${JSON.stringify(pageErrors)}; console=${JSON.stringify(browserConsole)}`);
         assert.equal(runtime.queueType, 'income', 'income form must be registered with the offline queue');
         assert.equal(runtime.scriptLoaded, true, 'offline transaction runtime script must be included');
         assert.deepEqual(runtime.invalidControls, [], 'income form must be valid before submission');
