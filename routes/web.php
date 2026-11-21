@@ -44,7 +44,7 @@ Route::post('/api/expense-capture/mpesa-webhook', [ExpenseCaptureWebhookControll
     ->name('expense-capture.webhook.ingest');
 
 Route::middleware(['auth', 'auth.session'])->group(function (): void {
-    Route::get('/offline/session', fn (\Illuminate\Http\\Request $request) => response()->json([
+    Route::get('/offline/session', fn (\Illuminate\Http\Request $request) => response()->json([
         'user_id' => (string) $request->user()->getAuthIdentifier(),
     ])->header('Cache-Control', 'no-store, private')->header('Pragma', 'no-cache'))->name('offline.session');
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
