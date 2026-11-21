@@ -69,6 +69,7 @@ body[data-theme="dark"] .avatar-preview{border-color:#34465f;background:#1c2b42}
 <div id="offline-sync-detail" class="muted" style="margin-top:5px">Offline transactions stay on this device until they sync. Do not use this feature on a shared device.</div>
 <div id="offline-sync-items" style="margin-top:8px;max-height:180px;overflow:auto"></div>
 </div>
+<script src="{{ asset('offline-retry-policy.js') }}" defer></script>
 <script src="{{ asset('offline-transactions.js') }}" defer></script>
 @endauth
 <script>if ('serviceWorker' in navigator) { window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {})); }</script>
