@@ -2,6 +2,13 @@
 
 ## Implemented safeguards
 
+### Savings goals and contributions
+- Savings entries and goals are exposed through authenticated routes and user-owned Eloquent relationships.
+- Each contribution form carries a UUID submission token; PostgreSQL enforces uniqueness per user and duplicate submissions use conflict-safe insertion.
+- Goal balances are reconciled from the contribution ledger inside a database transaction while the goal row is locked.
+- Goal completion is derived from exact integer-cent comparisons between ledger total and target; users cannot manually mark an underfunded goal complete.
+- Goal and contribution edits/deletes use lock versions to reject stale writes. Deleting a goal preserves its contribution history.
+
 ### Income and expense submissions
 - Each rendered create form receives a UUID submission token.
 - The database enforces a unique (user_id, submission_token) key.
@@ -26,7 +33,7 @@ Financial aggregates are calculated from PostgreSQL on each dashboard request. N
 
 ## Remaining migration scope
 
-The current Laravel HTTP application exposes income and expense write workflows. Savings, debt, budget management and recurring transaction execution are not yet exposed through Laravel controllers/routes. Their legacy PHP counterparts are still part of the migration work. These workflows must receive equivalent ownership, transaction and concurrency tests when ported; this issue does not claim that unported legacy workflows have been fully audited.
+Debt tracking and recurring transaction execution remain subject to their dedicated feature issues. Savings and monthly budgets now have authenticated Laravel workflows; the legacy PHP application remains available as a historical source for the separate data-migration issue.
 
 ## Operational notes
 
