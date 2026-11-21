@@ -24,6 +24,7 @@ class QueueWorkerLifecycleProbe implements ShouldQueue
         public readonly ?string $startedPath = null,
         public readonly int $holdFirstAttemptSeconds = 0,
         public readonly bool $failEveryAttempt = false,
+        public readonly ?string $effectPath = null,
     ) {}
 
     public function handle(): void
@@ -49,6 +50,34 @@ class QueueWorkerLifecycleProbe implements ShouldQueue
             flock($attemptsFile, LOCK_UN);
         } finally {
             fclose($attemptsFile);
+        }
+
+
+        if ($this->effectPath !== null) {
+            $effectFile = fopen($this->effectPath, 'c+');
+
+            if ($effectFile === false) {
+                throw new RuntimeException('Unable to open the queue probe effect file.');
+            }
+
+            try {
+                if (! flock($effectFile, LOCK_EX)) {
+                    throw new RuntimeException('Unable to lock the queue probe effect file.');
+                }
+
+                $existingEffect = stream_get_contents($effectFile);
+
+                if ($existingEffect === false || trim($existingEffect) === '') {
+                    rewind($effectFile);
+                    ftruncate($effectFile, 0);
+                    fwrite($effectFile, "effect\n");
+                    fflush($effectFile);
+                }
+
+                flock($effectFile, LOCK_UN);
+            } finally {
+                fclose($effectFile);
+            }
         }
 
         if ($attempt === 1 && $this->startedPath !== null) {
