@@ -1,5 +1,5 @@
-const CACHE_NAME = 'sfm-shell-v1';
-const SHELL_FILES = ['/offline.html', '/manifest.webmanifest', '/offline-transactions.js', '/icons/icon.svg'];
+const CACHE_NAME = 'sfm-shell-v2';
+const SHELL_FILES = ['/offline.html', '/manifest.webmanifest', '/offline-transactions.js', '/offline-retry-policy.js', '/icons/icon.svg'];
 self.addEventListener('install', event => {
     event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(SHELL_FILES)).then(() => self.skipWaiting()));
 });
@@ -11,7 +11,7 @@ self.addEventListener('fetch', event => {
     const url = new URL(request.url);
     // Never cache authenticated HTML, API responses, POST requests, or cross-origin data.
     if (request.method !== 'GET' || url.origin !== self.location.origin) return;
-    if (['/offline.html', '/manifest.webmanifest', '/offline-transactions.js', '/icons/icon.svg'].includes(url.pathname)) {
+    if (['/offline.html', '/manifest.webmanifest', '/offline-transactions.js', '/offline-retry-policy.js', '/icons/icon.svg'].includes(url.pathname)) {
         event.respondWith(caches.match(request).then(cached => cached || fetch(request)));
         return;
     }
