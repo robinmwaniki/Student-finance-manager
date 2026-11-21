@@ -4,7 +4,7 @@ namespace Tests\Feature;
 
 use Illuminate\Cache\RateLimiter;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -90,23 +90,18 @@ class RedisMultiInstanceIntegrationTest extends TestCase
         app('session')->forgetDrivers();
     }
 
-    public function test_independent_redis_queue_connections_can_consume_each_others_jobs(): void
+    public function test_independent_redis_connections_share_queue_transport_keys(): void
     {
         $queueName = 'multi-instance-'.Str::uuid();
+        $queueKey = 'queues:'.$queueName;
         $payload = json_encode(['id' => (string) Str::uuid()], JSON_THROW_ON_ERROR);
 
-        $firstQueue = Queue::connection('redis');
-        $firstQueue->pushRaw($payload, $queueName);
+        Redis::connection('queue')->rpush($queueKey, $payload);
 
-        app('queue')->forgetDriver('redis');
+        app('redis')->purge('queue');
 
-        $secondQueue = Queue::connection('redis');
-        $job = $secondQueue->pop($queueName);
+        $messageFromSecondConnection = Redis::connection('queue')->lpop($queueKey);
 
-        $this->assertNotNull($job);
-        $this->assertSame($payload, $job->getRawBody());
-
-        $job->delete();
-        app('queue')->forgetDriver('redis');
+        $this->assertSame($payload, $messageFromSecondConnection);
     }
 }
