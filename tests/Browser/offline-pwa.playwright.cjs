@@ -44,16 +44,16 @@ async function outboxCount(page) {
     try {
         context = await openContext();
         let page = context.pages()[0] || await context.newPage();
-        await page.goto(baseUrl + '/login', { waitUntil: 'networkidle' });
+        await page.goto(baseUrl + '/login', { waitUntil: 'domcontentloaded' });
         if (new URL(page.url()).pathname === '/login') {
             await page.locator('input[name="email"]').fill(email);
             await page.locator('input[name="password"]').fill(password);
             await page.locator('form[action$="/login"] button[type="submit"]').click();
             await page.waitForURL(url => url.pathname !== '/login', { timeout: 15000 });
         }
-        await page.goto(baseUrl + '/income', { waitUntil: 'networkidle' });
+        await page.goto(baseUrl + '/income', { waitUntil: 'domcontentloaded' });
         await page.evaluate(async () => { await navigator.serviceWorker.ready; return true; });
-        await page.reload({ waitUntil: 'networkidle' });
+        await page.reload({ waitUntil: 'domcontentloaded' });
         await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller), null, { timeout: 15000 });
 
         const incomeForm = page.locator('form[action$="/income"]').first();
@@ -77,7 +77,7 @@ async function outboxCount(page) {
         await context.close();
         context = await openContext();
         page = context.pages()[0] || await context.newPage();
-        await page.goto(baseUrl + '/income', { waitUntil: 'networkidle' });
+        await page.goto(baseUrl + '/income', { waitUntil: 'domcontentloaded' });
         await page.waitForFunction(async () => {
             if (!('indexedDB' in window)) return false;
             const db = await new Promise((resolve, reject) => {
