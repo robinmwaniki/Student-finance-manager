@@ -138,7 +138,7 @@ login_page_args=(
 )
 curl "${login_page_args[@]}" "$BASE_A/login" --output "$LOGIN_HTML"
 
-CSRF_TOKEN="$(grep -oE 'name="_token" value="[^"]+"' "$LOGIN_HTML" | sed -E 's/.*value="([^"]+)"/\\1/' | head -n 1)"
+CSRF_TOKEN="$(grep -oE 'name="_token" value="[^"]+"' "$LOGIN_HTML" | sed -E 's/.*value="([^"]+)"/\1/' | head -n 1)"
 
 if [[ -z "$CSRF_TOKEN" ]]; then
     echo "Could not extract the login CSRF token." >&2
