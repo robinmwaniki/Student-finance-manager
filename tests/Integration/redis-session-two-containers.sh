@@ -246,7 +246,7 @@ if [[ -z "$AUTH_CSRF_TOKEN" ]]; then
     exit 1
 fi
 
-TODAY="$(php -r 'echo now(config("app.timezone"))->toDateString();')"
+TODAY="$(php -r 'require "vendor/autoload.php"; $app = require "bootstrap/app.php"; $app->make(Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap(); echo now(config("app.timezone"))->toDateString();')"
 INCOME_TOKEN="$(cat /proc/sys/kernel/random/uuid)"
 EXPENSE_TOKEN="$(cat /proc/sys/kernel/random/uuid)"
 
