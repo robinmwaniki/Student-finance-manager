@@ -5,33 +5,43 @@ const path = require('node:path');
 const { chromium } = require('playwright');
 
 const baseUrl = (process.env.SFM_BROWSER_BASE_URL || '').replace(/\/$/, '');
-const email = process.env.SFM_BROWSER_EMAIL || '';
-const password = process.env.SFM_BROWSER_PASSWORD || '';
+const sessionCookie = process.env.SFM_BROWSER_SESSION_COOKIE || '';
 const submissionToken = process.env.SFM_OFFLINE_E2E_TOKEN || '';
 
-for (const [name, value] of Object.entries({ SFM_BROWSER_BASE_URL: baseUrl, SFM_BROWSER_EMAIL: email, SFM_BROWSER_PASSWORD: password, SFM_OFFLINE_E2E_TOKEN: submissionToken })) {
+for (const [name, value] of Object.entries({ SFM_BROWSER_BASE_URL: baseUrl, SFM_BROWSER_SESSION_COOKIE: sessionCookie, SFM_OFFLINE_E2E_TOKEN: submissionToken })) {
     if (!value) throw new Error(`Missing required environment variable: ${name}`);
 }
 
 const profileDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sfm-offline-browser-'));
+const cookie = {
+    name: 'sfm-http-integration-session',
+    value: sessionCookie,
+    domain: '127.0.0.1',
+    path: '/',
+    expires: Math.floor(Date.now() / 1000) + 3600,
+    httpOnly: true,
+    secure: false,
+    sameSite: 'Lax',
+};
 
 async function openContext() {
-    return chromium.launchPersistentContext(profileDir, {
+    const context = await chromium.launchPersistentContext(profileDir, {
         headless: true,
         viewport: { width: 1365, height: 900 },
         serviceWorkers: 'allow',
         args: ['--no-sandbox'],
     });
+    // Rehydrate the synthetic Laravel session minted by the preceding curl login.
+    // This keeps browser UI login concerns separate from the offline transaction flow.
+    await context.addCookies([cookie]);
+    return context;
 }
 
-async function loginIfRequired(page) {
-    await page.goto(baseUrl + '/login', { waitUntil: 'domcontentloaded' });
-    if (new URL(page.url()).pathname === '/login') {
-        await page.locator('input[name="email"]').fill(email);
-        await page.locator('input[name="password"]').fill(password);
-        await page.locator('form[action$="/login"] button[type="submit"]').click();
-        await page.waitForURL(url => url.pathname !== '/login', { timeout: 15000 });
-    }
+async function assertAuthenticated(page) {
+    const response = await page.request.get(baseUrl + '/offline/session');
+    assert.equal(response.status(), 200, 'the synthetic Redis-backed browser session must be authenticated');
+    const body = await response.json();
+    assert.ok(body.user_id, 'the offline session endpoint must identify the authenticated CI user');
 }
 
 async function outboxCount(page) {
@@ -54,8 +64,8 @@ async function outboxCount(page) {
     try {
         context = await openContext();
         let page = context.pages()[0] || await context.newPage();
-        await loginIfRequired(page);
         await page.goto(baseUrl + '/income', { waitUntil: 'domcontentloaded' });
+        await assertAuthenticated(page);
         await page.evaluate(async () => { await navigator.serviceWorker.ready; return true; });
         await page.reload({ waitUntil: 'domcontentloaded' });
         await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller), null, { timeout: 15000 });
@@ -81,11 +91,8 @@ async function outboxCount(page) {
         await context.close();
         context = await openContext();
         page = context.pages()[0] || await context.newPage();
-
-        // A real browser restart ends the browser session. Authenticate again before
-        // opening the protected page; IndexedDB remains origin-persistent.
-        await loginIfRequired(page);
         await page.goto(baseUrl + '/income', { waitUntil: 'domcontentloaded' });
+        await assertAuthenticated(page);
         await page.evaluate(async () => { await navigator.serviceWorker.ready; return true; });
         await page.waitForFunction(async () => {
             if (!('indexedDB' in window)) return false;
@@ -101,7 +108,7 @@ async function outboxCount(page) {
             });
         }, null, { timeout: 20000 });
         assert.equal(await outboxCount(page), 0, 'reconnected browser must clear the outbox only after successful server acknowledgement');
-        console.log('PASS: pending transaction survived browser-context restart, re-authentication and reconnect sync.');
+        console.log('PASS: pending transaction survived browser-context restart and reconnect sync.');
     } finally {
         if (context) await context.close();
         fs.rmSync(profileDir, { recursive: true, force: true });
