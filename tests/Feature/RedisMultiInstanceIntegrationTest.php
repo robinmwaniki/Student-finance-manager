@@ -107,6 +107,6 @@ class RedisMultiInstanceIntegrationTest extends TestCase
         $this->assertSame($payload, $job->getRawBody());
 
         $job->delete();
-        Queue::purge('redis');
+        app('queue')->forgetDriver('redis');
     }
 }
