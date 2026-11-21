@@ -53,6 +53,18 @@ class ExpenseController extends Controller
         ]);
 
         $token = $data['submission_token'];
+        $existing = $request->user()->expenses()->where('submission_token', $token)->first();
+        if ($existing) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'Expense record was already saved.',
+                    'record_id' => $existing->getKey(),
+                ], 200);
+            }
+
+            return back()->with('success', 'Expense record was already saved.');
+        }
+
         $wallet = isset($data['wallet_id'])
             ? $request->user()->wallets()->whereKey($data['wallet_id'])->first()
             : $request->user()->wallets()->where('is_default', true)->first();
