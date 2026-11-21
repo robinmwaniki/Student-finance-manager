@@ -26,9 +26,9 @@ Publish the maximum tested values, test-generator capacity, topology and cost. D
 - Local defaults remain file sessions, file cache and database queues; Redis is opt-in.
 - The k6 script now refuses to run unless `CONFIRM_STAGING=true` is explicitly set.
 
-**CI evidence:** the Redis integration suite runs against an ephemeral Redis 7 service in GitHub Actions. It verifies that independently resolved cache stores share values, distributed locks and rate-limit counters; separately created session managers can read the same Redis session; and a second Redis connection can read the queue transport key written by the first connection. A separate test now boots Laravel in two independent PHP CLI processes: process one writes a Redis-backed session and process two reads the same session ID successfully.
+**CI evidence:** the Redis integration suite runs against an ephemeral Redis 7 service in GitHub Actions. It verifies shared cache values, locks and rate-limit counters through independently resolved managers; session reads through separately created session managers; and shared queue transport keys. Separate PHP CLI processes now also verify Redis-backed session continuity, distributed-lock exclusion, shared rate-limit counters and queue transport-list visibility.
 
-**Remaining risk:** the cross-process check covers Redis session continuity, not a full multi-container/PHP-FPM HTTP deployment. Cache locks and rate-limit counters are currently tested through independently resolved managers in one process; queue coverage verifies shared Redis transport keys, not actual worker consumption. Real HTTP authentication across web instances, Redis outage/failover recovery, worker restart/backlog behavior and production connection budgets remain unproven. Do not switch a shared environment solely because the configuration and primitive integration tests exist.
+**Remaining risk:** these tests prove selected Redis primitives across PHP processes, not a full multi-container/PHP-FPM HTTP deployment. Queue coverage verifies shared transport visibility, not actual Laravel worker consumption, acknowledgement/retry behavior or worker restart/backlog recovery. Real HTTP authentication across web instances, Redis outage/failover recovery and production connection budgets remain unproven. Do not switch a shared environment solely because the configuration and primitive integration tests exist.
 
 ### 2. Container and process topology remains a bottleneck
 
@@ -71,7 +71,7 @@ The application uses standard PostgreSQL host/port settings. No measured PgBounc
 1. Instrument fleet-wide request latency/errors, DB query timing, queue depth/age, worker saturation and cache hit/miss with privacy-safe retention; retain correlation IDs for diagnosis.
 2. Establish repeatable synthetic workloads for login, dashboard, income/expense creation, wallet transfers, reports and recurring jobs.
 3. Review high-cost queries, N+1 behavior, pagination, decimal-safe calculations and indexes using representative staging data.
-4. Extend the passing Redis primitive and separate-PHP-process session tests to two-or-more independent Laravel app containers; verify real HTTP sessions, cross-process cache locks/rate limits, actual queue worker consumption, duplicate financial writes and Redis interruption/recovery.
+4. Extend the passing Redis primitive/process tests to two-or-more independent Laravel app containers; verify real HTTP authentication/session continuity, actual queue worker consumption and acknowledgement/retry behavior, duplicate financial writes and Redis interruption/recovery.
 5. Separate web, queue workers and scheduler; set bounded concurrency and retry policies.
 6. Introduce a PostgreSQL pooler and documented connection budgets; verify backup/restore.
 7. Progressively test 100, 1,000, 10,000, 100,000 and the largest safely affordable session levels. Capture p50/p95/p99, RPS, error rate, CPU/memory, DB connections/query latency and queue lag.
@@ -90,7 +90,7 @@ The application uses standard PostgreSQL host/port settings. No measured PgBounc
 
 ## Remaining implementation slices
 
-- Extend Redis primitive and session-process tests to independent Laravel app containers; test cross-process locks/limits, queue workers and outage/recovery semantics.
+- Extend Redis process tests to independent Laravel app containers; test real HTTP sessions, queue workers, duplicate writes and outage/recovery semantics.
 - Add fleet-wide metrics/alerts and a repeatable staged baseline.
 - Measure PostgreSQL query plans and connection-pool behavior.
 - Run progressively larger isolated-staging tests and publish results/costs.
