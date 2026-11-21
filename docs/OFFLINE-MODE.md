@@ -20,7 +20,7 @@
 
 ## Local data and shared-device safety
 
-IndexedDB is origin-local browser storage and is not encrypted by this application. Pending records contain only the fields needed to submit the transaction and the owning account ID; passwords, session cookies and CSRF tokens are not stored. The outbox is filtered by account ID so one signed-in account cannot submit another account's queued items. However, anyone with access to the same unlocked browser profile may inspect local browser storage. Do not enable offline transaction entry on a shared or public device. Clear browser site data when retiring a device, and do not assume pending data survives browser storage eviction or device loss.
+IndexedDB is origin-local browser storage and is not encrypted by this application. Pending records contain only the fields needed to submit the transaction and the owning account ID; passwords, session cookies and CSRF tokens are not stored. The outbox is filtered by account ID. While online, the page checks the current authenticated session before showing or syncing pending records. Queued writes also include their original owner ID, which the server compares with the authenticated account and rejects with HTTP 409 if they differ. This prevents a stale tab from attributing one account's pending transaction to another account. However, anyone with access to the same unlocked browser profile may inspect local browser storage. Do not enable offline transaction entry on a shared or public device. Clear browser site data when retiring a device, and do not assume pending data survives browser storage eviction or device loss.
 
 ## Verification
 
