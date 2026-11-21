@@ -397,10 +397,15 @@ echo "PASS: conflicting replays did not overwrite the original income or expense
 
 if [[ "${SFM_RUN_BROWSER_E2E:-false}" == "true" ]]; then
     OFFLINE_E2E_TOKEN="$(cat /proc/sys/kernel/random/uuid)"
+    BROWSER_SESSION_COOKIE="$(awk '$6 == "sfm-http-integration-session" { print $7; exit }' "$COOKIE_JAR")"
+    if [[ -z "$BROWSER_SESSION_COOKIE" ]]; then
+        echo "Could not extract the synthetic authenticated session cookie for Chromium." >&2
+        exit 1
+    fi
+
     echo "Running Chromium offline PWA lifecycle against the isolated CI container..."
     SFM_BROWSER_BASE_URL="$BASE_A" \
-    SFM_BROWSER_EMAIL="$EMAIL" \
-    SFM_BROWSER_PASSWORD="$PASSWORD" \
+    SFM_BROWSER_SESSION_COOKIE="$BROWSER_SESSION_COOKIE" \
     SFM_OFFLINE_E2E_TOKEN="$OFFLINE_E2E_TOKEN" \
         node tests/Browser/offline-pwa.playwright.cjs
 
