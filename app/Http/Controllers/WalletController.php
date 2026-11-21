@@ -7,8 +7,8 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use Illuminate\View\View;
 use Illuminate\Validation\Rule;
+use Illuminate\View\View;
 use Illuminate\Validation\ValidationException;
 
 class WalletController extends Controller
@@ -69,7 +69,7 @@ class WalletController extends Controller
                     && $existing->transfer_date->toDateString() === $data['transfer_date']
                     && $existing->note === ($data['note'] ?? null);
 
-                if (!$sameRequest) {
+                if (! $sameRequest) {
                     throw ValidationException::withMessages(['submission_token' => 'This transfer form has already been used. Refresh the page and try again.']);
                 }
 
@@ -87,7 +87,7 @@ class WalletController extends Controller
             $from = $locked->get((int) $data['from_wallet_id']);
             $to = $locked->get((int) $data['to_wallet_id']);
 
-            if (!$from || !$to) {
+            if (! $from || ! $to) {
                 throw ValidationException::withMessages(['from_wallet_id' => 'Select two wallets belonging to your account.']);
             }
 
