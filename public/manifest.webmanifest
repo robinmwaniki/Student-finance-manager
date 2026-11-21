@@ -1,0 +1,18 @@
+{
+  "name": "Student Finance Manager",
+  "short_name": "Student Finance",
+  "description": "Manage your personal finances securely.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f5f7fb",
+  "theme_color": "#24385f",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
