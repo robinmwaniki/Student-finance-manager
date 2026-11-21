@@ -18,6 +18,7 @@ USER_ID=""
 
 cleanup() {
     local status=$?
+
     if [[ $status -ne 0 ]]; then
         echo "Multi-container HTTP session integration failed. Container logs follow." >&2
         docker logs "$CONTAINER_A" >&2 2>/dev/null || true
@@ -64,7 +65,46 @@ start_app() {
     local name="$1"
     local host_port="$2"
 
-    docker run --detach         --name "$name"         --add-host=host.docker.internal:host-gateway         --publish "$host_port:10000"         --env PORT=10000         --env APP_ENV=testing         --env APP_DEBUG=false         --env APP_KEY="$APP_KEY_VALUE"         --env APP_URL="http://127.0.0.1:$host_port"         --env LOG_CHANNEL=stderr         --env DB_CONNECTION=pgsql         --env DB_HOST=host.docker.internal         --env DB_PORT=5432         --env DB_DATABASE="$DB_DATABASE"         --env DB_USERNAME="$DB_USERNAME"         --env DB_PASSWORD="$DB_PASSWORD"         --env DB_SSLMODE=disable         --env SESSION_DRIVER=redis         --env SESSION_CONNECTION=session         --env SESSION_COOKIE=sfm-http-integration-session         --env SESSION_LIFETIME=120         --env SESSION_ENCRYPT=true         --env SESSION_SECURE_COOKIE=false         --env CACHE_STORE=redis         --env QUEUE_CONNECTION=redis         --env REDIS_CLIENT=phpredis         --env REDIS_HOST=host.docker.internal         --env REDIS_PORT=6379         --env REDIS_CACHE_DB=1         --env REDIS_SESSION_DB=2         --env REDIS_QUEUE_DB=3         --env REDIS_CACHE_CONNECTION=cache         --env REDIS_QUEUE_CONNECTION=queue         --env REDIS_PREFIX=sfm-http-integration-database-         --env CACHE_PREFIX=sfm-http-integration-cache-         --env RUN_MIGRATIONS=false         "$IMAGE" >/dev/null
+    local docker_args=(
+        --detach
+        --name "$name"
+        --add-host=host.docker.internal:host-gateway
+        --publish "$host_port:10000"
+        --env PORT=10000
+        --env APP_ENV=testing
+        --env APP_DEBUG=false
+        --env APP_KEY="$APP_KEY_VALUE"
+        --env APP_URL="http://127.0.0.1:$host_port"
+        --env LOG_CHANNEL=stderr
+        --env DB_CONNECTION=pgsql
+        --env DB_HOST=host.docker.internal
+        --env DB_PORT=5432
+        --env DB_DATABASE="$DB_DATABASE"
+        --env DB_USERNAME="$DB_USERNAME"
+        --env DB_PASSWORD="$DB_PASSWORD"
+        --env DB_SSLMODE=disable
+        --env SESSION_DRIVER=redis
+        --env SESSION_CONNECTION=session
+        --env SESSION_COOKIE=sfm-http-integration-session
+        --env SESSION_LIFETIME=120
+        --env SESSION_ENCRYPT=true
+        --env SESSION_SECURE_COOKIE=false
+        --env CACHE_STORE=redis
+        --env QUEUE_CONNECTION=redis
+        --env REDIS_CLIENT=phpredis
+        --env REDIS_HOST=host.docker.internal
+        --env REDIS_PORT=6379
+        --env REDIS_CACHE_DB=1
+        --env REDIS_SESSION_DB=2
+        --env REDIS_QUEUE_DB=3
+        --env REDIS_CACHE_CONNECTION=cache
+        --env REDIS_QUEUE_CONNECTION=queue
+        --env REDIS_PREFIX=sfm-http-integration-database-
+        --env CACHE_PREFIX=sfm-http-integration-cache-
+        --env RUN_MIGRATIONS=false
+    )
+
+    docker run "${docker_args[@]}" "$IMAGE" >/dev/null
 }
 
 wait_for_login() {
@@ -90,16 +130,33 @@ start_app "$CONTAINER_B" 18082
 wait_for_login "$BASE_A" "$CONTAINER_A"
 wait_for_login "$BASE_B" "$CONTAINER_B"
 
-curl --silent --show-error --fail     --cookie-jar "$COOKIE_JAR"     "$BASE_A/login"     --output "$LOGIN_HTML"
+login_page_args=(
+    --silent
+    --show-error
+    --fail
+    --cookie-jar "$COOKIE_JAR"
+)
+curl "${login_page_args[@]}" "$BASE_A/login" --output "$LOGIN_HTML"
 
-CSRF_TOKEN="$(grep -oE 'name="_token" value="[^"]+"' "$LOGIN_HTML" | sed -E 's/.*value="([^"]+)"/\1/' | head -n 1)"
+CSRF_TOKEN="$(grep -oE 'name="_token" value="[^"]+"' "$LOGIN_HTML" | sed -E 's/.*value="([^"]+)"/\\1/' | head -n 1)"
 
 if [[ -z "$CSRF_TOKEN" ]]; then
     echo "Could not extract the login CSRF token." >&2
     exit 1
 fi
 
-LOGIN_STATUS="$(curl --silent --show-error     --output "$LOGIN_RESPONSE"     --write-out '%{http_code}'     --cookie "$COOKIE_JAR"     --cookie-jar "$COOKIE_JAR"     --data-urlencode "_token=$CSRF_TOKEN"     --data-urlencode "email=$EMAIL"     --data-urlencode "password=$PASSWORD"     "$BASE_A/login")"
+login_args=(
+    --silent
+    --show-error
+    --output "$LOGIN_RESPONSE"
+    --write-out '%{http_code}'
+    --cookie "$COOKIE_JAR"
+    --cookie-jar "$COOKIE_JAR"
+    --data-urlencode "_token=$CSRF_TOKEN"
+    --data-urlencode "email=$EMAIL"
+    --data-urlencode "password=$PASSWORD"
+)
+LOGIN_STATUS="$(curl "${login_args[@]}" "$BASE_A/login")"
 
 if [[ "$LOGIN_STATUS" != "302" ]]; then
     echo "Login through container A returned HTTP $LOGIN_STATUS instead of 302." >&2
@@ -107,7 +164,16 @@ if [[ "$LOGIN_STATUS" != "302" ]]; then
     exit 1
 fi
 
-SESSION_STATUS="$(curl --silent --show-error     --output "$SESSION_BODY"     --dump-header "$SESSION_HEADERS"     --write-out '%{http_code}'     --cookie "$COOKIE_JAR"     --cookie-jar "$COOKIE_JAR"     "$BASE_B/offline/session")"
+session_args=(
+    --silent
+    --show-error
+    --output "$SESSION_BODY"
+    --dump-header "$SESSION_HEADERS"
+    --write-out '%{http_code}'
+    --cookie "$COOKIE_JAR"
+    --cookie-jar "$COOKIE_JAR"
+)
+SESSION_STATUS="$(curl "${session_args[@]}" "$BASE_B/offline/session")"
 
 if [[ "$SESSION_STATUS" != "200" ]]; then
     echo "Authenticated session request through container B returned HTTP $SESSION_STATUS." >&2
@@ -131,14 +197,21 @@ if ! grep --ignore-case --extended-regexp '^Cache-Control:.*no-store.*private' "
     exit 1
 fi
 
-RETURN_STATUS="$(curl --silent --show-error     --output "$SESSION_BODY"     --write-out '%{http_code}'     --cookie "$COOKIE_JAR"     "$BASE_A/offline/session")"
+return_args=(
+    --silent
+    --show-error
+    --output "$SESSION_BODY"
+    --write-out '%{http_code}'
+    --cookie "$COOKIE_JAR"
+)
+RETURN_STATUS="$(curl "${return_args[@]}" "$BASE_A/offline/session")"
 
 if [[ "$RETURN_STATUS" != "200" ]]; then
     echo "Session did not remain valid when switching back to container A (HTTP $RETURN_STATUS)." >&2
     exit 1
 fi
 
-ANONYMOUS_STATUS="$(curl --silent --show-error     --output /dev/null     --write-out '%{http_code}'     "$BASE_B/offline/session")"
+ANONYMOUS_STATUS="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' "$BASE_B/offline/session")"
 
 if [[ "$ANONYMOUS_STATUS" != "302" ]]; then
     echo "Unauthenticated request to container B returned HTTP $ANONYMOUS_STATUS instead of 302." >&2
