@@ -54,7 +54,7 @@ async function outboxCount(page) {
         await page.goto(baseUrl + '/income', { waitUntil: 'networkidle' });
         await page.evaluate(async () => { await navigator.serviceWorker.ready; return true; });
         await page.reload({ waitUntil: 'networkidle' });
-        await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller), { timeout: 15000 });
+        await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller), null, { timeout: 15000 });
 
         const incomeForm = page.locator('form[action$="/income"]').first();
         await incomeForm.locator('input[name="submission_token"]').fill(submissionToken);
@@ -91,7 +91,7 @@ async function outboxCount(page) {
                 request.onerror = () => reject(request.error);
             });
             return count === 0;
-        }, { timeout: 20000 });
+        }, null, { timeout: 20000 });
         assert.equal(await outboxCount(page), 0, 'reconnected browser must clear the outbox only after successful server acknowledgement');
         console.log('PASS: pending transaction survived browser-context restart and synced after reconnect.');
     } finally {
