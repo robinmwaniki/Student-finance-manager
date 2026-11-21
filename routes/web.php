@@ -24,6 +24,7 @@ use App\Http\Controllers\RecurringTransactionController;
 use App\Http\Controllers\SavingsController;
 use App\Http\Controllers\TransactionImportController;
 use App\Http\Controllers\WalletController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn () => auth()->check() ? redirect()->route('dashboard') : view('welcome'))->name('home');
@@ -44,6 +45,9 @@ Route::post('/api/expense-capture/mpesa-webhook', [ExpenseCaptureWebhookControll
     ->name('expense-capture.webhook.ingest');
 
 Route::middleware(['auth', 'auth.session'])->group(function (): void {
+    Route::get('/offline/session', fn (Request $request) => response()->json([
+        'user_id' => (string) $request->user()->getAuthIdentifier(),
+    ])->header('Cache-Control', 'no-store, private')->header('Pragma', 'no-cache'))->name('offline.session');
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
     Route::get('/settings', [AccountSettingsController::class, 'index'])->name('settings.index');
     Route::put('/settings/profile', [AccountSettingsController::class, 'updateProfile'])->name('settings.profile.update');

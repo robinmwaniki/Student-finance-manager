@@ -24,6 +24,8 @@
     let database;
     let syncInProgress = false;
     let retryTimer = null;
+    let accountVerified = !navigator.onLine;
+    let accountMismatch = false;
 
     const openDatabase = () => new Promise((resolve, reject) => {
         const request = indexedDB.open('student-finance-offline', 1);
@@ -54,6 +56,12 @@
 
     const render = async () => {
         if (!database) return;
+        if (accountMismatch || !accountVerified) {
+            items.innerHTML = '';
+            syncButton.disabled = true;
+            syncButton.style.opacity = '.55';
+            return;
+        }
         const mine = (await allEntries()).filter(entry => String(entry.owner) === String(userId));
         state.textContent = navigator.onLine ? 'Online' : 'Offline';
         detail.textContent = mine.length
@@ -65,6 +73,40 @@
         }).join('');
         syncButton.disabled = !navigator.onLine || mine.length === 0 || syncInProgress;
         syncButton.style.opacity = syncButton.disabled ? '.55' : '1';
+    };
+
+    const verifyCurrentAccount = async () => {
+        if (!navigator.onLine) return accountVerified && !accountMismatch;
+        try {
+            const response = await fetch('/offline/session', {
+                method: 'GET',
+                credentials: 'same-origin',
+                cache: 'no-store',
+                headers: {'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest'},
+            });
+            if (!response.ok) {
+                accountVerified = false;
+                detail.textContent = 'Your session could not be verified. Sign in again or refresh this page before syncing pending transactions.';
+                return false;
+            }
+            const identity = await response.json();
+            if (String(identity.user_id) !== String(userId)) {
+                accountVerified = false;
+                accountMismatch = true;
+                items.innerHTML = '';
+                syncButton.disabled = true;
+                state.textContent = 'Account changed';
+                detail.textContent = 'This page belongs to a different account from the current session. Reload it after signing in to the original account. Pending entries remain safely stored.';
+                return false;
+            }
+            accountVerified = true;
+            accountMismatch = false;
+            return true;
+        } catch (error) {
+            accountVerified = false;
+            detail.textContent = 'Unable to verify the signed-in account. Reconnect and refresh before syncing pending transactions.';
+            return false;
+        }
     };
 
     const postEntry = async entry => {
@@ -82,6 +124,7 @@
         }
         const body = new URLSearchParams();
         Object.entries(entry.payload).forEach(([key, value]) => body.set(key, value));
+        body.set('offline_owner_id', String(entry.owner));
         const response = await fetch(target.href, {
             method: 'POST', credentials: 'same-origin',
             headers: {'Accept':'application/json','Content-Type':'application/x-www-form-urlencoded;charset=UTF-8','X-CSRF-TOKEN':csrf,'X-Requested-With':'XMLHttpRequest'},
@@ -116,6 +159,7 @@
     const sync = async (force = false) => {
         if (!database) return;
         if (!navigator.onLine || syncInProgress) return render();
+        if (!(await verifyCurrentAccount())) return render();
         syncInProgress = true;
         syncButton.disabled = true;
         let synced = 0;
@@ -187,6 +231,13 @@
             return;
         }
         if (navigator.onLine) {
+            if (!(await verifyCurrentAccount())) {
+                detail.textContent = accountMismatch
+                    ? 'The signed-in account changed. Reload this page before submitting a transaction.'
+                    : 'The signed-in account could not be verified. Refresh the page before submitting.';
+                if (submit) submit.disabled = false;
+                return;
+            }
             try {
                 await postEntry(entry);
                 detail.textContent = kind + ' saved successfully.';
@@ -245,7 +296,24 @@
     });
 
     syncButton.addEventListener('click', () => sync(true));
-    window.addEventListener('online', () => sync(false));
+    window.addEventListener('online', async () => {
+        if (await verifyCurrentAccount()) await sync(false);
+        else await render();
+    });
+    window.addEventListener('focus', async () => {
+        if (navigator.onLine && await verifyCurrentAccount()) {
+            await render();
+            await sync(false);
+        } else {
+            await render();
+        }
+    });
+    document.addEventListener('visibilitychange', async () => {
+        if (document.visibilityState === 'visible' && navigator.onLine && await verifyCurrentAccount()) {
+            await render();
+            await sync(false);
+        }
+    });
     window.addEventListener('offline', render);
     openDatabase().then(async () => {
         document.querySelectorAll('form[action]').forEach(form => {
@@ -253,8 +321,9 @@
             if (form.action.endsWith('/income') && form.method.toLowerCase() === 'post') form.dataset.offlineQueue = 'income';
             if (form.action.endsWith('/expenses') && form.method.toLowerCase() === 'post') form.dataset.offlineQueue = 'expense';
         });
+        if (navigator.onLine) await verifyCurrentAccount();
         await render();
-        if (navigator.onLine) await sync(false);
+        if (navigator.onLine && accountVerified) await sync(false);
     }).catch(() => {
         state.textContent = 'Offline queue unavailable';
         syncButton.disabled = true;

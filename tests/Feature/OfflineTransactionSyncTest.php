@@ -95,6 +95,60 @@ class OfflineTransactionSyncTest extends TestCase
         $this->assertSame(0, $user->expenses()->count());
     }
 
+    public function test_offline_income_sync_rejects_a_different_signed_in_account(): void
+    {
+        $originalOwner = $this->makeUser();
+        $currentOwner = $this->makeUser();
+        $token = (string) Str::uuid();
+
+        $this->actingAs($currentOwner)
+            ->postJson(route('income.store'), [
+                'submission_token' => $token,
+                'offline_owner_id' => $originalOwner->getKey(),
+                'source' => 'Allowance',
+                'amount' => '1250.00',
+                'transaction_date' => now(config('app.timezone'))->toDateString(),
+            ])
+            ->assertConflict()
+            ->assertJsonPath('message', 'The signed-in account changed. Sign in to the original account before syncing this pending transaction.');
+
+        $this->assertSame(0, $currentOwner->income()->count());
+        $this->assertSame(0, $originalOwner->income()->count());
+    }
+
+    public function test_offline_expense_sync_rejects_a_different_signed_in_account(): void
+    {
+        $originalOwner = $this->makeUser();
+        $currentOwner = $this->makeUser();
+
+        $this->actingAs($currentOwner)
+            ->postJson(route('expenses.store'), [
+                'submission_token' => (string) Str::uuid(),
+                'offline_owner_id' => $originalOwner->getKey(),
+                'category' => 'Transport',
+                'amount' => '180.00',
+                'currency' => 'KES',
+                'transaction_date' => now(config('app.timezone'))->toDateString(),
+            ])
+            ->assertConflict();
+
+        $this->assertSame(0, $currentOwner->expenses()->count());
+        $this->assertSame(0, $originalOwner->expenses()->count());
+    }
+
+    public function test_offline_session_identity_endpoint_is_private_and_not_cacheable(): void
+    {
+        $user = $this->makeUser();
+
+        $this->actingAs($user)
+            ->withSession(['password_hash_web' => $user->getAuthPassword()])
+            ->getJson(route('offline.session'))
+            ->assertOk()
+            ->assertJson(['user_id' => (string) $user->getKey()])
+            ->assertHeader('Cache-Control', 'no-store, private')
+            ->assertHeader('Pragma', 'no-cache');
+    }
+
     public function test_offline_outbox_amount_editor_accepts_plain_decimal_values(): void
     {
         $script = file_get_contents(public_path('offline-transactions.js'));
