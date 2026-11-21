@@ -256,8 +256,8 @@
             form.reset();
             const token = form.querySelector('input[name="submission_token"]');
             if (token) token.value = window.crypto.randomUUID();
-            detail.textContent = 'Saved on this device. It will sync when you are online and signed in again.';
             await render();
+            detail.textContent = 'Saved on this device. It will sync when you are online and signed in again.';
         } catch (error) {
             detail.textContent = 'Local storage is unavailable. This transaction was not saved.';
         } finally {
