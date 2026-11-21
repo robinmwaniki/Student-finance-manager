@@ -149,6 +149,8 @@ jobs:
             echo "No changed application PHP files to format-check."
           else
             printf 'Checking %s changed PHP file(s) with Pint.\n' "${#PHP_FILES[@]}"
+            vendor/bin/pint "${PHP_FILES[@]}"
+            git diff -- "${PHP_FILES[@]}"
             vendor/bin/pint --test "${PHP_FILES[@]}"
           fi
 
