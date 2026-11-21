@@ -393,3 +393,38 @@ fi
 echo "PASS: concurrent income requests across containers created one row and returned the same ID."
 echo "PASS: concurrent expense requests across containers created one row and returned the same ID."
 echo "PASS: conflicting replays did not overwrite the original income or expense."
+
+
+if [[ "${SFM_RUN_BROWSER_E2E:-false}" == "true" ]]; then
+    OFFLINE_E2E_TOKEN="$(cat /proc/sys/kernel/random/uuid)"
+    echo "Running Chromium offline PWA lifecycle against the isolated CI container..."
+    SFM_BROWSER_BASE_URL="$BASE_A" \
+    SFM_BROWSER_EMAIL="$EMAIL" \
+    SFM_BROWSER_PASSWORD="$PASSWORD" \
+    SFM_OFFLINE_E2E_TOKEN="$OFFLINE_E2E_TOKEN" \
+        node tests/Browser/offline-pwa.playwright.cjs
+
+    OFFLINE_RECORD="$(php -r '
+    require "vendor/autoload.php";
+    $app = require "bootstrap/app.php";
+    $app->make(Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();
+    $record = Illuminate\\Support\\Facades\\DB::table("income")
+        ->where("user_id", (int) $argv[1])
+        ->where("submission_token", $argv[2])
+        ->first();
+    echo json_encode([
+        "count" => Illuminate\\Support\\Facades\\DB::table("income")->where("user_id", (int) $argv[1])->where("submission_token", $argv[2])->count(),
+        "amount" => $record?->amount,
+        "source" => $record?->source,
+    ], JSON_THROW_ON_ERROR);
+    ' "$USER_ID" "$OFFLINE_E2E_TOKEN")"
+
+    php -r '
+    $record = json_decode($argv[1], true, 512, JSON_THROW_ON_ERROR);
+    if ($record["count"] !== 1 || $record["amount"] !== "17.25" || $record["source"] !== "Playwright Offline Income") {
+        fwrite(STDERR, "Offline browser sync did not persist exactly one expected server-side income record: ".$argv[1].PHP_EOL);
+        exit(1);
+    }
+    echo "PASS: offline browser submission persisted exactly once in PostgreSQL after reconnect.".PHP_EOL;
+    ' "$OFFLINE_RECORD"
+fi
