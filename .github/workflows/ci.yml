@@ -81,6 +81,7 @@ jobs:
           REDIS_CACHE_DB: 1
           REDIS_SESSION_DB: 2
           REDIS_QUEUE_DB: 3
+          SFM_RUN_BROWSER_E2E: 'true'
 
       - name: Run Laravel migrations
         run: php artisan migrate --force
@@ -114,6 +115,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
+
+      - name: Install Playwright and Chromium
+        run: |
+          npm install --no-save --no-package-lock playwright@1.56.1
+          npx playwright install --with-deps chromium
 
       - name: Run browser payload policy tests
         run: node --test tests/JavaScript/*.test.cjs
