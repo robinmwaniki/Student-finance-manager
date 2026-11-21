@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Services\CurrencyRateService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -48,6 +49,35 @@ class OfflineTransactionSyncTest extends TestCase
         $this->assertSame($first->json('record_id'), $second->json('record_id'));
         $this->assertSame(1, $user->expenses()->count());
         $this->assertSame('180.00', $user->expenses()->firstOrFail()->amount);
+    }
+
+    public function test_duplicate_expense_retry_succeeds_even_if_the_exchange_rate_provider_is_unavailable(): void
+    {
+        $user = $this->makeUser();
+        $payload = [
+            'submission_token' => (string) Str::uuid(),
+            'category' => 'Transport',
+            'amount' => '180.00',
+            'currency' => 'KES',
+            'transaction_date' => now(config('app.timezone'))->toDateString(),
+            'tag' => 'Offline',
+        ];
+
+        $first = $this->actingAs($user)->postJson(route('expenses.store'), $payload)->assertCreated();
+
+        $unavailableRates = new class extends CurrencyRateService
+        {
+            public function quote(string $from, string $to): ?array
+            {
+                return null;
+            }
+        };
+        $this->app->instance(CurrencyRateService::class, $unavailableRates);
+
+        $retry = $this->actingAs($user)->postJson(route('expenses.store'), $payload)->assertOk();
+
+        $this->assertSame($first->json('record_id'), $retry->json('record_id'));
+        $this->assertSame(1, $user->expenses()->count());
     }
 
     public function test_invalid_offline_expense_is_rejected_as_json_and_is_not_persisted(): void
