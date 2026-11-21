@@ -1,6 +1,7 @@
 <?php
 
 namespace Tests\Feature;
+
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
@@ -26,19 +27,36 @@ class DebtRepaymentTest extends TestCase
         $this->assertDatabaseCount('debt_repayments', 2);
     }
 
-    public function test_overpayment_is_rejected_and_duplicate_token_is_idempotent(): void
+    public function test_duplicate_repayment_submission_is_idempotent(): void
     {
         $user = $this->user();
         $debt = $user->debts()->create(['description' => 'Loan', 'amount' => '100.00', 'type' => 'borrowed', 'status' => 'pending']);
-        $token = (string) Str::uuid();
-        $payload = ['submission_token' => $token, 'amount' => '60.00', 'repayment_date' => today()->toDateString()];
+        $payload = [
+            'submission_token' => (string) Str::uuid(),
+            'amount' => '60.00',
+            'repayment_date' => today()->toDateString(),
+        ];
+
         $this->actingAs($user)->post(route('debts.repayments.store', $debt), $payload)->assertRedirect();
         $this->actingAs($user)->post(route('debts.repayments.store', $debt), $payload)->assertRedirect();
+
         $this->assertDatabaseCount('debt_repayments', 1);
-        $this->actingAs($user)->post(route('debts.repayments.store', $debt), [
-            'submission_token' => (string) Str::uuid(), 'amount' => '40.01', 'repayment_date' => today()->toDateString(),
-        ])->assertRedirect()->assertSessionHasErrors('amount');
         $this->assertSame(4000, $debt->fresh()->outstandingBalanceCents());
+    }
+
+    public function test_overpayment_is_rejected_without_changing_the_balance(): void
+    {
+        $user = $this->user();
+        $debt = $user->debts()->create(['description' => 'Loan', 'amount' => '100.00', 'type' => 'borrowed', 'status' => 'pending']);
+
+        $this->actingAs($user)->post(route('debts.repayments.store', $debt), [
+            'submission_token' => (string) Str::uuid(),
+            'amount' => '100.01',
+            'repayment_date' => today()->toDateString(),
+        ])->assertRedirect()->assertSessionHasErrors('amount');
+
+        $this->assertDatabaseCount('debt_repayments', 0);
+        $this->assertSame(10000, $debt->fresh()->outstandingBalanceCents());
     }
 
     public function test_users_cannot_repay_another_users_debt(): void
