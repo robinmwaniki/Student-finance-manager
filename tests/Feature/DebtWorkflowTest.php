@@ -93,7 +93,7 @@ class DebtWorkflowTest extends TestCase
             ->assertSee('Late payment')->assertDontSee('Future payment')->assertDontSee('Paid late debt');
     }
 
-    public function test_user_can_mark_pending_debt_as_paid_but_cannot_reopen_it(): void
+    public function test_debt_status_cannot_be_manually_marked_paid(): void
     {
         $user = $this->makeUser();
         $debt = $user->debts()->create([
@@ -112,25 +112,11 @@ class DebtWorkflowTest extends TestCase
             'status' => 'paid',
         ])->assertRedirect();
 
-        $this->assertDatabaseHas('debts', ['id' => $debt->id, 'status' => 'paid', 'lock_version' => 1]);
-
-        $this->actingAs($user)->put(route('debts.update', $debt), [
-            'lock_version' => 1,
-            'description' => 'Personal loan',
-            'amount' => '1200.00',
-            'type' => 'borrowed',
-            'due_date' => null,
+        $this->assertDatabaseHas('debts', [
+            'id' => $debt->id,
             'status' => 'pending',
-        ])->assertStatus(422);
-
-        $this->actingAs($user)->put(route('debts.update', $debt), [
             'lock_version' => 1,
-            'description' => 'Corrected label',
-            'amount' => '1300.00',
-            'type' => 'borrowed',
-            'due_date' => null,
-            'status' => 'paid',
-        ])->assertStatus(422);
+        ]);
     }
 
     public function test_user_cannot_access_or_modify_another_users_debt(): void
