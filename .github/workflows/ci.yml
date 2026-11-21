@@ -154,3 +154,19 @@ jobs:
 
       - name: Build Render staging Docker image
         run: docker build --pull --tag student-finance-manager:ci .
+
+      - name: Verify authenticated Redis sessions across two PHP-FPM containers
+        run: bash tests/Integration/redis-session-two-containers.sh
+        env:
+          DB_CONNECTION: pgsql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
+          DB_DATABASE: student_finance_test
+          DB_USERNAME: student_finance
+          DB_PASSWORD: student_finance_test_password
+          REDIS_CLIENT: phpredis
+          REDIS_HOST: 127.0.0.1
+          REDIS_PORT: 6379
+          REDIS_CACHE_DB: 1
+          REDIS_SESSION_DB: 2
+          REDIS_QUEUE_DB: 3
