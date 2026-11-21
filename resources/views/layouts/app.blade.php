@@ -32,7 +32,7 @@ body[data-theme="dark"] .settings-check small{color:#94a3b8}
 body[data-theme="dark"] .avatar-preview{border-color:#34465f;background:#1c2b42}
 </style>
 @stack('head')
-<link rel="manifest" href="{{ asset('manifest.webmanifest') }}"><meta name="theme-color" content="#24385f">
+<link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#24385f">
 </head><body data-theme="{{ auth()->check() ? auth()->user()->theme : 'light' }}" @auth data-user-id="{{ auth()->id() }}" @endauth><div class="shell">
 @auth
 <aside class="sidebar"><div class="brand"><span class="brand-mark">SF</span>Student Finance</div><div class="nav-label">Workspace</div>
@@ -69,8 +69,8 @@ body[data-theme="dark"] .avatar-preview{border-color:#34465f;background:#1c2b42}
 <div id="offline-sync-detail" class="muted" style="margin-top:5px">Offline transactions stay on this device until they sync. Do not use this feature on a shared device.</div>
 <div id="offline-sync-items" style="margin-top:8px;max-height:180px;overflow:auto"></div>
 </div>
-<script src="{{ asset('offline-retry-policy.js') }}" defer></script>
-<script src="{{ asset('offline-transactions.js') }}" defer></script>
+<script src="/offline-retry-policy.js" defer></script>
+<script src="/offline-transactions.js" defer></script>
 @endauth
 <script>if ('serviceWorker' in navigator) { window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {})); }</script>
 @stack('scripts')</body></html>
