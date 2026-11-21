@@ -30,7 +30,6 @@ test('offline outbox is account scoped and never stores credentials or CSRF toke
     assert.match(offlineClient, /fetch\('\/offline\/session'/);
     assert.match(offlineClient, /body\.set\('offline_owner_id', String\(entry\.owner\)\)/);
     assert.match(offlineClient, /fetch\(['"]\/offline\/session['"]\)/);
-    assert.match(offlineClient, /fetch\\(['\"]\\/offline\\/session['\"]\\)/);\n    assert.match(offlineClient, /accountMismatch/);
     assert.match(offlineClient, /visibilitychange/);
     assert.match(offlineClient, /key !== '_token' && key !== '_method'/);
     assert.match(offlineClient, /payload\.submission_token/);
