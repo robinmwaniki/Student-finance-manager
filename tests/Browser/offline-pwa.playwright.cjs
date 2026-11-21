@@ -125,7 +125,26 @@ async function outboxCount(page) {
             const submitter = form.querySelector('button[type="submit"]');
             form.requestSubmit(submitter);
         });
-        await page.locator('#offline-sync-detail').filter({ hasText: 'Saved on this device' }).waitFor({ state: 'attached', timeout: 10000 });
+        try {
+            await page.waitForFunction(() => {
+                const detail = document.querySelector('#offline-sync-detail')?.textContent || '';
+                return detail.includes('Saved on this device') || detail.includes('unavailable') || detail.includes('could not') || detail.includes('missing') || detail.includes('changed');
+            }, null, { timeout: 10000 });
+        } catch (error) {
+            const diagnostics = await page.evaluate(async () => {
+                const detail = document.querySelector('#offline-sync-detail')?.textContent || null;
+                const state = document.querySelector('#offline-sync-state')?.textContent || null;
+                const database = await new Promise(resolve => {
+                    const request = indexedDB.open('student-finance-offline', 1);
+                    request.onsuccess = () => resolve({ opened: true, stores: [...request.result.objectStoreNames] });
+                    request.onerror = () => resolve({ opened: false, error: request.error?.message || 'unknown' });
+                });
+                return { detail, state, online: navigator.onLine, database };
+            });
+            throw new Error(`offline submission did not reach a saved/diagnostic state: ${JSON.stringify(diagnostics)}; pageErrors=${JSON.stringify(pageErrors)}; console=${JSON.stringify(browserConsole)}; cause=${error.message}`);
+        }
+        const savedDetail = await page.locator('#offline-sync-detail').textContent();
+        assert.ok(savedDetail.includes('Saved on this device'), `offline submission failed: ${savedDetail}`);
         assert.equal(await outboxCount(page), 1, 'offline transaction must be persisted in IndexedDB');
 
         await page.goto(baseUrl + '/dashboard', { waitUntil: 'domcontentloaded', timeout: 15000 });
