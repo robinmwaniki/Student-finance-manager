@@ -6,7 +6,8 @@ use App\Models\User;
 use App\Services\RecurringTransactionProcessor;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Validation\ValidationException;\nuse Illuminate\Support\Facades\Schedule;
+use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Schedule;
 use Tests\TestCase;
 
 class RecurringTransactionWorkflowTest extends TestCase
@@ -191,7 +192,6 @@ class RecurringTransactionWorkflowTest extends TestCase
         }
     }
 
-
     public function test_scheduled_command_processes_due_records_for_all_users(): void
     {
         Carbon::setTestNow('2026-11-19 00:05:00');
@@ -230,7 +230,8 @@ class RecurringTransactionWorkflowTest extends TestCase
         $this->assertNotNull($scheduled);
         $this->assertSame('5 0 * * *', $scheduled->expression);
     }
-\n    private function makeUser(string $email = 'recurring@example.test'): User
+
+    private function makeUser(string $email = 'recurring@example.test'): User
     {
         static $counter = 0;
         $counter++;
