@@ -1,13 +1,13 @@
 <?php
 
-namespace App\\Http\\Controllers;
+namespace App\Http\Controllers;
 
-use Illuminate\\Http\\RedirectResponse;
-use Illuminate\\Http\\Request;
-use Illuminate\\Support\\Facades\\DB;
-use Illuminate\\Support\\Str;
-use Illuminate\\Validation\\ValidationException;
-use Illuminate\\View\\View;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
+use Illuminate\View\View;
 
 class TransactionImportController extends Controller
 {
@@ -42,7 +42,7 @@ class TransactionImportController extends Controller
                 throw ValidationException::withMessages(['file' => 'The CSV file is empty.']);
             }
 
-            $headers[0] = preg_replace('/^\\xEF\\xBB\\xBF/', '', (string) $headers[0]);
+            $headers[0] = preg_replace('/^\xEF\xBB\xBF/', '', (string) $headers[0]);
             $headers = array_map(fn ($header) => strtolower(trim((string) $header)), $headers);
             $required = ['type', 'date', 'description', 'amount'];
             if (array_diff($required, $headers) !== []) {
@@ -76,14 +76,14 @@ class TransactionImportController extends Controller
                 if (! in_array($type, ['income', 'expense'], true)) {
                     throw ValidationException::withMessages(['file' => "Row {$line}: type must be income or expense."]);
                 }
-                $parsedDate = \\DateTimeImmutable::createFromFormat('!Y-m-d', $date);
+                $parsedDate = \DateTimeImmutable::createFromFormat('!Y-m-d', $date);
                 if (! $parsedDate || $parsedDate->format('Y-m-d') !== $date || $date > now(config('app.timezone'))->toDateString()) {
                     throw ValidationException::withMessages(['file' => "Row {$line}: date must be a valid YYYY-MM-DD date and cannot be in the future."]);
                 }
                 if ($description === '' || mb_strlen($description) > ($type === 'income' ? 100 : 50)) {
                     throw ValidationException::withMessages(['file' => "Row {$line}: description is required and must fit the selected transaction type."]);
                 }
-                if (! preg_match('/^\\d{1,12}(?:\\.\\d{1,2})?$/', $amount) || (float) $amount <= 0) {
+                if (! preg_match('/^\d{1,12}(?:\.\d{1,2})?$/', $amount) || (float) $amount <= 0) {
                     throw ValidationException::withMessages(['file' => "Row {$line}: amount must be a positive number with no more than two decimal places."]);
                 }
 
