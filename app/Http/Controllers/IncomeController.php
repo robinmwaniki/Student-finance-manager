@@ -32,6 +32,7 @@ class IncomeController extends Controller
             'month' => $month,
             'total' => $total,
             'submissionToken' => (string) Str::uuid(),
+            'wallets' => $request->user()->wallets()->orderByDesc('is_default')->orderBy('name')->get(),
         ]);
     }
 
@@ -39,6 +40,7 @@ class IncomeController extends Controller
     {
         $data = $request->validate([
             'submission_token' => ['required', 'uuid'],
+            'wallet_id' => ['nullable', 'integer'],
             'source' => ['required', 'string', 'max:100'],
             'amount' => ['required', 'numeric', 'gt:0', 'decimal:0,2', 'max:999999999999'],
             'transaction_date' => ['required', 'date', 'before_or_equal:today'],
@@ -46,9 +48,13 @@ class IncomeController extends Controller
         ]);
 
         $token = $data['submission_token'];
-        unset($data['submission_token']);
+        $wallet = isset($data['wallet_id'])
+            ? $request->user()->wallets()->whereKey($data['wallet_id'])->first()
+            : $request->user()->wallets()->where('is_default', true)->first();
+        abort_unless($wallet, 404);
+        unset($data['submission_token'], $data['wallet_id']);
 
-        $request->user()->income()->firstOrCreate(['submission_token' => $token], $data);
+        $request->user()->income()->firstOrCreate(['submission_token' => $token], [...$data, 'wallet_id' => $wallet->id]);
 
         return back()->with('success', 'Income record saved.');
     }

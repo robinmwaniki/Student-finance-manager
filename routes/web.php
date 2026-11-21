@@ -22,6 +22,7 @@ use App\Http\Controllers\MarketInformationController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\RecurringTransactionController;
 use App\Http\Controllers\SavingsController;
+use App\Http\Controllers\WalletController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn () => auth()->check() ? redirect()->route('dashboard') : view('welcome'))->name('home');
@@ -101,6 +102,9 @@ Route::middleware(['auth', 'auth.session'])->group(function (): void {
     Route::post('/expenses', [ExpenseController::class, 'store'])->name('expenses.store');
     Route::put('/expenses/{expense}', [ExpenseController::class, 'update'])->whereNumber('expense')->name('expenses.update');
     Route::delete('/expenses/{expense}', [ExpenseController::class, 'destroy'])->whereNumber('expense')->name('expenses.destroy');
+    Route::get('/wallets', [WalletController::class, 'index'])->name('wallets.index');
+    Route::post('/wallets', [WalletController::class, 'store'])->name('wallets.store');
+    Route::post('/wallets/transfers', [WalletController::class, 'transfer'])->middleware('throttle:10,1')->name('wallets.transfers.store');
     Route::get('/savings', [SavingsController::class, 'index'])->name('savings.index');
     Route::post('/savings', [SavingsController::class, 'store'])->name('savings.store');
     Route::put('/savings/{saving}', [SavingsController::class, 'update'])->whereNumber('saving')->name('savings.update');

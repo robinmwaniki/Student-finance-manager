@@ -12,6 +12,16 @@ class User extends Authenticatable
 {
     use HasFactory, Notifiable;
 
+    protected static function booted(): void
+    {
+        static::created(function (User $user): void {
+            $user->wallets()->firstOrCreate(
+                ['name' => 'Main wallet'],
+                ['type' => 'cash', 'currency' => 'KES', 'opening_balance' => 0, 'is_default' => true],
+            );
+        });
+    }
+
     protected $fillable = [
         'fullname',
         'email',
@@ -35,6 +45,16 @@ class User extends Authenticatable
             'points' => 'integer',
             'dashboard_preferences' => 'array',
         ];
+    }
+
+    public function wallets(): HasMany
+    {
+        return $this->hasMany(Wallet::class);
+    }
+
+    public function walletTransfers(): HasMany
+    {
+        return $this->hasMany(WalletTransfer::class);
     }
 
     public function income()

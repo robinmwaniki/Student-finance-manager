@@ -34,6 +34,7 @@ class ExpenseController extends Controller
             'total' => $total,
             'submissionToken' => (string) Str::uuid(),
             'currencies' => $currencies->currencies(),
+            'wallets' => $request->user()->wallets()->orderByDesc('is_default')->orderBy('name')->get(),
         ]);
     }
 
@@ -41,6 +42,7 @@ class ExpenseController extends Controller
     {
         $data = $request->validate([
             'submission_token' => ['required', 'uuid'],
+            'wallet_id' => ['nullable', 'integer'],
             'category' => ['required', 'string', 'max:50'],
             'amount' => ['required', 'numeric', 'gt:0', 'decimal:0,2', 'max:999999999999'],
             'currency' => ['nullable', 'string', 'size:3', 'in:'.implode(',', $currencies->currencies())],
@@ -50,9 +52,13 @@ class ExpenseController extends Controller
         ]);
 
         $token = $data['submission_token'];
+        $wallet = isset($data['wallet_id'])
+            ? $request->user()->wallets()->whereKey($data['wallet_id'])->first()
+            : $request->user()->wallets()->where('is_default', true)->first();
+        abort_unless($wallet, 404);
         $originalAmount = (float) $data['amount'];
         $originalCurrency = $data['currency'] ?? 'KES';
-        unset($data['submission_token'], $data['currency'], $data['accept_stale_rate']);
+        unset($data['submission_token'], $data['wallet_id'], $data['currency'], $data['accept_stale_rate']);
 
         $quote = $currencies->quote($originalCurrency, 'KES');
         if ($quote === null) {
@@ -76,7 +82,7 @@ class ExpenseController extends Controller
         $data['exchange_rate_updated_at'] = $quote['updated_at'];
         $data['exchange_rate_source'] = $quote['source'];
 
-        $request->user()->expenses()->firstOrCreate(['submission_token' => $token], $data);
+        $request->user()->expenses()->firstOrCreate(['submission_token' => $token], [...$data, 'wallet_id' => $wallet->id]);
 
         $message = $quote['stale']
             ? 'Expense record saved using a cached exchange rate. Review the stored rate metadata.'
