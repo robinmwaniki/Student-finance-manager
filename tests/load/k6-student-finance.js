@@ -37,6 +37,14 @@ function login() {
     authenticated = dashboard.status === 200;
 }
 
+function readSyntheticFinancePage() {
+    const paths = ['/reports', '/income', '/expenses', '/wallets', '/budgets'];
+    const path = paths[Math.floor(Math.random() * paths.length)];
+    const response = http.get(BASE_URL + path);
+    check(response, { [path + ' read succeeds']: result => result.status === 200 });
+    if (response.status === 401 || response.status === 419) authenticated = false;
+}
+
 function writeSyntheticTransaction(kind) {
     const path = kind === 'income' ? '/income' : '/expenses';
     const page = http.get(BASE_URL + path);
@@ -60,6 +68,14 @@ export default function () {
     if (!authenticated) login();
     const dashboard = http.get(BASE_URL + '/dashboard');
     check(dashboard, { 'dashboard read succeeds': response => response.status === 200 });
-    if (MODE === 'mixed' && Math.random() < 0.2) writeSyntheticTransaction(Math.random() < 0.5 ? 'income' : 'expense');
+    if (MODE === 'mixed') {
+        const scenario = Math.random();
+
+        if (scenario < 0.2) {
+            writeSyntheticTransaction(Math.random() < 0.5 ? 'income' : 'expense');
+        } else if (scenario < 0.4) {
+            readSyntheticFinancePage();
+        }
+    }
     sleep(1);
 }
