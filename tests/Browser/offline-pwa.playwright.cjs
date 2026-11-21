@@ -147,8 +147,41 @@ async function outboxCount(page) {
         assert.ok(savedDetail.includes('Saved on this device'), `offline submission failed: ${savedDetail}`);
         assert.equal(await outboxCount(page), 1, 'offline transaction must be persisted in IndexedDB');
 
-        await page.goto(baseUrl + '/dashboard', { waitUntil: 'domcontentloaded', timeout: 15000 });
-        await page.getByRole('heading', { name: 'You are offline' }).waitFor({ timeout: 10000 });
+        const offlineShell = await page.evaluate(async () => {
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            const cacheNames = await caches.keys();
+            const cacheEntries = await Promise.all(cacheNames.map(async name => {
+                const cache = await caches.open(name);
+                return { name, keys: (await cache.keys()).map(request => new URL(request.url).pathname) };
+            }));
+            const cachedShell = await caches.match(new URL('/offline.html', location.origin).href);
+            return {
+                controller: navigator.serviceWorker.controller?.scriptURL || null,
+                registrations: registrations.map(registration => ({
+                    scope: registration.scope,
+                    active: registration.active?.state || null,
+                    waiting: registration.waiting?.state || null,
+                })),
+                cacheEntries,
+                cachedOfflineShell: Boolean(cachedShell),
+            };
+        });
+        let offlineNavigationResponse = null;
+        try {
+            const response = await page.goto(baseUrl + '/dashboard', { waitUntil: 'domcontentloaded', timeout: 15000 });
+            offlineNavigationResponse = response ? { status: response.status(), url: response.url() } : null;
+        } catch (error) {
+            offlineNavigationResponse = { error: error.message };
+        }
+        const offlineNavigationState = await page.evaluate(() => ({
+            url: location.href,
+            title: document.title,
+            heading: document.querySelector('h1')?.textContent?.trim() || null,
+            bodyText: document.body?.innerText?.slice(0, 500) || null,
+            controller: navigator.serviceWorker.controller?.scriptURL || null,
+        }));
+        assert.match(offlineNavigationState.heading || '', /You are offline/i,
+            `service worker must serve offline fallback; shell=${JSON.stringify(offlineShell)}; response=${JSON.stringify(offlineNavigationResponse)}; page=${JSON.stringify(offlineNavigationState)}; pageErrors=${JSON.stringify(pageErrors)}; console=${JSON.stringify(browserConsole)}`);
         console.log('PASS: a controlled service worker served the offline navigation fallback.');
 
         await context.setOffline(false);
