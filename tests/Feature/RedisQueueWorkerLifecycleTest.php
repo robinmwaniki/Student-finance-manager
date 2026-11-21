@@ -102,7 +102,7 @@ class RedisQueueWorkerLifecycleTest extends TestCase
         $attemptsPath = $directory.'/attempts.txt';
         $successPath = $directory.'/success.txt';
         $startedPath = $directory.'/started.txt';
-        $retryAfter = 5;
+        $retryAfter = 4;
         $worker = null;
 
         try {
@@ -113,13 +113,13 @@ class RedisQueueWorkerLifecycleTest extends TestCase
                     $attemptsPath,
                     $successPath,
                     startedPath: $startedPath,
-                    holdFirstAttemptSeconds: 15,
+                    holdFirstAttemptSeconds: 8,
                 ),
                 '',
                 $queue,
             );
 
-            $worker = $this->startWorker($queue, retryAfter: $retryAfter, timeout: 20);
+            $worker = $this->startWorker($queue, retryAfter: $retryAfter, timeout: 2);
             $worker->start();
 
             $deadline = microtime(true) + 10;
@@ -131,7 +131,7 @@ class RedisQueueWorkerLifecycleTest extends TestCase
             $this->assertFileExists($startedPath, 'The first worker did not reserve and start the probe job.');
             $this->assertTrue($worker->isRunning(), 'The probe worker exited before it could be terminated.');
 
-            $worker->stop(0, SIGKILL);
+            $worker->stop(0, 9);
             $this->assertFalse($worker->isRunning());
 
             sleep($retryAfter + 1);
@@ -145,7 +145,7 @@ class RedisQueueWorkerLifecycleTest extends TestCase
             $this->assertSame(0, Redis::connection('queue')->llen('queues:'.$queue.':reserved'));
         } finally {
             if ($worker instanceof Process && $worker->isRunning()) {
-                $worker->stop(0, SIGKILL);
+                $worker->stop(0, 9);
             }
 
             $this->cleanUpProbe($queue, $directory);
