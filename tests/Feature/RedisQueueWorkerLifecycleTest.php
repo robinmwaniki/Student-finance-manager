@@ -123,7 +123,7 @@ class RedisQueueWorkerLifecycleTest extends TestCase
 
             $deadline = microtime(true) + 10;
 
-            while (! file_exists($startedPath) && $worker->isRunning() && microtime(true) < $deadline) {
+            while (file_exists($startedPath) === false && $worker->isRunning() && microtime(true) < $deadline) {
                 usleep(100_000);
             }
 
