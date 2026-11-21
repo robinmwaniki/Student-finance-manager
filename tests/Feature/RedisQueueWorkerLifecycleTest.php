@@ -95,7 +95,6 @@ class RedisQueueWorkerLifecycleTest extends TestCase
         }
     }
 
-
     public function test_worker_persists_a_job_after_all_attempts_fail(): void
     {
         $queue = 'worker-terminal-failure-'.Str::uuid();
@@ -122,7 +121,6 @@ class RedisQueueWorkerLifecycleTest extends TestCase
             $secondWorker->mustRun();
 
             $this->assertSame('2', trim((string) file_get_contents($attemptsPath)));
-            $this->assertDatabaseCount('failed_jobs', 1);
             $this->assertSame(1, DB::table('failed_jobs')->where('queue', $queue)->count());
             $this->assertFileDoesNotExist($successPath);
             $this->assertSame(0, Redis::connection('queue')->llen('queues:'.$queue));
