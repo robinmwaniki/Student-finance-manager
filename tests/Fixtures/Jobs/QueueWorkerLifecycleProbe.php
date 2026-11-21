@@ -52,7 +52,6 @@ class QueueWorkerLifecycleProbe implements ShouldQueue
             fclose($attemptsFile);
         }
 
-
         if ($this->effectPath !== null) {
             $effectFile = fopen($this->effectPath, 'c+');
 
