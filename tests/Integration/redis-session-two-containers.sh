@@ -15,6 +15,7 @@ SESSION_HEADERS="$(mktemp)"
 SESSION_BODY="$(mktemp)"
 APP_KEY_VALUE="${APP_KEY:-$(sed -n 's/^APP_KEY=//p' .env | head -n 1)}"
 USER_ID=""
+REQUEST_TMP_DIR="$(mktemp -d)"
 
 cleanup() {
     local status=$?
@@ -37,6 +38,7 @@ cleanup() {
     fi
 
     rm -f "$COOKIE_JAR" "$LOGIN_HTML" "$LOGIN_RESPONSE" "$SESSION_HEADERS" "$SESSION_BODY"
+    rm -rf "$REQUEST_TMP_DIR"
     exit "$status"
 }
 trap cleanup EXIT
@@ -222,18 +224,17 @@ echo "PASS: authenticated Redis session created on container A was accepted by c
 echo "PASS: unauthenticated access was rejected and the offline session response was private/no-store."
 
 # Read a fresh CSRF token after authentication; login regenerates the session token.
-AUTH_HTML="$(mktemp)"
-INCOME_A_BODY="$(mktemp)"
-INCOME_B_BODY="$(mktemp)"
-INCOME_REPLAY_BODY="$(mktemp)"
-EXPENSE_A_BODY="$(mktemp)"
-EXPENSE_B_BODY="$(mktemp)"
-EXPENSE_REPLAY_BODY="$(mktemp)"
-INCOME_A_STATUS="$(mktemp)"
-INCOME_B_STATUS="$(mktemp)"
-EXPENSE_A_STATUS="$(mktemp)"
-EXPENSE_B_STATUS="$(mktemp)"
-trap 'cleanup; rm -f "$AUTH_HTML" "$INCOME_A_BODY" "$INCOME_B_BODY" "$INCOME_REPLAY_BODY" "$EXPENSE_A_BODY" "$EXPENSE_B_BODY" "$EXPENSE_REPLAY_BODY" "$INCOME_A_STATUS" "$INCOME_B_STATUS" "$EXPENSE_A_STATUS" "$EXPENSE_B_STATUS"' EXIT
+AUTH_HTML="$REQUEST_TMP_DIR/auth.html"
+INCOME_A_BODY="$REQUEST_TMP_DIR/income-a.json"
+INCOME_B_BODY="$REQUEST_TMP_DIR/income-b.json"
+INCOME_REPLAY_BODY="$REQUEST_TMP_DIR/income-replay.json"
+EXPENSE_A_BODY="$REQUEST_TMP_DIR/expense-a.json"
+EXPENSE_B_BODY="$REQUEST_TMP_DIR/expense-b.json"
+EXPENSE_REPLAY_BODY="$REQUEST_TMP_DIR/expense-replay.json"
+INCOME_A_STATUS="$REQUEST_TMP_DIR/income-a.status"
+INCOME_B_STATUS="$REQUEST_TMP_DIR/income-b.status"
+EXPENSE_A_STATUS="$REQUEST_TMP_DIR/expense-a.status"
+EXPENSE_B_STATUS="$REQUEST_TMP_DIR/expense-b.status"
 
 curl --silent --show-error --fail --cookie "$COOKIE_JAR" "$BASE_A/income" --output "$AUTH_HTML"
 AUTH_CSRF_TOKEN="$(grep -oE 'name="_token" value="[^"]+"' "$AUTH_HTML" | sed -E 's/.*value="([^"]+)"/\1/' | head -n 1)"
