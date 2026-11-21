@@ -8,7 +8,7 @@
 - Income and expense creation forms can be queued in IndexedDB while offline. Each form uses its existing per-user UUID submission token; the database unique constraint makes server retries idempotent.
 - When the user returns online while signed in, the page sends queued records to the normal authenticated endpoints. The server remains authoritative for validation, wallet ownership, currency conversion and persistence.
 - Temporary network failures, HTTP 408/429 and HTTP 5xx responses use exponential backoff starting at 5 seconds, capped at 5 minutes, with at most 8 automatic attempts per item. The next retry is scheduled while an authenticated page remains open; pending items remain stored if the browser closes.
-- HTTP validation/conflict errors and expired sessions are not retried automatically. The user can edit the item or refresh the session, then select Sync now for a manual retry. Items are never silently discarded.
+- HTTP validation/conflict errors and expired sessions are not retried automatically. The user can edit the item or refresh the session, then select Sync now for a manual retry. If another tab signs into a different account, the stale page hides its outbox and refuses to sync; the pending entries remain on-device until the original account signs in again. Items are never silently discarded.
 
 ## Important limitations
 
@@ -24,4 +24,6 @@ IndexedDB is origin-local browser storage and is not encrypted by this applicati
 
 ## Verification
 
-Use a staging account and synthetic financial data. Test offline queueing, page reload, browser restart, reconnect, repeated delivery of the same submission token, account switching, session expiry, invalid payloads, local storage denial and service-worker updates and retry/backoff behavior. Never test with real financial exports or production data.
+Automated coverage includes service-worker runtime policy, client outbox sync/account isolation, transient retry scheduling, idempotent server writes and cross-account rejection. These tests use Node VM/IndexedDB mocks and Laravel feature tests; they are not a substitute for real-browser/device validation.
+
+Before declaring offline mode fully accepted, use a staging account and synthetic financial data to verify installability, offline shell loading, queueing, page reload, browser restart, reconnect, repeated delivery, account switching, session expiry, invalid payloads, local storage denial, service-worker updates, mobile layout and keyboard/screen-reader accessibility on the supported browser/device matrix. Never test with real financial exports or production data.
