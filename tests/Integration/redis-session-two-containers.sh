@@ -33,6 +33,8 @@ cleanup() {
         require "vendor/autoload.php";
         $app = require "bootstrap/app.php";
         $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+        Illuminate\Support\Facades\DB::table("income")->where("user_id", (int) $argv[1])->delete();
+        Illuminate\Support\Facades\DB::table("expenses")->where("user_id", (int) $argv[1])->delete();
         Illuminate\Support\Facades\DB::table("users")->where("id", (int) $argv[1])->delete();
         ' "$USER_ID" >/dev/null 2>&1 || true
     fi
