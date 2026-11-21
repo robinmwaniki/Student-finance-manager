@@ -23,7 +23,7 @@ class OfflineTransactionSyncTest extends TestCase
             'tag' => 'Offline',
         ];
 
-        $first = $this->actingAs($user)->postJson(route('income.store'), $payload)->assertCreated();
+        $first = $this->actingAs($user)->withSession(['password_hash_web' => $user->getAuthPassword()])->postJson(route('income.store'), $payload)->assertCreated();
         $second = $this->actingAs($user)->postJson(route('income.store'), $payload)->assertCreated();
 
         $this->assertSame($first->json('record_id'), $second->json('record_id'));
