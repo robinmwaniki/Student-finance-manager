@@ -5,40 +5,21 @@ WORKDIR /var/www/html
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-        ca-certificates \
-        curl \
-        libpq-dev \
-        nginx \
-        supervisor \
-        unzip \
+        ca-certificates curl libpq-dev nginx supervisor unzip \
+    && pecl install redis \
+    && docker-php-ext-enable redis \
     && docker-php-ext-install -j"$(nproc)" pdo_pgsql \
     && cp "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini" \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
-
-# Install locked production dependencies before copying the application source.
 COPY composer.json composer.lock ./
-RUN composer install \
-    --no-dev \
-    --no-interaction \
-    --no-progress \
-    --prefer-dist \
-    --no-scripts \
-    --optimize-autoloader
+RUN composer install --no-dev --no-interaction --no-progress --prefer-dist --no-scripts --optimize-autoloader
 
 COPY . .
-
 RUN composer dump-autoload --no-dev --no-interaction --optimize \
-    && mkdir -p \
-        storage/app/private \
-        storage/app/public \
-        storage/framework/cache/data \
-        storage/framework/sessions \
-        storage/framework/views \
-        storage/logs \
-        bootstrap/cache \
+    && mkdir -p storage/app/private storage/app/public storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs bootstrap/cache \
     && chown -R www-data:www-data storage bootstrap/cache \
     && ln -sf /dev/stdout /var/log/nginx/access.log \
     && ln -sf /dev/stderr /var/log/nginx/error.log
@@ -49,9 +30,6 @@ COPY docker/php/zz-pool.conf /usr/local/etc/php-fpm.d/www.conf
 COPY docker/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint
 
-RUN php-fpm -tt \
-    && chmod 0755 /usr/local/bin/entrypoint
-
+RUN php-fpm -tt && chmod 0755 /usr/local/bin/entrypoint
 EXPOSE 10000
-
 ENTRYPOINT ["/usr/local/bin/entrypoint"]
