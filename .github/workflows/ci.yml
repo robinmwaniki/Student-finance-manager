@@ -81,7 +81,6 @@ jobs:
           REDIS_CACHE_DB: 1
           REDIS_SESSION_DB: 2
           REDIS_QUEUE_DB: 3
-          SFM_RUN_BROWSER_E2E: 'true'
 
       - name: Run Laravel migrations
         run: php artisan migrate --force
@@ -164,6 +163,7 @@ jobs:
       - name: Verify authenticated Redis sessions across two PHP-FPM containers
         run: bash tests/Integration/redis-session-two-containers.sh
         env:
+          SFM_RUN_BROWSER_E2E: 'true'
           DB_CONNECTION: pgsql
           DB_HOST: 127.0.0.1
           DB_PORT: 5432
