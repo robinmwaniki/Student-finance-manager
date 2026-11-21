@@ -16,5 +16,8 @@ class ScaleInfrastructureConfigTest extends TestCase
         $this->assertSame('1', (string) config('database.redis.cache.database'));
         $this->assertSame('2', (string) config('database.redis.session.database'));
         $this->assertSame('3', (string) config('database.redis.queue.database'));
+        $this->assertNull(config('database.redis.cache.url'));
+        $this->assertNull(config('database.redis.session.url'));
+        $this->assertNull(config('database.redis.queue.url'));
     }
 }
