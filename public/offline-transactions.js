@@ -56,7 +56,7 @@
 
     const render = async () => {
         if (!database) return;
-        if (accountMismatch || (navigator.onLine && !accountVerified)) {
+        if (accountMismatch || !accountVerified) {
             items.innerHTML = '';
             syncButton.disabled = true;
             syncButton.style.opacity = '.55';
