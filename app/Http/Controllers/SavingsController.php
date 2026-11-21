@@ -56,10 +56,12 @@ class SavingsController extends Controller
         $user->savingsGoals()->whereKey($goal)->firstOrFail();
         $version = (int) $data['lock_version'];
         unset($data['lock_version']);
-        $updated = $user->savingsGoals()->whereKey($goal)->where('lock_version', $version)
-            ->update([...$data, 'lock_version' => DB::raw('lock_version + 1')]);
-        abort_unless($updated === 1, 409, 'This savings goal changed after you opened it. Refresh and try again.');
-        $this->syncGoal($user->savingsGoals()->whereKey($goal)->firstOrFail());
+        DB::transaction(function () use ($user, $goal, $version, $data): void {
+            $updated = $user->savingsGoals()->whereKey($goal)->where('lock_version', $version)
+                ->update([...$data, 'lock_version' => DB::raw('lock_version + 1')]);
+            abort_unless($updated === 1, 409, 'This savings goal changed after you opened it. Refresh and try again.');
+            $this->syncGoal($user->savingsGoals()->whereKey($goal)->firstOrFail());
+        });
 
         return back()->with('success', 'Savings goal updated.');
     }
