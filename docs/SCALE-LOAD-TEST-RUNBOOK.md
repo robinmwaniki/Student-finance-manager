@@ -9,7 +9,7 @@ The test account must have a funded/default wallet and permission to view the te
 ## Workloads
 
 - `MODE=dashboard`: authenticated dashboard reads.
-- `MODE=mixed`: approximately 60% dashboard reads, 20% additional reads across reports, income, expenses, wallets and budgets, and 20% synthetic income/expense writes. Each write fetches a fresh form token and uses its unique submission token.
+- `MODE=mixed`: every iteration reads the dashboard; 20% of iterations also read a page selected from reports, income, expenses, wallets and budgets, while a separate 20% of iterations also submit a synthetic income/expense write. The remaining 60% perform only the dashboard read. Each write fetches a fresh form token and uses its unique submission token.
 - Writes use KES and a small synthetic amount. They still create real records in the staging database; clean up only the dedicated test account's synthetic data after the run.
 
 The mixed scenario is a repeatable baseline, not a complete production traffic model. It does not yet cover wallet transfers, imports, PDF/CSV exports, login storms, recurring processing, or third-party provider traffic.
