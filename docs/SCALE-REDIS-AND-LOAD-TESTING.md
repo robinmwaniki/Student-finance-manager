@@ -17,6 +17,10 @@ Use TLS and authentication where supported. Never expose Redis publicly. Configu
 
 Configuration availability is not proof of multi-instance correctness. Before changing any shared environment, test session continuity, cache locks, rate limiting, queue processing, duplicate-write behavior and Redis interruption/recovery across at least two app instances. Keep local defaults until these checks pass.
 
+## Request timing and slow-request diagnostics
+
+Every response includes `X-Request-ID` and `X-Response-Time-Ms`. Requests slower than `PERFORMANCE_SLOW_REQUEST_THRESHOLD_MS` (default 1,000 ms) emit a structured warning containing route name, HTTP method, response status, duration and peak memory. Request bodies, query strings, raw paths and financial payloads are deliberately excluded. This is diagnostic instrumentation, not fleet-wide metrics, distributed tracing or an agreed production SLO. Correlate slow-request warnings with the request ID while building out DB, queue and infrastructure metrics.
+
 ## k6 smoke workload
 
 The opt-in workload is `tests/load/k6-student-finance.js`. It logs in a dedicated synthetic account, repeatedly reads the dashboard and optionally creates small synthetic income/expense records. The script fails closed unless `CONFIRM_STAGING=true` is supplied.

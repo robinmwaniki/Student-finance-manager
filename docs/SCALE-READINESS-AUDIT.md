@@ -50,9 +50,13 @@ Publish the maximum tested values, test-generator capacity, topology and cost. D
 
 **Impact:** external calls must not block critical financial writes. Refreshes should use scheduled or queued work with bounded concurrency, provider rate limits and stale-data behavior.
 
-### 5. Rate limiting and observability need multi-instance verification
+### 5. Request diagnostics exist; fleet-wide observability remains incomplete
 
-Laravel throttles exist on several authentication and API routes. Verify that limiter storage is shared when multiple app instances run; otherwise per-instance limits can multiply. Request correlation, endpoint latency/error metrics, DB query timing, queue age/depth, worker saturation, cache hit/miss and actionable alerts are not yet demonstrated by a tested production observability setup.
+- Middleware returns `X-Request-ID` and `X-Response-Time-Ms` response headers.
+- Requests slower than `PERFORMANCE_SLOW_REQUEST_THRESHOLD_MS` (default 1,000 ms) emit structured warnings containing route name, method, status, elapsed time and peak memory. Request bodies, query strings, raw paths and financial payloads are excluded.
+- Several authentication and API routes have Laravel throttles.
+
+**Remaining risk:** slow-request warnings and correlation IDs are useful diagnostics, not fleet-wide metrics, distributed tracing or alerting. DB query timing, queue depth/age, worker saturation, cache hit/miss, CPU/memory and multi-instance limiter behavior still need measured staging coverage.
 
 ### 6. PostgreSQL connection topology is not production-sized
 
@@ -62,7 +66,7 @@ The application uses standard PostgreSQL host/port settings. No measured PgBounc
 
 ## Delivery sequence
 
-1. Instrument request latency/errors, correlation IDs, DB query timing, queue depth/age, worker saturation and cache hit/miss with privacy-safe retention.
+1. Instrument fleet-wide request latency/errors, DB query timing, queue depth/age, worker saturation and cache hit/miss with privacy-safe retention; retain correlation IDs for diagnosis.
 2. Establish repeatable synthetic workloads for login, dashboard, income/expense creation, wallet transfers, reports and recurring jobs.
 3. Review high-cost queries, N+1 behavior, pagination, decimal-safe calculations and indexes using representative staging data.
 4. Run two-or-more-instance integration tests for Redis sessions, cache locks, rate limits, queues, duplicate financial writes and Redis interruption/recovery.
@@ -85,6 +89,6 @@ The application uses standard PostgreSQL host/port settings. No measured PgBounc
 ## Remaining implementation slices
 
 - Add multi-instance integration tests for Redis sessions, cache locks, rate limits and queues.
-- Add privacy-safe observability and a repeatable staged baseline.
+- Add fleet-wide metrics/alerts and a repeatable staged baseline.
 - Measure PostgreSQL query plans and connection-pool behavior.
 - Run progressively larger isolated-staging tests and publish results/costs.
