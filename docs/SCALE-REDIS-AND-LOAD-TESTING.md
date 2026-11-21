@@ -33,3 +33,8 @@ The mixed mode writes synthetic KES 1.00 transactions tagged k6-synthetic-load-t
 Start with 5–10 VUs. Increase gradually only when the load generator and staging infrastructure are monitored and stable. The script's default thresholds (p95 1.5s, p99 3s, error rate below 2%) are provisional smoke-test guardrails, not agreed production SLOs.
 
 Record VU count, duration, generator capacity, app instance count/type, PHP-FPM worker count, Redis tier, PostgreSQL tier, RPS, p50/p95/p99 latency, errors, DB connections, CPU/memory and queue lag. One million connected sessions and one million requests per second are different workloads. A million-user claim requires a distributed test plan, budget approval and measured evidence.
+
+
+## Request timing and slow-request telemetry
+
+Every response now includes X-Request-ID and X-Response-Time-Ms headers. Requests slower than PERFORMANCE_SLOW_REQUEST_THRESHOLD_MS (default 1000 ms) emit a structured warning with the route name, HTTP method, response status, elapsed time and peak memory. Request bodies, query strings, raw paths and financial payloads are deliberately excluded. Correlate these events with database/queue metrics and the request ID; this is diagnostic instrumentation, not a substitute for distributed tracing or an agreed SLO.

@@ -17,6 +17,13 @@ class RequestCorrelationIdTest extends TestCase
             ->assertHeader('X-Request-ID', $requestId);
     }
 
+    public function test_response_includes_server_request_duration_header(): void
+    {
+        $response = $this->get('/up')->assertOk();
+
+        $this->assertMatchesRegularExpression('/^\\d+\\.\\d{2}$/', $response->headers->get('X-Response-Time-Ms'));
+    }
+
     public function test_invalid_request_id_is_replaced_with_a_generated_uuid(): void
     {
         $response = $this->withHeader('X-Request-ID', 'attacker-controlled-value')
