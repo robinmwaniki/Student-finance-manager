@@ -21,23 +21,37 @@ class DebtController extends Controller
         $status = $request->query('status');
         $today = now(config('app.timezone'))->toDateString();
 
-        if (in_array($type, self::TYPES, true)) $query->where('type', $type);
-        elseif ($type !== null && $type !== '') abort(404);
+        if (in_array($type, self::TYPES, true)) {
+            $query->where('type', $type);
+        } elseif ($type !== null && $type !== '') {
+            abort(404);
+        }
 
-        if ($status === 'overdue') $query->whereIn('status', ['pending', 'partially_paid'])->whereNotNull('due_date')->whereDate('due_date', '<', $today);
-        elseif (in_array($status, ['pending', 'partially_paid', 'paid'], true)) $query->where('status', $status);
-        elseif ($status !== null && $status !== '' && $status !== 'all') abort(404);
+        if ($status === 'overdue') {
+            $query->whereIn('status', ['pending', 'partially_paid'])->whereNotNull('due_date')->whereDate('due_date', '<', $today);
+        } elseif (in_array($status, ['pending', 'partially_paid', 'paid'], true)) {
+            $query->where('status', $status);
+        } elseif ($status !== null && $status !== '' && $status !== 'all') {
+            abort(404);
+        }
 
-        $debts = $query->orderByRaw('CASE WHEN due_date IS NULL THEN 1 ELSE 0 END')->orderBy('due_date')->latest('created_at')->paginate(15)->withQueryString();
+        $debts = $query->orderByRaw('CASE WHEN due_date IS NULL THEN 1 ELSE 0 END')
+            ->orderBy('due_date')
+            ->latest('created_at')
+            ->paginate(15)
+            ->withQueryString();
         $borrowed = $user->debts()->where('type', 'borrowed')->get();
         $lent = $user->debts()->where('type', 'lent')->get();
         $outstanding = fn ($rows): string => number_format($rows->sum(fn ($debt) => $debt->outstandingBalanceCents()) / 100, 2, '.', '');
 
         return view('finance.debts.index', [
-            'debts' => $debts, 'type' => $type, 'status' => $status ?? 'all',
+            'debts' => $debts,
+            'type' => $type,
+            'status' => $status ?? 'all',
             'submissionToken' => (string) Str::uuid(),
             'summary' => [
-                'borrowed' => $outstanding($borrowed), 'lent' => $outstanding($lent),
+                'borrowed' => $outstanding($borrowed),
+                'lent' => $outstanding($lent),
                 'overdueCount' => $user->debts()->whereIn('status', ['pending', 'partially_paid'])->whereNotNull('due_date')->whereDate('due_date', '<', $today)->count(),
             ],
         ]);
@@ -46,11 +60,14 @@ class DebtController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'submission_token' => ['required', 'uuid'], 'description' => ['nullable', 'string', 'max:255'],
+            'submission_token' => ['required', 'uuid'],
+            'description' => ['nullable', 'string', 'max:255'],
             'amount' => ['required', 'numeric', 'gt:0', 'decimal:0,2', 'max:999999999999'],
-            'type' => ['required', Rule::in(self::TYPES)], 'due_date' => ['nullable', 'date'],
+            'type' => ['required', Rule::in(self::TYPES)],
+            'due_date' => ['nullable', 'date'],
         ]);
-        $token = $data['submission_token']; unset($data['submission_token']);
+        $token = $data['submission_token'];
+        unset($data['submission_token']);
         $request->user()->debts()->firstOrCreate(['submission_token' => $token], [...$data, 'status' => 'pending']);
         return back()->with('success', 'Debt record saved.');
     }
@@ -74,8 +91,10 @@ class DebtController extends Controller
             abort_if($amountCents > $originalCents - $paidCents, 422, 'Repayment exceeds the outstanding balance.');
 
             $record->repayments()->create([
-                'user_id' => $request->user()->id, 'amount' => $data['amount'],
-                'repayment_date' => $data['repayment_date'], 'notes' => $data['notes'] ?? null,
+                'user_id' => $request->user()->id,
+                'amount' => $data['amount'],
+                'repayment_date' => $data['repayment_date'],
+                'notes' => $data['notes'] ?? null,
                 'submission_token' => $data['submission_token'],
             ]);
             $record->status = ($paidCents + $amountCents) >= $originalCents ? 'paid' : 'partially_paid';
@@ -89,9 +108,11 @@ class DebtController extends Controller
     public function update(Request $request, int $debt): RedirectResponse
     {
         $data = $request->validate([
-            'lock_version' => ['required', 'integer', 'min:0'], 'description' => ['nullable', 'string', 'max:255'],
+            'lock_version' => ['required', 'integer', 'min:0'],
+            'description' => ['nullable', 'string', 'max:255'],
             'amount' => ['required', 'numeric', 'gt:0', 'decimal:0,2', 'max:999999999999'],
-            'type' => ['required', Rule::in(self::TYPES)], 'due_date' => ['nullable', 'date'],
+            'type' => ['required', Rule::in(self::TYPES)],
+            'due_date' => ['nullable', 'date'],
         ]);
         $user = $request->user();
         $record = $user->debts()->whereKey($debt)->lockForUpdate()->firstOrFail();
