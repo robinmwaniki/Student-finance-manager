@@ -28,7 +28,7 @@
 <div class="field" style="margin-bottom:8px"><label>Amount</label><input name="amount" type="number" min="0.01" step="0.01" value="{{ $debt->amount }}" required></div>
 <div class="field" style="margin-bottom:8px"><label>Direction</label><select name="type"><option value="borrowed" @selected($debt->type === 'borrowed')>I owe</option><option value="lent" @selected($debt->type === 'lent')>Owed to me</option></select></div>
 <div class="field" style="margin-bottom:8px"><label>Due date</label><input name="due_date" type="date" value="{{ $debt->due_date?->format('Y-m-d') }}"></div>
-<div class="field" style="margin-bottom:8px"><label>Status</label><select name="status"></select></div>
+
 <button class="btn btn-small" type="submit">Update</button></form>
 @if($debt->status !== 'paid')<form method="POST" action="{{ route('debts.repayments.store', $debt) }}" style="min-width:220px;padding:12px 0">@csrf
 <input type="hidden" name="submission_token" value="{{ (string) Str::uuid() }}">

@@ -20,6 +20,11 @@ class Debt extends Model
 
     public function outstandingBalanceCents(): int
     {
-        return max(0, (int) round((float) $this->amount * 100) - (int) round((float) $this->repayments()->sum('amount') * 100));
+        $toCents = static function (string $amount): int {
+            [$whole, $fraction] = array_pad(explode('.', $amount, 2), 2, '0');
+            return ((int) $whole * 100) + (int) str_pad(substr($fraction, 0, 2), 2, '0');
+        };
+
+        return max(0, $toCents((string) $this->amount) - $toCents((string) $this->repayments()->sum('amount')));
     }
 }

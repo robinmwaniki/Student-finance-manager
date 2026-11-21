@@ -68,9 +68,9 @@ class DebtController extends Controller
             $record = $request->user()->debts()->whereKey($debt)->lockForUpdate()->firstOrFail();
             if ($record->repayments()->where('submission_token', $data['submission_token'])->exists()) return;
 
-            $paidCents = (int) round((float) $record->repayments()->sum('amount') * 100);
-            $amountCents = (int) round((float) $data['amount'] * 100);
-            $originalCents = (int) round((float) $record->amount * 100);
+            $paidCents = $this->toCents((string) $record->repayments()->sum('amount'));
+            $amountCents = $this->toCents((string) $data['amount']);
+            $originalCents = $this->toCents((string) $record->amount);
             abort_if($amountCents > $originalCents - $paidCents, 422, 'Repayment exceeds the outstanding balance.');
 
             $record->repayments()->create([
@@ -95,13 +95,19 @@ class DebtController extends Controller
         ]);
         $user = $request->user();
         $record = $user->debts()->whereKey($debt)->lockForUpdate()->firstOrFail();
-        $paidCents = (int) round((float) $record->repayments()->sum('amount') * 100);
+        $paidCents = $this->toCents((string) $record->repayments()->sum('amount'));
         abort_if($record->status === 'paid', 422, 'A settled debt cannot be edited.');
-        abort_if((int) round((float) $data['amount'] * 100) < $paidCents, 422, 'Debt amount cannot be lower than repayments already recorded.');
+        abort_if($this->toCents((string) $data['amount']) < $paidCents, 422, 'Debt amount cannot be lower than repayments already recorded.');
         $updated = $user->debts()->whereKey($debt)->where('lock_version', (int) $data['lock_version'])
             ->update([...$data, 'status' => $paidCents > 0 ? 'partially_paid' : 'pending', 'lock_version' => DB::raw('lock_version + 1')]);
         abort_unless($updated === 1, 409, 'This debt record changed after you opened it. Refresh and try again.');
         return back()->with('success', 'Debt record updated.');
+    }
+
+    private function toCents(string $amount): int
+    {
+        [$whole, $fraction] = array_pad(explode('.', $amount, 2), 2, '0');
+        return ((int) $whole * 100) + (int) str_pad(substr($fraction, 0, 2), 2, '0');
     }
 
     public function destroy(Request $request, int $debt): RedirectResponse
