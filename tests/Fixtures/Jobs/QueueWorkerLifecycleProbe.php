@@ -23,6 +23,7 @@ class QueueWorkerLifecycleProbe implements ShouldQueue
         public readonly bool $failFirstAttempt = false,
         public readonly ?string $startedPath = null,
         public readonly int $holdFirstAttemptSeconds = 0,
+        public readonly bool $failEveryAttempt = false,
     ) {}
 
     public function handle(): void
@@ -58,7 +59,7 @@ class QueueWorkerLifecycleProbe implements ShouldQueue
             sleep($this->holdFirstAttemptSeconds);
         }
 
-        if ($this->failFirstAttempt && $attempt === 1) {
+        if ($this->failEveryAttempt || ($this->failFirstAttempt && $attempt === 1)) {
             throw new RuntimeException('Intentional first-attempt failure for queue lifecycle testing.');
         }
 
