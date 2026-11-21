@@ -54,11 +54,7 @@ class IncomeController extends Controller
         abort_unless($wallet, 404);
         unset($data['submission_token'], $data['wallet_id']);
 
-        $record = $request->user()->income()->firstOrCreate(['submission_token' => $token], [...$data, 'wallet_id' => $wallet->id]);
-
-        if ($request->expectsJson()) {
-            return response()->json(['message' => 'Income record saved.', 'record_id' => $record->id], 201);
-        }
+        $request->user()->income()->firstOrCreate(['submission_token' => $token], [...$data, 'wallet_id' => $wallet->id]);
 
         return back()->with('success', 'Income record saved.');
     }

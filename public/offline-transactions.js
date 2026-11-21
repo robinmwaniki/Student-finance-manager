@@ -39,7 +39,7 @@
         detail.textContent = mine.length ? mine.length + ' pending transaction(s). Server balances and reports may be stale until sync completes.' : 'Offline transactions stay on this device until they sync. Do not use this feature on a shared device.';
         items.innerHTML = mine.map(entry => {
             const description = entry.kind === 'income' ? 'Income · ' + (entry.payload.source || 'New entry') : 'Expense · ' + (entry.payload.category || 'New entry');
-            return '<div style="display:flex;justify-content:space-between;gap:8px;padding:7px 0;border-top:1px solid #edf0f5"><span>' + escapeHtml(description) + '<small style="display:block;color:#8490a3">' + escapeHtml(entry.status || 'Pending') + '</small></span><button type="button" data-discard="' + escapeHtml(entry.id) + '" style="border:0;background:transparent;color:#b42318;cursor:pointer">Discard</button></div>';
+            return '<div style="display:flex;justify-content:space-between;gap:8px;padding:7px 0;border-top:1px solid #edf0f5"><span>' + escapeHtml(description) + '<small style="display:block;color:#8490a3">' + escapeHtml(entry.status || 'Pending') + '</small></span><span style="white-space:nowrap"><button type="button" data-edit="' + escapeHtml(entry.id) + '" style="border:0;background:transparent;color:#344a75;cursor:pointer">Edit</button><button type="button" data-discard="' + escapeHtml(entry.id) + '" style="border:0;background:transparent;color:#b42318;cursor:pointer">Discard</button></span></div>';
         }).join('');
         syncButton.disabled = !navigator.onLine || mine.length === 0;
         syncButton.style.opacity = syncButton.disabled ? '.55' : '1';
@@ -99,9 +99,30 @@
         finally { if (submit) submit.disabled = false; }
     });
     items.addEventListener('click', async event => {
-        const button = event.target.closest('[data-discard]');
-        if (!button || !confirm('Permanently discard this pending transaction from this device?')) return;
-        await remove(button.dataset.discard);
+        const editButton = event.target.closest('[data-edit]');
+        if (editButton) {
+            const entry = (await allEntries()).find(item => item.id === editButton.dataset.edit && String(item.owner) === String(userId));
+            if (!entry) return;
+            const label = entry.kind === 'income' ? 'Income source' : 'Expense category';
+            const field = entry.kind === 'income' ? 'source' : 'category';
+            const nextLabel = prompt(label, entry.payload[field] || '');
+            if (nextLabel === null) return;
+            const nextAmount = prompt('Amount', entry.payload.amount || '');
+            if (nextAmount === null) return;
+            if (!nextLabel.trim() || !/^\\d+(?:\\.\\d{1,2})?$/.test(nextAmount) || Number(nextAmount) <= 0) {
+                detail.textContent = 'Enter a description and a positive amount with up to two decimal places.';
+                return;
+            }
+            entry.payload[field] = nextLabel.trim();
+            entry.payload.amount = nextAmount;
+            entry.status = 'Edited locally; ready to retry';
+            await save(entry);
+            await render();
+            return;
+        }
+        const discardButton = event.target.closest('[data-discard]');
+        if (!discardButton || !confirm('Permanently discard this pending transaction from this device?')) return;
+        await remove(discardButton.dataset.discard);
         await render();
     });
     syncButton.addEventListener('click', sync);

@@ -62,17 +62,9 @@ class ExpenseController extends Controller
 
         $quote = $currencies->quote($originalCurrency, 'KES');
         if ($quote === null) {
-            if ($request->expectsJson()) {
-                return response()->json(['message' => 'An exchange rate is not available. Choose KES or retry later.'], 422);
-            }
-
             return back()->withErrors(['currency' => 'An exchange rate is not available. Choose KES or try again later.'])->withInput();
         }
         if ($quote['stale'] && ! $request->boolean('accept_stale_rate')) {
-            if ($request->expectsJson()) {
-                return response()->json(['message' => 'The exchange rate is stale. Review and explicitly accept it before saving.'], 422);
-            }
-
             return back()->withErrors(['currency' => 'The provider is unavailable. Review and explicitly accept the cached rate before saving.'])
                 ->with('stale_expense_quote', $quote)
                 ->withInput();
@@ -90,11 +82,7 @@ class ExpenseController extends Controller
         $data['exchange_rate_updated_at'] = $quote['updated_at'];
         $data['exchange_rate_source'] = $quote['source'];
 
-        $record = $request->user()->expenses()->firstOrCreate(['submission_token' => $token], [...$data, 'wallet_id' => $wallet->id]);
-
-        if ($request->expectsJson()) {
-            return response()->json(['message' => 'Expense record saved.', 'record_id' => $record->id], 201);
-        }
+        $request->user()->expenses()->firstOrCreate(['submission_token' => $token], [...$data, 'wallet_id' => $wallet->id]);
 
         $message = $quote['stale']
             ? 'Expense record saved using a cached exchange rate. Review the stored rate metadata.'
