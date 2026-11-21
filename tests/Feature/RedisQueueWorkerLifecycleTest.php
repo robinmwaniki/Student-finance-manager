@@ -77,7 +77,9 @@ class RedisQueueWorkerLifecycleTest extends TestCase
 
             $this->assertFileDoesNotExist($successPath);
             $this->assertSame('1', trim((string) file_get_contents($attemptsPath)));
-            $this->assertSame(1, Redis::connection('queue')->llen('queues:'.$queue));
+            $pendingJobs = Redis::connection('queue')->llen('queues:'.$queue)
+                + Redis::connection('queue')->zcard('queues:'.$queue.':delayed');
+            $this->assertSame(1, $pendingJobs);
 
             $secondWorker = $this->startWorker($queue);
             $secondWorker->mustRun();
