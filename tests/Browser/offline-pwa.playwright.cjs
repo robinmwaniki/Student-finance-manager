@@ -24,6 +24,16 @@ async function openContext() {
     });
 }
 
+async function loginIfRequired(page) {
+    await page.goto(baseUrl + '/login', { waitUntil: 'domcontentloaded' });
+    if (new URL(page.url()).pathname === '/login') {
+        await page.locator('input[name="email"]').fill(email);
+        await page.locator('input[name="password"]').fill(password);
+        await page.locator('form[action$="/login"] button[type="submit"]').click();
+        await page.waitForURL(url => url.pathname !== '/login', { timeout: 15000 });
+    }
+}
+
 async function outboxCount(page) {
     return page.evaluate(async () => {
         const db = await new Promise((resolve, reject) => {
@@ -44,13 +54,7 @@ async function outboxCount(page) {
     try {
         context = await openContext();
         let page = context.pages()[0] || await context.newPage();
-        await page.goto(baseUrl + '/login', { waitUntil: 'domcontentloaded' });
-        if (new URL(page.url()).pathname === '/login') {
-            await page.locator('input[name="email"]').fill(email);
-            await page.locator('input[name="password"]').fill(password);
-            await page.locator('form[action$="/login"] button[type="submit"]').click();
-            await page.waitForURL(url => url.pathname !== '/login', { timeout: 15000 });
-        }
+        await loginIfRequired(page);
         await page.goto(baseUrl + '/income', { waitUntil: 'domcontentloaded' });
         await page.evaluate(async () => { await navigator.serviceWorker.ready; return true; });
         await page.reload({ waitUntil: 'domcontentloaded' });
@@ -77,7 +81,12 @@ async function outboxCount(page) {
         await context.close();
         context = await openContext();
         page = context.pages()[0] || await context.newPage();
+
+        // A real browser restart ends the browser session. Authenticate again before
+        // opening the protected page; IndexedDB remains origin-persistent.
+        await loginIfRequired(page);
         await page.goto(baseUrl + '/income', { waitUntil: 'domcontentloaded' });
+        await page.evaluate(async () => { await navigator.serviceWorker.ready; return true; });
         await page.waitForFunction(async () => {
             if (!('indexedDB' in window)) return false;
             const db = await new Promise((resolve, reject) => {
@@ -85,15 +94,14 @@ async function outboxCount(page) {
                 request.onsuccess = () => resolve(request.result);
                 request.onerror = () => reject(request.error);
             });
-            const count = await new Promise((resolve, reject) => {
+            return new Promise((resolve, reject) => {
                 const request = db.transaction('outbox', 'readonly').objectStore('outbox').count();
-                request.onsuccess = () => { db.close(); resolve(request.result); };
+                request.onsuccess = () => { db.close(); resolve(request.result === 0); };
                 request.onerror = () => reject(request.error);
             });
-            return count === 0;
         }, null, { timeout: 20000 });
         assert.equal(await outboxCount(page), 0, 'reconnected browser must clear the outbox only after successful server acknowledgement');
-        console.log('PASS: pending transaction survived browser-context restart and synced after reconnect.');
+        console.log('PASS: pending transaction survived browser-context restart, re-authentication and reconnect sync.');
     } finally {
         if (context) await context.close();
         fs.rmSync(profileDir, { recursive: true, force: true });
