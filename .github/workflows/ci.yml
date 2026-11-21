@@ -20,7 +20,7 @@ concurrency:
 jobs:
   tests:
     name: PHP 8.5, PostgreSQL 18 and Laravel tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     services:
       postgres:
         image: postgres:18
