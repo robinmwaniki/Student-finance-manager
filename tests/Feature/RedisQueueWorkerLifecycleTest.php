@@ -15,7 +15,7 @@ class RedisQueueWorkerLifecycleTest extends TestCase
     {
         parent::setUp();
 
-        if (! extension_loaded('redis')) {
+        if (extension_loaded('redis') === false) {
             $this->markTestSkipped('The Redis queue worker integration test requires the phpredis extension.');
         }
 
@@ -190,7 +190,7 @@ class RedisQueueWorkerLifecycleTest extends TestCase
     {
         $directory = sys_get_temp_dir().'/sfm-queue-worker-'.Str::uuid();
 
-        if (! mkdir($directory, 0700, true) && ! is_dir($directory)) {
+        if (mkdir($directory, 0700, true) === false && is_dir($directory) === false) {
             $this->fail('Unable to create the isolated queue worker probe directory.');
         }
 
