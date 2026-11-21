@@ -95,7 +95,7 @@ jobs:
           node-version: '22'
 
       - name: Run browser payload policy tests
-        run: node --test tests/JavaScript/qr-payload.test.cjs
+        run: node --test tests/JavaScript/*.test.cjs
 
       - name: Check Pint formatting on changed PHP files
         env:
