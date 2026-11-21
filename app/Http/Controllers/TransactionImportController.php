@@ -103,7 +103,7 @@ class TransactionImportController extends Controller
                     'type' => $type,
                     'date' => $date,
                     'description' => $description,
-                    'amount' => number_format((float) $amount, 2, '.', ''),
+                    'amount' => $this->normalizeAmount($amount),
                     'category' => $category,
                     'tag' => $tag !== '' ? $tag : null,
                     'submission_token' => (string) Str::uuid(),
@@ -186,6 +186,15 @@ class TransactionImportController extends Controller
 
         $request->session()->forget(self::SESSION_PREFIX.$batch);
         return redirect()->route('dashboard')->with('success', count($rows).' transactions imported successfully.');
+    }
+
+    private function normalizeAmount(string $amount): string
+    {
+        [$whole, $fraction] = array_pad(explode('.', $amount, 2), 2, '');
+        $whole = ltrim($whole, '0');
+        $whole = $whole === '' ? '0' : $whole;
+
+        return $whole.'.'.str_pad($fraction, 2, '0');
     }
 
     public function cancel(Request $request, string $batch): RedirectResponse
