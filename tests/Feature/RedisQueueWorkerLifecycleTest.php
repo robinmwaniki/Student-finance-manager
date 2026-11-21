@@ -133,7 +133,8 @@ class RedisQueueWorkerLifecycleTest extends TestCase
             $worker->stop(0, 9);
             $this->assertFalse($worker->isRunning());
 
-            sleep($retryAfter + 1);
+            sleep($retryAfter);
+            sleep(1);
 
             $recoveryWorker = $this->startWorker($queue, retryAfter: $retryAfter, timeout: 2);
             $recoveryWorker->mustRun();
