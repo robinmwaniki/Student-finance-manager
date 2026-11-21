@@ -157,7 +157,6 @@ class MonthlyBudgetWorkflowTest extends TestCase
         $this->assertDatabaseHas('budgets', ['id' => $budget->id, 'user_id' => $owner->id, 'category' => 'Food']);
     }
 
-
     public function test_wallet_transfers_do_not_count_as_budget_expenses(): void
     {
         $user = $this->makeUser();
