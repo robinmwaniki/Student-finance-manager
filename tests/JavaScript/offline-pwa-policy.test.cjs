@@ -6,11 +6,11 @@ const test = require('node:test');
 
 const root = path.resolve(__dirname, '../..');
 const serviceWorker = fs.readFileSync(path.join(root, 'public/sw.js'), 'utf8');
-const offlineClient = fs.readFileSync(path.join(root, 'public/offline-transactions.js'), 'utf8');
+const offlineClient = fs.readFileSync(path.join(root, 'public/offline-transactions.js'), 'utf8');\nconst retryPolicySource = fs.readFileSync(path.join(root, 'public/offline-retry-policy.js'), 'utf8');
 
 test('PWA scripts are valid JavaScript', () => {
     assert.doesNotThrow(() => new vm.Script(serviceWorker, { filename: 'sw.js' }));
-    assert.doesNotThrow(() => new vm.Script(offlineClient, { filename: 'offline-transactions.js' }));
+    assert.doesNotThrow(() => new vm.Script(offlineClient, { filename: 'offline-transactions.js' }));\n    assert.doesNotThrow(() => new vm.Script(retryPolicySource, { filename: 'offline-retry-policy.js' }));
 });
 
 test('service worker uses an explicit static-only same-origin cache policy', () => {
