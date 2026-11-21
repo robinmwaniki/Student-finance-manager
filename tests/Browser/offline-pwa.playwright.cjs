@@ -64,6 +64,14 @@ async function outboxCount(page) {
     try {
         context = await openContext();
         let page = context.pages()[0] || await context.newPage();
+        const pageErrors = [];
+        const retryPolicyResponses = [];
+        page.on('pageerror', error => pageErrors.push(error.message));
+        page.on('response', response => {
+            if (response.url().endsWith('/offline-retry-policy.js')) {
+                retryPolicyResponses.push({ status: response.status(), contentType: response.headers()['content-type'] || null });
+            }
+        });
         await page.goto(baseUrl + '/income', { waitUntil: 'domcontentloaded' });
         await assertAuthenticated(page);
         await page.evaluate(async () => { await navigator.serviceWorker.ready; return true; });
@@ -96,7 +104,7 @@ async function outboxCount(page) {
             })),
         }));
         assert.ok(runtime.userId, 'authenticated layout must expose the current user ID to the offline runtime');
-        assert.equal(runtime.retryPolicyLoaded, true, 'offline retry policy must be loaded');
+        assert.equal(runtime.retryPolicyLoaded, true, `offline retry policy must be loaded; runtime=${JSON.stringify(runtime)}; responses=${JSON.stringify(retryPolicyResponses)}; pageErrors=${JSON.stringify(pageErrors)}`);
         assert.equal(runtime.queueType, 'income', 'income form must be registered with the offline queue');
         assert.equal(runtime.scriptLoaded, true, 'offline transaction runtime script must be included');
         assert.deepEqual(runtime.invalidControls, [], 'income form must be valid before submission');
