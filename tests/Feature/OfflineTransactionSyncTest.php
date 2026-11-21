@@ -44,7 +44,7 @@ class OfflineTransactionSyncTest extends TestCase
         ];
 
         $first = $this->actingAs($user)->postJson(route('expenses.store'), $payload)->assertCreated();
-        $second = $this->actingAs($user)->postJson(route('expenses.store'), $payload)->assertCreated();
+        $second = $this->actingAs($user)->postJson(route('expenses.store'), $payload)->assertOk();
 
         $this->assertSame($first->json('record_id'), $second->json('record_id'));
         $this->assertSame(1, $user->expenses()->count());
