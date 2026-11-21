@@ -6,6 +6,7 @@
     const detail = document.getElementById('offline-sync-detail');
     const items = document.getElementById('offline-sync-items');
     const syncButton = document.getElementById('offline-sync-now');
+    syncButton.disabled = true;
     if (!('indexedDB' in window)) {
         state.textContent = 'Offline queue unavailable';
         detail.textContent = 'This browser does not support local storage for pending transactions.';
@@ -52,6 +53,7 @@
     const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[char]));
 
     const render = async () => {
+        if (!database) return;
         const mine = (await allEntries()).filter(entry => String(entry.owner) === String(userId));
         state.textContent = navigator.onLine ? 'Online' : 'Offline';
         detail.textContent = mine.length
@@ -98,6 +100,7 @@
     };
 
     const scheduleNextRetry = async () => {
+        if (!database) return;
         if (retryTimer !== null) window.clearTimeout(retryTimer);
         retryTimer = null;
         if (!navigator.onLine || syncInProgress) return;
@@ -111,6 +114,7 @@
     };
 
     const sync = async (force = false) => {
+        if (!database) return;
         if (!navigator.onLine || syncInProgress) return render();
         syncInProgress = true;
         syncButton.disabled = true;
@@ -253,6 +257,7 @@
         if (navigator.onLine) await sync(false);
     }).catch(() => {
         state.textContent = 'Offline queue unavailable';
+        syncButton.disabled = true;
         detail.textContent = 'This browser could not open local storage. Do not submit financial records while offline.';
     });
 })();
