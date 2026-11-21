@@ -26,9 +26,9 @@ Publish the maximum tested values, test-generator capacity, topology and cost. D
 - Local defaults remain file sessions, file cache and database queues; Redis is opt-in.
 - The k6 script now refuses to run unless `CONFIRM_STAGING=true` is explicitly set.
 
-**CI evidence:** the Redis integration suite runs against an ephemeral Redis 7 service in GitHub Actions. It verifies shared cache values, locks and rate-limit counters through independently resolved managers; session reads through separately created session managers; and shared queue transport keys. Separate PHP CLI processes now also verify Redis-backed session continuity, distributed-lock exclusion, shared rate-limit counters and queue transport-list visibility. The queue-worker lifecycle feature tests enqueue a real Laravel `ShouldQueue` job and launch independent `queue:work redis --once` processes to verify successful execution, acknowledgement, and a transient failure followed by a successful retry. A crash-recovery test terminates a worker after it reserves a job, waits for the Redis `retry_after` window, and verifies that a replacement worker completes the recovered job. Additional tests verify terminal failure persistence in PostgreSQL `failed_jobs` after the configured attempts, drain an eight-job synthetic backlog with `queue:work --stop-when-empty`, and redeliver a job after a worker crash following its idempotent synthetic effect marker but before acknowledgement; the marker remains exactly once.
+**CI evidence:** the Redis integration suite runs against an ephemeral Redis 7 service in GitHub Actions. It verifies shared cache values, locks and rate-limit counters through independently resolved managers; session reads through separately created session managers; and shared queue transport keys. Separate PHP CLI processes verify Redis-backed session continuity, distributed-lock exclusion, shared rate-limit counters and queue transport-list visibility. The queue-worker lifecycle feature tests exercise independent `queue:work redis --once` processes, successful acknowledgement, transient retry, worker termination/recovery after `retry_after`, terminal failure persistence in PostgreSQL `failed_jobs`, finite backlog drain, and idempotent synthetic effects after redelivery. The Docker integration test then starts two independent PHP-FPM/Nginx containers with separate filesystems and a shared Redis session store. It verifies login on container A, authenticated session continuity through container B, private/no-store response headers, and anonymous rejection. The same integration harness concurrently submits income and expense writes through both containers using the same user-scoped UUID token; it verifies one persisted row, a consistent record ID, and protection against conflicting replays. These checks run with ephemeral PostgreSQL 18 and Redis 7 services and synthetic data only.
 
-**Remaining risk:** these tests prove selected Redis primitives and a basic producer/worker lifecycle across PHP processes, not a full multi-container/PHP-FPM HTTP deployment. The synthetic idempotent marker test validates the retry-safe handler pattern, not database-backed exactly-once financial writes; those still require business-operation tests under #71. The finite backlog test is not a sustained throughput or capacity measurement. Real HTTP authentication across web instances, Redis outage/failover recovery and production connection budgets remain unproven. Do not switch a shared environment solely because the configuration and primitive integration tests exist.
+**Remaining risk:** these are correctness and process-isolation tests, not throughput or capacity measurements. Redis outage/failover recovery, production connection budgets, fleet-wide telemetry/alerts, sustained queue throughput, representative query plans and staged distributed load measurements remain unproven. Do not switch a shared environment solely because the configuration and integration tests exist.
 
 ### 2. Container and process topology remains a bottleneck
 
@@ -62,16 +62,16 @@ Publish the maximum tested values, test-generator capacity, topology and cost. D
 
 ### 6. PostgreSQL connection topology is not production-sized
 
-The application uses standard PostgreSQL host/port settings. No measured PgBouncer/managed-pooler topology, total connection budget, read/write split or representative query-plan baseline has been validated.
+The application uses standard PostgreSQL host/port settings. No measured PgBouncer/managed-pooler topology, total connection budget, read/write split or representative query-plan baseline has been validated. See [PostgreSQL connection pooling and capacity budgets](POSTGRESQL-CONNECTION-POOLING.md) for the connection-budget formula, PgBouncer client/server limit distinctions, transaction-pooling compatibility checks and staging validation procedure.
 
-**Impact:** web and worker concurrency must be bounded by PostgreSQL capacity. Evaluate a pooler, cap connections across all process types, set query timeouts and test backup/restore and recovery.
+**Impact:** web and worker concurrency must be bounded by PostgreSQL capacity. The guide is a planning artifact only; no pooler is provisioned and no staging/production connection limit is changed.
 
 ## Delivery sequence
 
 1. Instrument fleet-wide request latency/errors, DB query timing, queue depth/age, worker saturation and cache hit/miss with privacy-safe retention; retain correlation IDs for diagnosis.
 2. Establish repeatable synthetic workloads for login, dashboard, income/expense creation, wallet transfers, reports and recurring jobs.
 3. Review high-cost queries, N+1 behavior, pagination, decimal-safe calculations and indexes using representative staging data.
-4. Extend the Redis primitive/process tests to two-or-more independent Laravel app containers; verify real HTTP authentication/session continuity, database-backed financial idempotency, duplicate financial writes and Redis interruption/recovery.
+4. Add Redis interruption/failover and recovery tests across the multi-container deployment; verify predictable failure behavior, session recovery and no duplicate financial writes after reconnection.
 5. Separate web, queue workers and scheduler; set bounded concurrency and retry policies.
 6. Introduce a PostgreSQL pooler and documented connection budgets; verify backup/restore.
 7. Progressively test 100, 1,000, 10,000, 100,000 and the largest safely affordable session levels. Capture p50/p95/p99, RPS, error rate, CPU/memory, DB connections/query latency and queue lag.
@@ -90,7 +90,7 @@ The application uses standard PostgreSQL host/port settings. No measured PgBounc
 
 ## Remaining implementation slices
 
-- Extend Redis process tests to independent Laravel app containers; test real HTTP sessions, database-backed financial idempotency, duplicate writes and outage/recovery semantics.
+- Test Redis outage/failover and recovery across independent app containers.
 - Add fleet-wide metrics/alerts and a repeatable staged baseline.
-- Measure PostgreSQL query plans and connection-pool behavior.
+- Measure PostgreSQL query plans and validate the documented connection-pool budget with a real staging topology.
 - Run progressively larger isolated-staging tests and publish results/costs.
