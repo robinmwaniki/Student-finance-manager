@@ -92,7 +92,7 @@ test('service worker installation precaches only the declared static shell and a
     await Promise.all(waits);
 
     assert.equal(harness.openedCache, 'sfm-shell-v1');
-    assert.deepEqual(harness.addedShellFiles, [
+    assert.deepEqual(Array.from(harness.addedShellFiles), [
         '/offline.html',
         '/manifest.webmanifest',
         '/offline-transactions.js',
