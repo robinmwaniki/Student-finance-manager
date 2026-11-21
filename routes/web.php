@@ -22,6 +22,7 @@ use App\Http\Controllers\MarketInformationController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\RecurringTransactionController;
 use App\Http\Controllers\SavingsController;
+use App\Http\Controllers\TransactionImportController;
 use App\Http\Controllers\WalletController;
 use Illuminate\Support\Facades\Route;
 
@@ -74,6 +75,11 @@ Route::middleware(['auth', 'auth.session'])->group(function (): void {
     Route::delete('/budgets/{budget}', [BudgetController::class, 'destroy'])->whereNumber('budget')->name('budgets.destroy');
     Route::post('/budgets/copy', [BudgetController::class, 'copy'])->middleware('throttle:10,1')->name('budgets.copy');
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
+    Route::get('/imports', [TransactionImportController::class, 'index'])->name('imports.index');
+    Route::post('/imports/preview', [TransactionImportController::class, 'preview'])->middleware('throttle:5,1')->name('imports.preview.store');
+    Route::get('/imports/preview/{batch}', [TransactionImportController::class, 'show'])->whereUuid('batch')->name('imports.preview');
+    Route::post('/imports/preview/{batch}/confirm', [TransactionImportController::class, 'confirm'])->whereUuid('batch')->name('imports.confirm');
+    Route::delete('/imports/preview/{batch}', [TransactionImportController::class, 'cancel'])->whereUuid('batch')->name('imports.cancel');
     Route::get('/reminders', [BillReminderController::class, 'index'])->name('reminders.index');
     Route::post('/reminders', [BillReminderController::class, 'store'])->name('reminders.store');
     Route::put('/reminders/{reminder}', [BillReminderController::class, 'update'])->whereNumber('reminder')->name('reminders.update');
