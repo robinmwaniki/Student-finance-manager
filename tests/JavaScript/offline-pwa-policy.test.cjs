@@ -6,11 +6,13 @@ const test = require('node:test');
 
 const root = path.resolve(__dirname, '../..');
 const serviceWorker = fs.readFileSync(path.join(root, 'public/sw.js'), 'utf8');
-const offlineClient = fs.readFileSync(path.join(root, 'public/offline-transactions.js'), 'utf8');\nconst retryPolicySource = fs.readFileSync(path.join(root, 'public/offline-retry-policy.js'), 'utf8');
+const offlineClient = fs.readFileSync(path.join(root, 'public/offline-transactions.js'), 'utf8');
+const retryPolicySource = fs.readFileSync(path.join(root, 'public/offline-retry-policy.js'), 'utf8');
 
 test('PWA scripts are valid JavaScript', () => {
     assert.doesNotThrow(() => new vm.Script(serviceWorker, { filename: 'sw.js' }));
-    assert.doesNotThrow(() => new vm.Script(offlineClient, { filename: 'offline-transactions.js' }));\n    assert.doesNotThrow(() => new vm.Script(retryPolicySource, { filename: 'offline-retry-policy.js' }));
+    assert.doesNotThrow(() => new vm.Script(offlineClient, { filename: 'offline-transactions.js' }));
+    assert.doesNotThrow(() => new vm.Script(retryPolicySource, { filename: 'offline-retry-policy.js' }));
 });
 
 test('service worker uses an explicit static-only same-origin cache policy', () => {
@@ -29,7 +31,11 @@ test('offline outbox is account scoped and never stores credentials or CSRF toke
     assert.match(offlineClient, /payload\.submission_token/);
     assert.match(offlineClient, /response\.status === 401 \|\| response\.status === 419/);
     assert.match(offlineClient, /data-edit/);
-    assert.match(offlineClient, /data-discard/);\n    assert.match(offlineClient, /nextAttemptAt/);\n    assert.match(offlineClient, /scheduleNextRetry/);\n    assert.match(offlineClient, /sync\\(true\\)/);\n    assert.match(offlineClient, /retryPolicy\\.shouldRetryAutomatically/);
+    assert.match(offlineClient, /data-discard/);
+    assert.match(offlineClient, /nextAttemptAt/);
+    assert.match(offlineClient, /scheduleNextRetry/);
+    assert.match(offlineClient, /sync\\(true\\)/);
+    assert.match(offlineClient, /retryPolicy\\.shouldRetryAutomatically/);
 });
 
 
