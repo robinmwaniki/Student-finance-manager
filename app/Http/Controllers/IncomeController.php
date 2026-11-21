@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -36,7 +37,7 @@ class IncomeController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request): RedirectResponse|JsonResponse
     {
         $data = $request->validate([
             'submission_token' => ['required', 'uuid'],
@@ -54,7 +55,11 @@ class IncomeController extends Controller
         abort_unless($wallet, 404);
         unset($data['submission_token'], $data['wallet_id']);
 
-        $request->user()->income()->firstOrCreate(['submission_token' => $token], [...$data, 'wallet_id' => $wallet->id]);
+        $record = $request->user()->income()->firstOrCreate(['submission_token' => $token], [...$data, 'wallet_id' => $wallet->id]);
+
+        if ($request->expectsJson()) {
+            return response()->json(['message' => 'Income record saved.', 'record_id' => $record->getKey()], 201);
+        }
 
         return back()->with('success', 'Income record saved.');
     }

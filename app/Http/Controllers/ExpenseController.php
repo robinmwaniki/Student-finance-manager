@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\CurrencyRateService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -38,7 +39,7 @@ class ExpenseController extends Controller
         ]);
     }
 
-    public function store(Request $request, CurrencyRateService $currencies): RedirectResponse
+    public function store(Request $request, CurrencyRateService $currencies): RedirectResponse|JsonResponse
     {
         $data = $request->validate([
             'submission_token' => ['required', 'uuid'],
@@ -62,9 +63,17 @@ class ExpenseController extends Controller
 
         $quote = $currencies->quote($originalCurrency, 'KES');
         if ($quote === null) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'An exchange rate is not available. Choose KES or try again later.'], 422);
+            }
+
             return back()->withErrors(['currency' => 'An exchange rate is not available. Choose KES or try again later.'])->withInput();
         }
         if ($quote['stale'] && ! $request->boolean('accept_stale_rate')) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'The provider is unavailable. Review and explicitly accept the cached rate before saving.'], 422);
+            }
+
             return back()->withErrors(['currency' => 'The provider is unavailable. Review and explicitly accept the cached rate before saving.'])
                 ->with('stale_expense_quote', $quote)
                 ->withInput();
@@ -72,6 +81,10 @@ class ExpenseController extends Controller
 
         $convertedAmount = round($originalAmount * $quote['rate'], 2);
         if ($convertedAmount > 999999999999.99) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'The converted KES amount exceeds the maximum supported expense value.'], 422);
+            }
+
             return back()->withErrors(['amount' => 'The converted KES amount exceeds the maximum supported expense value.'])->withInput();
         }
         $data['amount'] = $convertedAmount;
@@ -82,11 +95,15 @@ class ExpenseController extends Controller
         $data['exchange_rate_updated_at'] = $quote['updated_at'];
         $data['exchange_rate_source'] = $quote['source'];
 
-        $request->user()->expenses()->firstOrCreate(['submission_token' => $token], [...$data, 'wallet_id' => $wallet->id]);
+        $record = $request->user()->expenses()->firstOrCreate(['submission_token' => $token], [...$data, 'wallet_id' => $wallet->id]);
 
         $message = $quote['stale']
             ? 'Expense record saved using a cached exchange rate. Review the stored rate metadata.'
             : 'Expense record saved.';
+
+        if ($request->expectsJson()) {
+            return response()->json(['message' => $message, 'record_id' => $record->getKey()], 201);
+        }
 
         return back()->with('success', $message);
     }

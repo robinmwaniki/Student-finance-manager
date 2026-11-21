@@ -32,7 +32,8 @@ body[data-theme="dark"] .settings-check small{color:#94a3b8}
 body[data-theme="dark"] .avatar-preview{border-color:#34465f;background:#1c2b42}
 </style>
 @stack('head')
-</head><body data-theme="{{ auth()->check() ? auth()->user()->theme : 'light' }}"><div class="shell">
+<link rel="manifest" href="{{ asset('manifest.webmanifest') }}"><meta name="theme-color" content="#24385f">
+</head><body data-theme="{{ auth()->check() ? auth()->user()->theme : 'light' }}" @auth data-user-id="{{ auth()->id() }}" @endauth><div class="shell">
 @auth
 <aside class="sidebar"><div class="brand"><span class="brand-mark">SF</span>Student Finance</div><div class="nav-label">Workspace</div>
 <nav class="nav-items">
@@ -61,4 +62,14 @@ body[data-theme="dark"] .avatar-preview{border-color:#34465f;background:#1c2b42}
 @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
 @if($errors->any())<div class="alert alert-error"><ul class="errors">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
 @yield('content')
-</main></div>@stack('scripts')</body></html>
+</main></div>
+@auth
+<div id="offline-sync-panel" role="status" aria-live="polite" style="position:fixed;right:18px;bottom:18px;z-index:20;max-width:min(360px,calc(100vw - 36px));background:#fff;border:1px solid #dce3ed;border-radius:12px;padding:12px 14px;box-shadow:0 8px 28px #17203318;font-size:12px;color:#334155">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:10px"><strong id="offline-sync-state">Online</strong><button id="offline-sync-now" type="button" class="btn btn-small">Sync now</button></div>
+<div id="offline-sync-detail" class="muted" style="margin-top:5px">Offline transactions stay on this device until they sync. Do not use this feature on a shared device.</div>
+<div id="offline-sync-items" style="margin-top:8px;max-height:180px;overflow:auto"></div>
+</div>
+<script src="{{ asset('offline-transactions.js') }}" defer></script>
+@endauth
+<script>if ('serviceWorker' in navigator) { window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {})); }</script>
+@stack('scripts')</body></html>
