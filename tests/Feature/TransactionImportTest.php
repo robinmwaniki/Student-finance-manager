@@ -69,6 +69,8 @@ class TransactionImportTest extends TestCase
         ]);
         $previewUrl = $response->headers->get('Location');
 
+        // A different account represents a separate browser session; do not reuse the owner's session.
+        $this->flushSession();
         $this->actingAs($other)->get($previewUrl)->assertNotFound();
         $this->assertDatabaseCount('income', 0);
     }
