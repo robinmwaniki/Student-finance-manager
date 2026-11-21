@@ -6,6 +6,7 @@ use Illuminate\Cache\RateLimiter;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Str;
+use Symfony\Component\Process\Process;
 use Tests\TestCase;
 
 class RedisMultiInstanceIntegrationTest extends TestCase
@@ -88,6 +89,47 @@ class RedisMultiInstanceIntegrationTest extends TestCase
         $secondSession->flush();
         $secondSession->save();
         app('session')->forgetDrivers();
+    }
+
+    public function test_separate_php_processes_share_redis_backed_session_state(): void
+    {
+        $sessionId = Str::random(40);
+        $script = <<<'PHP'
+require $argv[1].'/vendor/autoload.php';
+$app = require $argv[1].'/bootstrap/app.php';
+$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+config([
+    'session.driver' => 'redis',
+    'session.connection' => 'session',
+]);
+$store = app('session')->driver('redis');
+$store->setId($argv[2]);
+$store->start();
+if ($argv[3] === 'write') {
+    $store->put('cross_process_probe', 'written-by-first-php-process');
+}
+echo json_encode(['value' => $store->get('cross_process_probe')], JSON_THROW_ON_ERROR);
+$store->save();
+PHP;
+
+        $environment = [
+            'APP_ENV' => 'testing',
+            'APP_KEY' => (string) config('app.key'),
+            'REDIS_CLIENT' => 'phpredis',
+            'REDIS_HOST' => (string) config('database.redis.session.host'),
+            'REDIS_PORT' => (string) config('database.redis.session.port'),
+            'REDIS_SESSION_DB' => (string) config('database.redis.session.database'),
+        ];
+
+        $writer = new Process([PHP_BINARY, '-r', $script, base_path(), $sessionId, 'write'], base_path(), $environment);
+        $writer->mustRun();
+
+        $reader = new Process([PHP_BINARY, '-r', $script, base_path(), $sessionId, 'read'], base_path(), $environment);
+        $reader->mustRun();
+
+        $result = json_decode($reader->getOutput(), true, flags: JSON_THROW_ON_ERROR);
+
+        $this->assertSame('written-by-first-php-process', $result['value'] ?? null);
     }
 
     public function test_independent_redis_connections_share_queue_transport_keys(): void
