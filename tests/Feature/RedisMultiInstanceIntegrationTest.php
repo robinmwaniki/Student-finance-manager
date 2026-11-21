@@ -98,7 +98,7 @@ class RedisMultiInstanceIntegrationTest extends TestCase
         $firstQueue = Queue::connection('redis');
         $firstQueue->pushRaw($payload, $queueName);
 
-        Queue::purge('redis');
+        app('queue')->forgetDriver('redis');
 
         $secondQueue = Queue::connection('redis');
         $job = $secondQueue->pop($queueName);
