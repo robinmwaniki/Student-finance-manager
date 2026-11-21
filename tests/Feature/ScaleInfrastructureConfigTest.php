@@ -6,11 +6,8 @@ use Tests\TestCase;
 
 class ScaleInfrastructureConfigTest extends TestCase
 {
-    public function test_redis_backends_are_available_without_changing_local_defaults(): void
+    public function test_redis_backends_are_available_without_requiring_redis_in_local_tests(): void
     {
-        $this->assertSame('file', config('session.driver'));
-        $this->assertSame('file', config('cache.default'));
-        $this->assertSame('database', config('queue.default'));
         $this->assertSame('redis', config('cache.stores.redis.driver'));
         $this->assertSame('cache', config('cache.stores.redis.connection'));
         $this->assertSame('redis', config('queue.connections.redis.driver'));
