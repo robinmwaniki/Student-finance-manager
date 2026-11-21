@@ -81,14 +81,24 @@ class DebtController extends Controller
             'notes' => ['nullable', 'string', 'max:500'],
         ]);
 
-        DB::transaction(function () use ($request, $debt, $data): void {
+        $overpayment = false;
+
+        DB::transaction(function () use ($request, $debt, $data, &$overpayment): void {
             $record = $request->user()->debts()->whereKey($debt)->lockForUpdate()->firstOrFail();
-            if ($record->repayments()->where('submission_token', $data['submission_token'])->exists()) return;
+
+            if ($request->user()->debtRepayments()->where('submission_token', $data['submission_token'])->exists()) {
+                return;
+            }
 
             $paidCents = $this->toCents((string) $record->repayments()->sum('amount'));
             $amountCents = $this->toCents((string) $data['amount']);
             $originalCents = $this->toCents((string) $record->amount);
-            abort_if($amountCents > $originalCents - $paidCents, 422, 'Repayment exceeds the outstanding balance.');
+
+            if ($amountCents > $originalCents - $paidCents) {
+                $overpayment = true;
+
+                return;
+            }
 
             $record->repayments()->create([
                 'user_id' => $request->user()->id,
@@ -97,10 +107,13 @@ class DebtController extends Controller
                 'notes' => $data['notes'] ?? null,
                 'submission_token' => $data['submission_token'],
             ]);
+
             $record->status = ($paidCents + $amountCents) >= $originalCents ? 'paid' : 'partially_paid';
             $record->lock_version++;
             $record->save();
         }, 3);
+
+        abort_if($overpayment, 422, 'Repayment exceeds the outstanding balance.');
 
         return back()->with('success', 'Repayment recorded.');
     }
