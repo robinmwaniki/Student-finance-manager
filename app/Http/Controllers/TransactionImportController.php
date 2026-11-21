@@ -12,7 +12,9 @@ use Illuminate\View\View;
 class TransactionImportController extends Controller
 {
     private const SESSION_PREFIX = 'finance_csv_import.';
+
     private const MAX_BYTES = 2097152;
+
     private const MAX_ROWS = 500;
 
     public function index(): View
@@ -134,6 +136,7 @@ class TransactionImportController extends Controller
         abort_if(now()->timestamp - (int) ($data['created_at'] ?? 0) > 1800, 410, 'This import preview has expired. Upload the CSV again.');
 
         $rows = $data['rows'] ?? [];
+
         return view('finance.import.preview', [
             'batch' => $batch,
             'rows' => $rows,
@@ -185,6 +188,7 @@ class TransactionImportController extends Controller
         });
 
         $request->session()->forget(self::SESSION_PREFIX.$batch);
+
         return redirect()->route('dashboard')->with('success', count($rows).' transactions imported successfully.');
     }
 
@@ -202,6 +206,7 @@ class TransactionImportController extends Controller
         $data = $request->session()->get(self::SESSION_PREFIX.$batch);
         abort_unless(is_array($data) && (int) ($data['user_id'] ?? 0) === $request->user()->id, 404);
         $request->session()->forget(self::SESSION_PREFIX.$batch);
+
         return redirect()->route('imports.index')->with('success', 'Import preview discarded. No transactions were added.');
     }
 }
