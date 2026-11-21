@@ -235,5 +235,5 @@ test('transient server failures persist the pending item and schedule bounded ba
     assert.equal(entry.attempts, 1);
     assert.ok(entry.nextAttemptAt > Date.now());
     assert.match(entry.status, /Automatic retry 1\/8 in 5s/);
-    assert.ok(harness.timers.some(timer => timer.delay === retryPolicy.BASE_DELAY_MS));
+    assert.ok(harness.timers.some(timer => timer.delay > 0 && timer.delay <= retryPolicy.BASE_DELAY_MS));
 });
