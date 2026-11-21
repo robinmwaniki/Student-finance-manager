@@ -23,10 +23,10 @@ The opt-in workload is in tests/load/k6-student-finance.js. It logs in a dedicat
 Install k6 and run against an isolated staging deployment only:
 
 ```bash
-BASE_URL=https://staging.example.test TEST_EMAIL=load-test@example.test TEST_PASSWORD='dedicated-secret' VUS=10 DURATION=2m MODE=dashboard k6 run tests/load/k6-student-finance.js
+CONFIRM_STAGING=true BASE_URL=https://staging.example.test TEST_EMAIL=load-test@example.test TEST_PASSWORD='dedicated-secret' VUS=10 DURATION=2m MODE=dashboard k6 run tests/load/k6-student-finance.js
 ```
 
-For a mixed read/write workload set MODE=mixed. In PowerShell, set the same values using $env:BASE_URL, $env:TEST_EMAIL, $env:TEST_PASSWORD, $env:VUS, $env:DURATION and $env:MODE.
+For a mixed read/write workload set MODE=mixed. In PowerShell, also set $env:CONFIRM_STAGING='true' after verifying the target is isolated staging; set the other values using $env:BASE_URL, $env:TEST_EMAIL, $env:TEST_PASSWORD, $env:VUS, $env:DURATION and $env:MODE.
 
 The mixed mode writes synthetic KES 1.00 transactions tagged k6-synthetic-load-test. Clean up only those tagged rows in staging after a run. Never use real user accounts or production data.
 

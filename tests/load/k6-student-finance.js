@@ -8,6 +8,7 @@ const MODE = __ENV.MODE || 'dashboard';
 const VUS = Number(__ENV.VUS || 10);
 const DURATION = __ENV.DURATION || '2m';
 
+if (__ENV.CONFIRM_STAGING !== 'true') throw new Error('Refusing to run: set CONFIRM_STAGING=true only after verifying BASE_URL is an isolated staging deployment.');
 if (!BASE_URL) throw new Error('Set BASE_URL to an isolated staging environment.');
 if (!EMAIL || !PASSWORD) throw new Error('Set TEST_EMAIL and TEST_PASSWORD for a dedicated synthetic account.');
 if (!['dashboard', 'mixed'].includes(MODE)) throw new Error('MODE must be dashboard or mixed.');
