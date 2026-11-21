@@ -69,6 +69,7 @@ class DebtController extends Controller
         $token = $data['submission_token'];
         unset($data['submission_token']);
         $request->user()->debts()->firstOrCreate(['submission_token' => $token], [...$data, 'status' => 'pending']);
+
         return back()->with('success', 'Debt record saved.');
     }
 
@@ -137,12 +138,14 @@ class DebtController extends Controller
         $updated = $user->debts()->whereKey($debt)->where('lock_version', (int) $data['lock_version'])
             ->update([...$data, 'status' => $paidCents > 0 ? 'partially_paid' : 'pending', 'lock_version' => DB::raw('lock_version + 1')]);
         abort_unless($updated === 1, 409, 'This debt record changed after you opened it. Refresh and try again.');
+
         return back()->with('success', 'Debt record updated.');
     }
 
     private function toCents(string $amount): int
     {
         [$whole, $fraction] = array_pad(explode('.', $amount, 2), 2, '0');
+
         return ((int) $whole * 100) + (int) str_pad(substr($fraction, 0, 2), 2, '0');
     }
 
@@ -154,6 +157,7 @@ class DebtController extends Controller
         abort_if($record->repayments()->exists(), 422, 'A debt with repayment history cannot be deleted.');
         $deleted = $user->debts()->whereKey($debt)->where('lock_version', (int) $data['lock_version'])->delete();
         abort_unless($deleted === 1, 409, 'This debt record changed after you opened it. Refresh before deleting it.');
+
         return back()->with('success', 'Debt record deleted.');
     }
 }
