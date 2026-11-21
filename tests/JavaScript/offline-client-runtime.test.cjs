@@ -120,6 +120,7 @@ function createClientHarness({ userId = 'user-a', sessionUserId = userId, seedEn
     };
 
     const window = {
+        indexedDB,
         OfflineRetryPolicy: retryPolicy,
         location: {
             origin: 'https://finance.example.test',
