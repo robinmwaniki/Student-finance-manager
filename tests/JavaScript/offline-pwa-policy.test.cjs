@@ -102,6 +102,7 @@ test('service worker installation precaches only the declared static shell and a
         '/offline.html',
         '/manifest.webmanifest',
         '/offline-transactions.js',
+        '/offline-retry-policy.js',
         '/icons/icon.svg',
     ]);
     assert.equal(harness.skipWaitingCalled, true);
