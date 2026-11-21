@@ -38,18 +38,24 @@ class BudgetController extends Controller
             ->pluck('total', 'category');
 
         $budgets->getCollection()->transform(function ($budget) use ($spent): object {
-            $budget->spent = (string) ($spent[$budget->category] ?? '0.00');
-            $budget->remaining = (float) $budget->amount - (float) $budget->spent;
-            $budget->utilization = (float) $budget->amount > 0
-                ? ((float) $budget->spent / (float) $budget->amount) * 100
+            $budgetCents = $this->toCents((string) $budget->amount);
+            $spentAmount = (string) ($spent[$budget->category] ?? '0.00');
+            $spentCents = $this->toCents($spentAmount);
+
+            $budget->spent = $spentAmount;
+            $budget->remaining = ($budgetCents - $spentCents) / 100;
+            $budget->utilization = $budgetCents > 0
+                ? ($spentCents / $budgetCents) * 100
                 : 0;
 
             return $budget;
         });
 
         $allBudgets = $user->budgets()->where('budget_month', $month)->get(['category', 'amount']);
-        $budgetTotal = $allBudgets->sum(fn ($item): float => (float) $item->amount);
-        $spentTotal = $allBudgets->sum(fn ($item): float => (float) ($spent[$item->category] ?? 0));
+        $budgetTotalCents = $allBudgets->sum(fn ($item): int => $this->toCents((string) $item->amount));
+        $spentTotalCents = $allBudgets->sum(fn ($item): int => $this->toCents((string) ($spent[$item->category] ?? '0.00')));
+        $budgetTotal = $budgetTotalCents / 100;
+        $spentTotal = $spentTotalCents / 100;
         $categories = $user->budgets()->where('budget_month', $month)->orderBy('category')->pluck('category');
 
         return view('finance.budgets.index', [
@@ -198,6 +204,13 @@ class BudgetController extends Controller
             'amount' => ['required', 'numeric', 'gt:0', 'decimal:0,2', 'max:999999999999'],
             'date' => ['required', 'date'],
         ]);
+    }
+
+    private function toCents(string $amount): int
+    {
+        [$whole, $fraction] = array_pad(explode('.', $amount, 2), 2, '0');
+
+        return ((int) $whole * 100) + (int) str_pad(substr($fraction, 0, 2), 2, '0');
     }
 
     private function validMonth(mixed $month): bool

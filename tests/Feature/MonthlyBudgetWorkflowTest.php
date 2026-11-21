@@ -157,6 +157,92 @@ class MonthlyBudgetWorkflowTest extends TestCase
         $this->assertDatabaseHas('budgets', ['id' => $budget->id, 'user_id' => $owner->id, 'category' => 'Food']);
     }
 
+    public function test_wallet_transfers_do_not_count_as_budget_expenses(): void
+    {
+        $user = $this->makeUser();
+        $from = $user->wallets()->where('is_default', true)->firstOrFail();
+        $from->update(['opening_balance' => '1000.00']);
+        $to = $user->wallets()->create([
+            'name' => 'M-Pesa',
+            'type' => 'mpesa',
+            'currency' => 'KES',
+            'opening_balance' => 0,
+            'is_default' => false,
+        ]);
+        $user->budgets()->create([
+            'category' => 'Food',
+            'amount' => '500.00',
+            'budget_month' => '2026-11',
+            'date' => '2026-11-01',
+        ]);
+
+        $this->actingAs($user)->post(route('wallets.transfers.store'), [
+            'submission_token' => (string) Str::uuid(),
+            'from_wallet_id' => $from->id,
+            'to_wallet_id' => $to->id,
+            'amount' => '300.00',
+            'transfer_date' => '2026-11-12',
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->actingAs($user)->get(route('budgets.index', ['month' => '2026-11']))
+            ->assertOk()
+            ->assertSee('500.00')
+            ->assertSee('0.00')
+            ->assertSee('0.0%');
+
+        $this->assertDatabaseCount('expenses', 0);
+        $this->assertDatabaseCount('wallet_transfers', 1);
+    }
+
+    public function test_user_cannot_delete_another_users_budget(): void
+    {
+        $owner = $this->makeUser('owner@example.test');
+        $other = $this->makeUser('other@example.test');
+        $budget = $owner->budgets()->create([
+            'category' => 'Food',
+            'amount' => '500.00',
+            'budget_month' => '2026-11',
+            'date' => '2026-11-01',
+        ]);
+
+        $this->actingAs($other)->delete(route('budgets.destroy', $budget), [
+            'lock_version' => 0,
+        ])->assertNotFound();
+
+        $this->assertDatabaseHas('budgets', [
+            'id' => $budget->id,
+            'user_id' => $owner->id,
+            'category' => 'Food',
+        ]);
+    }
+
+    public function test_budget_remaining_uses_exact_decimal_cents_for_fractional_amounts(): void
+    {
+        $user = $this->makeUser();
+        $user->budgets()->create([
+            'category' => 'Food',
+            'amount' => '0.30',
+            'budget_month' => '2026-11',
+            'date' => '2026-11-01',
+        ]);
+        $user->expenses()->create([
+            'category' => 'Food',
+            'amount' => '0.10',
+            'transaction_date' => '2026-11-05',
+        ]);
+        $user->expenses()->create([
+            'category' => 'Food',
+            'amount' => '0.10',
+            'transaction_date' => '2026-11-06',
+        ]);
+
+        $this->actingAs($user)->get(route('budgets.index', ['month' => '2026-11']))
+            ->assertOk()
+            ->assertSee('0.20')
+            ->assertSee('0.10')
+            ->assertSee('66.7%');
+    }
+
     private function makeUser(string $email = 'budget@example.test'): User
     {
         static $counter = 0;
