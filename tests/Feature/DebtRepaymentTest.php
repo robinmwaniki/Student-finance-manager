@@ -37,7 +37,7 @@ class DebtRepaymentTest extends TestCase
         $this->assertDatabaseCount('debt_repayments', 1);
         $this->actingAs($user)->post(route('debts.repayments.store', $debt), [
             'submission_token' => (string) Str::uuid(), 'amount' => '40.01', 'repayment_date' => today()->toDateString(),
-        ])->assertStatus(422);
+        ])->assertRedirect()->assertSessionHasErrors('amount');
         $this->assertSame(4000, $debt->fresh()->outstandingBalanceCents());
     }
 

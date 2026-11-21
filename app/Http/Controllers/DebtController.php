@@ -113,7 +113,9 @@ class DebtController extends Controller
             $record->save();
         }, 3);
 
-        abort_if($overpayment, 422, 'Repayment exceeds the outstanding balance.');
+        if ($overpayment) {
+            return back()->withErrors(['amount' => 'Repayment exceeds the outstanding balance.']);
+        }
 
         return back()->with('success', 'Repayment recorded.');
     }
