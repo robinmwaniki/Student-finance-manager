@@ -87,11 +87,6 @@ class User extends Authenticatable
         return $this->hasMany(Debt::class);
     }
 
-    public function debtRepayments(): HasMany
-    {
-        return $this->hasMany(DebtRepayment::class);
-    }
-
     public function recurringTransactions()
     {
         return $this->hasMany(RecurringTransaction::class);

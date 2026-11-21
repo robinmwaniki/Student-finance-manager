@@ -2,12 +2,6 @@
 
 ## Implemented safeguards
 
-### Debt repayments
-- Repayments are immutable, user-owned ledger rows with a unique per-user submission token.
-- Repayment writes lock the parent debt and validate the requested amount against the outstanding balance before recording the repayment and updating status in one transaction.
-- Debt status is pending, partially paid, or paid based on the repayment ledger; overdue is a date-derived state.
-- Debts with repayment history cannot be deleted, and debt amounts cannot be edited below the amount already repaid.
-
 ### Savings goals and contributions
 - Savings entries and goals are exposed through authenticated routes and user-owned Eloquent relationships.
 - Each contribution form carries a UUID submission token; PostgreSQL enforces uniqueness per user and duplicate submissions use conflict-safe insertion.
@@ -39,7 +33,7 @@ Financial aggregates are calculated from PostgreSQL on each dashboard request. N
 
 ## Remaining migration scope
 
-Recurring transaction execution remains subject to its dedicated feature issue. Debt repayments are exposed through the authenticated Laravel workflow. Savings and monthly budgets now have authenticated Laravel workflows; the legacy PHP application remains available as a historical source for the separate data-migration issue.
+Debt tracking and recurring transaction execution remain subject to their dedicated feature issues. Savings and monthly budgets now have authenticated Laravel workflows; the legacy PHP application remains available as a historical source for the separate data-migration issue.
 
 ## Operational notes
 

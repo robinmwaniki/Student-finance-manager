@@ -18,20 +18,26 @@
 <div><button class="btn" type="submit">+ Save debt</button></div>
 </form></div>
 <div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><h2 class="section-heading" style="margin:0">Debt records</h2>
-<form method="GET" style="display:flex;gap:8px;flex-wrap:wrap"><select name="type" aria-label="Filter debt type"><option value="">All types</option><option value="borrowed" @selected($type === 'borrowed')>I owe</option><option value="lent" @selected($type === 'lent')>Owed to me</option></select><select name="status" aria-label="Filter debt status"><option value="all" @selected($status === 'all')>All statuses</option><option value="pending" @selected($status === 'pending')>Pending</option><option value="paid" @selected($status === 'paid')>Paid</option><option value="overdue" @selected($status === 'overdue')>Overdue</option></select><button class="btn btn-small" type="submit">Filter</button></form></div>
-<div class="table-wrap"><table><thead><tr><th>Description</th><th>Direction</th><th>Due date</th><th>Status</th><th>Amount</th><th>Manage</th></tr></thead><tbody>
+<form method="GET" style="display:flex;gap:8px;flex-wrap:wrap"><select name="type" aria-label="Filter debt type"><option value="">All types</option><option value="borrowed" @selected($type === 'borrowed')>I owe</option><option value="lent" @selected($type === 'lent')>Owed to me</option></select><select name="status" aria-label="Filter debt status"><option value="all" @selected($status === 'all')>All statuses</option><option value="pending" @selected($status === 'pending')>Pending</option><option value="partially_paid" @selected($status === 'partially_paid')>Partially paid</option><option value="paid" @selected($status === 'paid')>Paid</option><option value="overdue" @selected($status === 'overdue')>Overdue</option></select><button class="btn btn-small" type="submit">Filter</button></form></div>
+<div class="table-wrap"><table><thead><tr><th>Description</th><th>Direction</th><th>Due date</th><th>Status</th><th>Original</th><th>Paid</th><th>Outstanding</th><th>Manage</th></tr></thead><tbody>
 @forelse($debts as $debt)
-@php($overdue = $debt->status === 'pending' && $debt->due_date && $debt->due_date->lt(today()))
-<tr><td><strong>{{ $debt->description ?: 'Debt record' }}</strong></td><td>{{ $debt->type === 'borrowed' ? 'I owe' : ($debt->type === 'lent' ? 'Owed to me' : ucfirst($debt->type)) }}</td><td>{{ $debt->due_date?->format('d M Y') ?? '—' }}</td><td>{{ $overdue ? 'Overdue' : ucfirst($debt->status) }}</td><td class="amount">KES {{ number_format((float) $debt->amount, 2) }}</td><td><details><summary style="cursor:pointer;color:#5365b5;font-weight:700">Edit</summary>
+@php($overdue = in_array($debt->status, ['pending', 'partially_paid'], true) && $debt->due_date && $debt->due_date->lt(today()))
+<tr><td><strong>{{ $debt->description ?: 'Debt record' }}</strong></td><td>{{ $debt->type === 'borrowed' ? 'I owe' : ($debt->type === 'lent' ? 'Owed to me' : ucfirst($debt->type)) }}</td><td>{{ $debt->due_date?->format('d M Y') ?? '—' }}</td><td>{{ $overdue ? 'Overdue' : ucfirst($debt->status) }}</td><td class="amount">KES {{ number_format((float) $debt->amount, 2) }}</td><td>KES {{ number_format((float) ($debt->repayments_sum_amount ?? 0), 2) }}</td><td class="amount">KES {{ number_format($debt->outstandingBalanceCents() / 100, 2) }}</td><td><details><summary style="cursor:pointer;color:#5365b5;font-weight:700">Edit</summary>
 <form method="POST" action="{{ route('debts.update', $debt) }}" style="min-width:220px;padding:12px 0">@csrf @method('PUT')<input type="hidden" name="lock_version" value="{{ $debt->lock_version }}">
 <div class="field" style="margin-bottom:8px"><label>Description</label><input name="description" value="{{ $debt->description }}" maxlength="255"></div>
 <div class="field" style="margin-bottom:8px"><label>Amount</label><input name="amount" type="number" min="0.01" step="0.01" value="{{ $debt->amount }}" required></div>
 <div class="field" style="margin-bottom:8px"><label>Direction</label><select name="type"><option value="borrowed" @selected($debt->type === 'borrowed')>I owe</option><option value="lent" @selected($debt->type === 'lent')>Owed to me</option></select></div>
 <div class="field" style="margin-bottom:8px"><label>Due date</label><input name="due_date" type="date" value="{{ $debt->due_date?->format('Y-m-d') }}"></div>
-<div class="field" style="margin-bottom:8px"><label>Status</label><select name="status"><option value="pending" @selected($debt->status === 'pending')>Pending</option><option value="paid" @selected($debt->status === 'paid')>Paid / settled</option></select></div>
+<div class="field" style="margin-bottom:8px"><label>Status</label><select name="status"></select></div>
 <button class="btn btn-small" type="submit">Update</button></form>
+@if($debt->status !== 'paid')<form method="POST" action="{{ route('debts.repayments.store', $debt) }}" style="min-width:220px;padding:12px 0">@csrf
+<input type="hidden" name="submission_token" value="{{ (string) Str::uuid() }}">
+<div class="field" style="margin-bottom:8px"><label>Repayment amount (KES)</label><input name="amount" type="number" min="0.01" max="{{ number_format($debt->outstandingBalanceCents() / 100, 2, '.', '') }}" step="0.01" required></div>
+<div class="field" style="margin-bottom:8px"><label>Repayment date</label><input name="repayment_date" type="date" value="{{ today()->toDateString() }}" max="{{ today()->toDateString() }}" required></div>
+<div class="field" style="margin-bottom:8px"><label>Notes</label><input name="notes" maxlength="500"></div>
+<button class="btn btn-small" type="submit">Record repayment</button></form>@endif
 <form method="POST" action="{{ route('debts.destroy', $debt) }}" onsubmit="return confirm('Delete this debt record?')">@csrf @method('DELETE')<input type="hidden" name="lock_version" value="{{ $debt->lock_version }}"><button class="btn btn-danger btn-small" type="submit">Delete</button></form>
 </details></td></tr>
-@empty<tr><td colspan="6" class="muted">No debt records match these filters.</td></tr>@endforelse
+@empty<tr><td colspan="8" class="muted">No debt records match these filters.</td></tr>@endforelse
 </tbody></table></div>{{ $debts->links('pagination::simple-tailwind') }}</div>
 @endsection
