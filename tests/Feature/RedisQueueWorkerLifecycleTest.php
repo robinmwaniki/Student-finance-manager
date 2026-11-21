@@ -94,7 +94,6 @@ class RedisQueueWorkerLifecycleTest extends TestCase
         }
     }
 
-
     public function test_worker_restart_recovers_a_job_reserved_by_a_terminated_process(): void
     {
         $queue = 'worker-crash-recovery-'.Str::uuid();
@@ -136,7 +135,7 @@ class RedisQueueWorkerLifecycleTest extends TestCase
 
             sleep($retryAfter + 1);
 
-            $recoveryWorker = $this->startWorker($queue, retryAfter: $retryAfter, timeout: 10);
+            $recoveryWorker = $this->startWorker($queue, retryAfter: $retryAfter, timeout: 2);
             $recoveryWorker->mustRun();
 
             $this->assertSame('2', trim((string) file_get_contents($attemptsPath)));
@@ -165,7 +164,7 @@ class RedisQueueWorkerLifecycleTest extends TestCase
             '--timeout='.$timeout,
             '--sleep=0',
             '--no-interaction',
-        ], base_path(), $this->workerEnvironment());
+        ], base_path(), $this->workerEnvironment($retryAfter));
 
         $process->setTimeout(20);
 
