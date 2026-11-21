@@ -40,13 +40,32 @@ class Wallet extends Model
         return $this->hasMany(WalletTransfer::class, 'to_wallet_id');
     }
 
+    public function balanceInCents(): int
+    {
+        $income = self::toCents((string) $this->income()->sum('amount'));
+        $expenses = self::toCents((string) $this->expenses()->sum('amount'));
+        $sent = self::toCents((string) $this->outgoingTransfers()->sum('amount'));
+        $received = self::toCents((string) $this->incomingTransfers()->sum('amount'));
+
+        return self::toCents((string) $this->opening_balance) + $income - $expenses - $sent + $received;
+    }
+
     public function getBalanceAttribute(): string
     {
-        $income = $this->income()->sum('amount');
-        $expenses = $this->expenses()->sum('amount');
-        $sent = $this->outgoingTransfers()->sum('amount');
-        $received = $this->incomingTransfers()->sum('amount');
+        $cents = $this->balanceInCents();
+        $sign = $cents < 0 ? '-' : '';
+        $absolute = abs($cents);
 
-        return number_format((float) $this->opening_balance + $income - $expenses - $sent + $received, 2, '.', '');
+        return $sign.intdiv($absolute, 100).'.'.str_pad((string) ($absolute % 100), 2, '0', STR_PAD_LEFT);
+    }
+
+    private static function toCents(string $amount): int
+    {
+        $negative = str_starts_with($amount, '-');
+        $amount = ltrim($amount, '-');
+        [$whole, $fraction] = array_pad(explode('.', $amount, 2), 2, '0');
+        $cents = ((int) $whole * 100) + (int) str_pad(substr($fraction, 0, 2), 2, '0');
+
+        return $negative ? -$cents : $cents;
     }
 }
