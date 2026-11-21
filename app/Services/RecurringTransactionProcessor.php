@@ -9,10 +9,6 @@ use Illuminate\Validation\ValidationException;
 
 class RecurringTransactionProcessor
 {
-    /**
-     * Apply every currently due occurrence for one schedule. Each occurrence is
-     * committed with its ledger row and next_due update as a single transaction.
-     */
     public function process(int $userId, ?int $recurringId = null): int
     {
         $query = RecurringTransaction::query()
@@ -30,11 +26,9 @@ class RecurringTransactionProcessor
 
         $processed = 0;
         foreach ($query->pluck('id') as $id) {
-            // Bound one request to a year of catch-up work per schedule. Further
-            // overdue occurrences remain due and can be processed on the next run.
+            // Limit catch-up to one year per schedule per invocation.
             for ($attempt = 0; $attempt < 366; $attempt++) {
-                $applied = $this->processNextOccurrence($userId, (int) $id);
-                if (! $applied) {
+                if (! $this->processNextOccurrence($userId, (int) $id)) {
                     break;
                 }
                 $processed++;
@@ -70,10 +64,16 @@ class RecurringTransactionProcessor
                 default => throw ValidationException::withMessages(['frequency' => 'This recurring frequency is not supported.']),
             };
 
-            $alreadyApplied = $schedule->logs()->where('period_key', $periodKey)->exists();
-            if (! $alreadyApplied) {
+            if (! $schedule->logs()->where('period_key', $periodKey)->exists()) {
+                $wallet = $schedule->user->wallets()->where('is_default', true)->first()
+                    ?? $schedule->user->wallets()->firstOrCreate(
+                        ['name' => 'Main wallet'],
+                        ['type' => 'cash', 'currency' => 'KES', 'opening_balance' => 0, 'is_default' => true],
+                    );
+
                 $ledger = [
                     'user_id' => $userId,
+                    'wallet_id' => $wallet->id,
                     'amount' => $schedule->amount,
                     'transaction_date' => $due->toDateString(),
                     'tag' => 'Recurring',
