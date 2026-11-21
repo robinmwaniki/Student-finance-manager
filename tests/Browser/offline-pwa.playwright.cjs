@@ -71,7 +71,14 @@ async function outboxCount(page) {
         await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller), null, { timeout: 15000 });
 
         const incomeForm = page.locator('form[action$="/income"]').first();
-        await incomeForm.locator('input[name="submission_token"]').fill(submissionToken);
+        const tokenInput = incomeForm.locator('input[name="submission_token"]');
+        // The CSRF/idempotency token is intentionally a hidden input, so set it
+        // through the DOM rather than asking Playwright to fill an invisible field.
+        await tokenInput.evaluate((element, value) => {
+            element.value = value;
+            element.dispatchEvent(new Event('input', { bubbles: true }));
+            element.dispatchEvent(new Event('change', { bubbles: true }));
+        }, submissionToken);
         await incomeForm.locator('input[name="source"]').fill('Playwright Offline Income');
         await incomeForm.locator('input[name="amount"]').fill('17.25');
         const dateInput = incomeForm.locator('input[name="transaction_date"]');
