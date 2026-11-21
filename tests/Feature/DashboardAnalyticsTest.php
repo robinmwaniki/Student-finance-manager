@@ -100,6 +100,32 @@ class DashboardAnalyticsTest extends TestCase
             ->assertViewHas('recentActivity', fn ($activity) => $activity->isEmpty());
     }
 
+    public function test_daily_chart_series_are_aggregated_by_day_and_scoped_to_the_selected_month_and_owner(): void
+    {
+        $user = $this->makeUser();
+        $other = $this->makeUser('other-daily@example.test');
+
+        $user->income()->create(['source' => 'Salary', 'amount' => '100.25', 'transaction_date' => '2026-11-05']);
+        $user->income()->create(['source' => 'Bonus', 'amount' => '50.75', 'transaction_date' => '2026-11-05']);
+        $user->income()->create(['source' => 'Salary', 'amount' => '900.00', 'transaction_date' => '2026-10-05']);
+        $other->income()->create(['source' => 'Salary', 'amount' => '999.00', 'transaction_date' => '2026-11-05']);
+
+        $user->expenses()->create(['category' => 'Food', 'amount' => '25.50', 'transaction_date' => '2026-11-12']);
+        $user->savings()->create(['goal' => 'Emergency', 'amount' => '10.00', 'transaction_date' => '2026-11-20', 'savings_month' => '2026-11']);
+
+        $this->actingAs($user)->get(route('dashboard', ['month' => '2026-11']))
+            ->assertOk()
+            ->assertViewHas('dailyIncome', function (array $series): bool {
+                return count($series) === 30 && $series[4] === 151.0 && $series[5] === 0.0;
+            })
+            ->assertViewHas('dailyExpenses', function (array $series): bool {
+                return count($series) === 30 && $series[11] === 25.5;
+            })
+            ->assertViewHas('dailySavings', function (array $series): bool {
+                return count($series) === 30 && $series[19] === 10.0;
+            });
+    }
+
     public function test_invalid_month_selection_is_rejected(): void
     {
         $this->actingAs($this->makeUser())->get(route('dashboard', ['month' => '2026-13']))->assertNotFound();

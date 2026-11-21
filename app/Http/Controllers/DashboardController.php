@@ -39,19 +39,9 @@ class DashboardController extends Controller
         }
 
         $daysInMonth = $monthStart->daysInMonth;
-        $dailyIncome = array_fill(0, $daysInMonth, 0.0);
-        $dailyExpenses = array_fill(0, $daysInMonth, 0.0);
-        $dailySavings = array_fill(0, $daysInMonth, 0.0);
-
-        foreach ($user->income()->whereBetween('transaction_date', [$monthStart->toDateString(), $monthEnd->toDateString()])->get(['amount', 'transaction_date']) as $record) {
-            $dailyIncome[$record->transaction_date->day - 1] += (float) $record->amount;
-        }
-        foreach ($user->expenses()->whereBetween('transaction_date', [$monthStart->toDateString(), $monthEnd->toDateString()])->get(['amount', 'transaction_date']) as $record) {
-            $dailyExpenses[$record->transaction_date->day - 1] += (float) $record->amount;
-        }
-        foreach ($user->savings()->whereBetween('transaction_date', [$monthStart->toDateString(), $monthEnd->toDateString()])->get(['amount', 'transaction_date']) as $record) {
-            $dailySavings[$record->transaction_date->day - 1] += (float) $record->amount;
-        }
+        $dailyIncome = $this->dailySeries($user->income(), $monthStart, $monthEnd, $daysInMonth);
+        $dailyExpenses = $this->dailySeries($user->expenses(), $monthStart, $monthEnd, $daysInMonth);
+        $dailySavings = $this->dailySeries($user->savings(), $monthStart, $monthEnd, $daysInMonth);
 
         $categoryBreakdown = $user->expenses()
             ->whereBetween('transaction_date', [$monthStart->toDateString(), $monthEnd->toDateString()])
@@ -112,6 +102,28 @@ class DashboardController extends Controller
             'budgetAlerts' => $budgetAlerts,
             'recentActivity' => $recentActivity,
         ]);
+    }
+
+    /**
+     * Aggregate chart values in the database so the dashboard hydrates at most
+     * one row per calendar day instead of every financial transaction.
+     */
+    private function dailySeries($query, CarbonImmutable $start, CarbonImmutable $end, int $daysInMonth): array
+    {
+        $series = array_fill(0, $daysInMonth, 0.0);
+
+        $dailyTotals = $query
+            ->whereBetween('transaction_date', [$start->toDateString(), $end->toDateString()])
+            ->selectRaw('EXTRACT(DAY FROM transaction_date)::integer AS day, SUM(amount) AS total')
+            ->groupByRaw('EXTRACT(DAY FROM transaction_date)')
+            ->orderByRaw('EXTRACT(DAY FROM transaction_date)')
+            ->get();
+
+        foreach ($dailyTotals as $dailyTotal) {
+            $series[(int) $dailyTotal->day - 1] = (float) $dailyTotal->total;
+        }
+
+        return $series;
     }
 
     private function totals($user, CarbonImmutable $start, CarbonImmutable $end): array
