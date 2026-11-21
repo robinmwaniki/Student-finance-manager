@@ -43,6 +43,7 @@ class ExpenseController extends Controller
     {
         $data = $request->validate([
             'submission_token' => ['required', 'uuid'],
+            'offline_owner_id' => ['sometimes', 'integer'],
             'wallet_id' => ['nullable', 'integer'],
             'category' => ['required', 'string', 'max:50'],
             'amount' => ['required', 'numeric', 'gt:0', 'decimal:0,2', 'max:999999999999'],
@@ -52,6 +53,11 @@ class ExpenseController extends Controller
             'tag' => ['nullable', 'string', 'max:50'],
         ]);
 
+        if (isset($data['offline_owner_id']) && (string) $data['offline_owner_id'] !== (string) $request->user()->getAuthIdentifier()) {
+            return response()->json(['message' => 'The signed-in account changed. Sign in to the original account before syncing this pending transaction.'], 409);
+        }
+
+        unset($data['offline_owner_id']);
         $token = $data['submission_token'];
         $existing = $request->user()->expenses()->where('submission_token', $token)->first();
         if ($existing) {

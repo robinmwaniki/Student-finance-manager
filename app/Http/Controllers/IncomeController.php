@@ -41,6 +41,7 @@ class IncomeController extends Controller
     {
         $data = $request->validate([
             'submission_token' => ['required', 'uuid'],
+            'offline_owner_id' => ['sometimes', 'integer'],
             'wallet_id' => ['nullable', 'integer'],
             'source' => ['required', 'string', 'max:100'],
             'amount' => ['required', 'numeric', 'gt:0', 'decimal:0,2', 'max:999999999999'],
@@ -48,6 +49,11 @@ class IncomeController extends Controller
             'tag' => ['nullable', 'string', 'max:50'],
         ]);
 
+        if (isset($data['offline_owner_id']) && (string) $data['offline_owner_id'] !== (string) $request->user()->getAuthIdentifier()) {
+            return response()->json(['message' => 'The signed-in account changed. Sign in to the original account before syncing this pending transaction.'], 409);
+        }
+
+        unset($data['offline_owner_id']);
         $token = $data['submission_token'];
         $wallet = isset($data['wallet_id'])
             ? $request->user()->wallets()->whereKey($data['wallet_id'])->first()
