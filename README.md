@@ -8,7 +8,7 @@ A full-stack personal finance management application built with **Laravel 13, PH
 
 - Account registration, authentication, password recovery, profile and account settings.
 - Personal dashboard with income, expenses, budgets, savings, debt, trends and forecasts.
-- Income and expense capture, CSV import workflow, recurring transactions and category budgets.
+- Income and expense capture, preview-first CSV transaction import (up to 500 rows), recurring transactions and category budgets.
 - Savings goals and contributions, debt tracking, reminders and financial journal.
 - Reports, charts, CSV/PDF exports and email delivery configuration.
 - Achievements, financial learning quizzes and streaks.
@@ -16,7 +16,7 @@ A full-stack personal finance management application built with **Laravel 13, PH
 - Optional AI financial assistance and Kenya/market information widgets.
 - User-scoped financial records, account controls and security-focused validation.
 
-See the feature documentation in [docs/](docs/) for behavior, configuration and limitations. Optional integrations require server-side credentials and may be disabled when no provider is configured.
+See the feature documentation in [docs/](docs/) for behavior, configuration and limitations, including [CSV transaction import](docs/CSV_IMPORT.md). Optional integrations require server-side credentials and may be disabled when no provider is configured.
 
 ## Technology
 
