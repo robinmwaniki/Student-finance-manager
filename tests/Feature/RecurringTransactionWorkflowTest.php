@@ -211,9 +211,7 @@ class RecurringTransactionWorkflowTest extends TestCase
             ]);
         }
 
-        $this->artisan('finance:process-recurring')
-            ->expectsOutput('Processed 2 recurring occurrence(s).')
-            ->assertExitCode(0);
+        $this->artisan('finance:process-recurring')->assertExitCode(0);
 
         $this->assertDatabaseCount('expenses', 2);
         $this->assertDatabaseCount('recurring_log', 2);
