@@ -228,7 +228,6 @@ class RedisQueueWorkerLifecycleTest extends TestCase
         }
     }
 
-
     public function test_idempotent_effect_is_not_repeated_when_a_reserved_job_is_redelivered(): void
     {
         $queue = 'worker-idempotent-recovery-'.Str::uuid();
