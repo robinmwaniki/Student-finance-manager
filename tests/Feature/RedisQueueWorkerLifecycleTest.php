@@ -2,11 +2,11 @@
 
 namespace Tests\Feature;
 
-use Tests\Fixtures\Jobs\QueueWorkerLifecycleProbe;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Str;
 use Symfony\Component\Process\Process;
+use Tests\Fixtures\Jobs\QueueWorkerLifecycleProbe;
 use Tests\TestCase;
 
 class RedisQueueWorkerLifecycleTest extends TestCase
