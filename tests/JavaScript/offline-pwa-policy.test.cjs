@@ -34,8 +34,8 @@ test('offline outbox is account scoped and never stores credentials or CSRF toke
     assert.match(offlineClient, /data-discard/);
     assert.match(offlineClient, /nextAttemptAt/);
     assert.match(offlineClient, /scheduleNextRetry/);
-    assert.match(offlineClient, /sync\\(true\\)/);
-    assert.match(offlineClient, /retryPolicy\\.shouldRetryAutomatically/);
+    assert.match(offlineClient, /sync\(true\)/);
+    assert.match(offlineClient, /retryPolicy\.shouldRetryAutomatically/);
 });
 
 
