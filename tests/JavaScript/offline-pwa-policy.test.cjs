@@ -14,7 +14,7 @@ test('PWA scripts are valid JavaScript', () => {
 });
 
 test('service worker uses an explicit static-only same-origin cache policy', () => {
-    assert.match(serviceWorker, /const SHELL_FILES = \['\/offline\.html', '\/manifest\.webmanifest', '\/offline-transactions\.js', '\/icons\/icon\.svg'\]/);
+    assert.match(serviceWorker, /const SHELL_FILES = \['\/offline\.html', '\/manifest\.webmanifest', '\/offline-transactions\.js', '\/offline-retry-policy\.js', '\/icons\/icon\.svg'\]/);
     assert.match(serviceWorker, /request\.method !== 'GET' \|\| url\.origin !== self\.location\.origin/);
     assert.match(serviceWorker, /Never cache authenticated HTML, API responses, POST requests, or cross-origin data/);
     assert.match(serviceWorker, /request\.mode === 'navigate'/);
