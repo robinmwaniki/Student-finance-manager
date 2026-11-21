@@ -25,9 +25,23 @@ class RequestCorrelationId
         $request->attributes->set('request_id', $requestId);
         Log::withContext(['request_id' => $requestId]);
 
+        $startedAt = hrtime(true);
+
         try {
             $response = $next($request);
+            $durationMs = (hrtime(true) - $startedAt) / 1_000_000;
             $response->headers->set('X-Request-ID', $requestId);
+            $response->headers->set('X-Response-Time-Ms', number_format($durationMs, 2, '.', ''));
+
+            if ($durationMs >= config('performance.slow_request_threshold_ms', 1000)) {
+                Log::warning('Slow HTTP request', [
+                    'route_name' => $request->route()?->getName() ?? 'unmatched',
+                    'method' => $request->method(),
+                    'status' => $response->getStatusCode(),
+                    'duration_ms' => round($durationMs, 2),
+                    'memory_peak_bytes' => memory_get_peak_usage(true),
+                ]);
+            }
 
             return $response;
         } finally {
