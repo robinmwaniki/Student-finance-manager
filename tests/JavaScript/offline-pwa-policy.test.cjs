@@ -23,7 +23,7 @@ test('service worker uses an explicit static-only same-origin cache policy', () 
 
 test('offline outbox is account scoped and never stores credentials or CSRF tokens', () => {
     assert.match(offlineClient, /indexedDB\.open\('student-finance-offline'/);
-    assert.match(offlineClient, /owner:String\(userId\)/);
+    assert.match(offlineClient, /owner:\s*String\(userId\)/);
     assert.match(offlineClient, /String\(entry\.owner\) === String\(userId\)/);
     assert.match(offlineClient, /key !== '_token' && key !== '_method'/);
     assert.match(offlineClient, /payload\.submission_token/);
