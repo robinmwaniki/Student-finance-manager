@@ -130,6 +130,7 @@
     window.addEventListener('offline', render);
     openDatabase().then(async () => {
         document.querySelectorAll('form[action]').forEach(form => {
+            if (form.querySelector('input[name="_method"]')) return;
             if (form.action.endsWith('/income') && form.method.toLowerCase() === 'post') form.dataset.offlineQueue = 'income';
             if (form.action.endsWith('/expenses') && form.method.toLowerCase() === 'post') form.dataset.offlineQueue = 'expense';
         });
