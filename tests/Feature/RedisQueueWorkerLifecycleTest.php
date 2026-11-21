@@ -228,6 +228,69 @@ class RedisQueueWorkerLifecycleTest extends TestCase
         }
     }
 
+
+    public function test_idempotent_effect_is_not_repeated_when_a_reserved_job_is_redelivered(): void
+    {
+        $queue = 'worker-idempotent-recovery-'.Str::uuid();
+        $directory = $this->makeProbeDirectory();
+        $attemptsPath = $directory.'/attempts.txt';
+        $successPath = $directory.'/success.txt';
+        $startedPath = $directory.'/started.txt';
+        $effectPath = $directory.'/effect.txt';
+        $retryAfter = 4;
+        $worker = null;
+
+        try {
+            config(['queue.connections.redis.retry_after' => $retryAfter]);
+
+            Queue::connection('redis')->push(
+                new QueueWorkerLifecycleProbe(
+                    $attemptsPath,
+                    $successPath,
+                    startedPath: $startedPath,
+                    holdFirstAttemptSeconds: 8,
+                    effectPath: $effectPath,
+                ),
+                '',
+                $queue,
+            );
+
+            $worker = $this->startWorker($queue, retryAfter: $retryAfter, timeout: 2);
+            $worker->start();
+
+            $deadline = microtime(true) + 10;
+
+            while (file_exists($startedPath) === false && $worker->isRunning() && microtime(true) < $deadline) {
+                usleep(100_000);
+            }
+
+            $this->assertFileExists($startedPath, 'The first worker did not perform the idempotent effect.');
+            $this->assertFileExists($effectPath);
+            $this->assertTrue($worker->isRunning(), 'The probe worker exited before it could be terminated.');
+
+            $worker->stop(0, 9);
+            $this->assertFalse($worker->isRunning());
+
+            sleep($retryAfter);
+            sleep(1);
+
+            $recoveryWorker = $this->startWorker($queue, retryAfter: $retryAfter, timeout: 2);
+            $recoveryWorker->mustRun();
+
+            $this->assertSame('2', trim((string) file_get_contents($attemptsPath)));
+            $this->assertSame("effect\n", file_get_contents($effectPath));
+            $this->assertSame("executed\n", file_get_contents($successPath));
+            $this->assertSame(0, Redis::connection('queue')->llen('queues:'.$queue));
+            $this->assertSame(0, Redis::connection('queue')->llen('queues:'.$queue.':reserved'));
+        } finally {
+            if ($worker instanceof Process && $worker->isRunning()) {
+                $worker->stop(0, 9);
+            }
+
+            $this->cleanUpProbe($queue, $directory);
+        }
+    }
+
     private function startWorker(string $queue, int $retryAfter = 30, int $timeout = 10, bool $stopWhenEmpty = false): Process
     {
         $arguments = [
