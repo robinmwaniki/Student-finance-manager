@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\Response;
 
 class IncomeController extends Controller
 {
@@ -36,7 +37,7 @@ class IncomeController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request): Response
     {
         $data = $request->validate([
             'submission_token' => ['required', 'uuid'],

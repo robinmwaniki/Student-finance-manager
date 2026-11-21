@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\Response;
 
 class ExpenseController extends Controller
 {
@@ -38,7 +39,7 @@ class ExpenseController extends Controller
         ]);
     }
 
-    public function store(Request $request, CurrencyRateService $currencies): RedirectResponse
+    public function store(Request $request, CurrencyRateService $currencies): Response
     {
         $data = $request->validate([
             'submission_token' => ['required', 'uuid'],
