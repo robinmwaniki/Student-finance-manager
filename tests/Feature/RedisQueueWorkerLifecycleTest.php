@@ -2,11 +2,11 @@
 
 namespace Tests\Feature;
 
-use App\Jobs\QueueWorkerLifecycleProbe;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Str;
 use Symfony\Component\Process\Process;
+use Tests\Fixtures\Jobs\QueueWorkerLifecycleProbe;
 use Tests\TestCase;
 
 class RedisQueueWorkerLifecycleTest extends TestCase
@@ -15,7 +15,7 @@ class RedisQueueWorkerLifecycleTest extends TestCase
     {
         parent::setUp();
 
-        if (! extension_loaded('redis')) {
+        if (extension_loaded('redis') === false) {
             $this->markTestSkipped('The Redis queue worker integration test requires the phpredis extension.');
         }
 
@@ -94,7 +94,65 @@ class RedisQueueWorkerLifecycleTest extends TestCase
         }
     }
 
-    private function startWorker(string $queue): Process
+    public function test_worker_restart_recovers_a_job_reserved_by_a_terminated_process(): void
+    {
+        $queue = 'worker-crash-recovery-'.Str::uuid();
+        $directory = $this->makeProbeDirectory();
+        $attemptsPath = $directory.'/attempts.txt';
+        $successPath = $directory.'/success.txt';
+        $startedPath = $directory.'/started.txt';
+        $retryAfter = 4;
+        $worker = null;
+
+        try {
+            config(['queue.connections.redis.retry_after' => $retryAfter]);
+
+            Queue::connection('redis')->push(
+                new QueueWorkerLifecycleProbe(
+                    $attemptsPath,
+                    $successPath,
+                    startedPath: $startedPath,
+                    holdFirstAttemptSeconds: 8,
+                ),
+                '',
+                $queue,
+            );
+
+            $worker = $this->startWorker($queue, retryAfter: $retryAfter, timeout: 2);
+            $worker->start();
+
+            $deadline = microtime(true) + 10;
+
+            while (file_exists($startedPath) === false && $worker->isRunning() && microtime(true) < $deadline) {
+                usleep(100_000);
+            }
+
+            $this->assertFileExists($startedPath, 'The first worker did not reserve and start the probe job.');
+            $this->assertTrue($worker->isRunning(), 'The probe worker exited before it could be terminated.');
+
+            $worker->stop(0, 9);
+            $this->assertFalse($worker->isRunning());
+
+            sleep($retryAfter);
+            sleep(1);
+
+            $recoveryWorker = $this->startWorker($queue, retryAfter: $retryAfter, timeout: 2);
+            $recoveryWorker->mustRun();
+
+            $this->assertSame('2', trim((string) file_get_contents($attemptsPath)));
+            $this->assertSame("executed\n", file_get_contents($successPath));
+            $this->assertSame(0, Redis::connection('queue')->llen('queues:'.$queue));
+            $this->assertSame(0, Redis::connection('queue')->llen('queues:'.$queue.':reserved'));
+        } finally {
+            if ($worker instanceof Process && $worker->isRunning()) {
+                $worker->stop(0, 9);
+            }
+
+            $this->cleanUpProbe($queue, $directory);
+        }
+    }
+
+    private function startWorker(string $queue, int $retryAfter = 30, int $timeout = 10): Process
     {
         $process = new Process([
             PHP_BINARY,
@@ -104,17 +162,17 @@ class RedisQueueWorkerLifecycleTest extends TestCase
             '--queue='.$queue,
             '--once',
             '--tries=2',
-            '--timeout=10',
+            '--timeout='.$timeout,
             '--sleep=0',
             '--no-interaction',
-        ], base_path(), $this->workerEnvironment());
+        ], base_path(), $this->workerEnvironment($retryAfter));
 
         $process->setTimeout(20);
 
         return $process;
     }
 
-    private function workerEnvironment(): array
+    private function workerEnvironment(int $retryAfter): array
     {
         return [
             'APP_ENV' => 'testing',
@@ -124,7 +182,7 @@ class RedisQueueWorkerLifecycleTest extends TestCase
             'REDIS_HOST' => (string) config('database.redis.queue.host'),
             'REDIS_PORT' => (string) config('database.redis.queue.port'),
             'REDIS_QUEUE_CONNECTION' => 'queue',
-            'REDIS_QUEUE_RETRY_AFTER' => '30',
+            'REDIS_QUEUE_RETRY_AFTER' => (string) $retryAfter,
             'REDIS_QUEUE_DB' => (string) config('database.redis.queue.database'),
         ];
     }
@@ -133,7 +191,7 @@ class RedisQueueWorkerLifecycleTest extends TestCase
     {
         $directory = sys_get_temp_dir().'/sfm-queue-worker-'.Str::uuid();
 
-        if (! mkdir($directory, 0700, true) && ! is_dir($directory)) {
+        if (mkdir($directory, 0700, true) === false && is_dir($directory) === false) {
             $this->fail('Unable to create the isolated queue worker probe directory.');
         }
 

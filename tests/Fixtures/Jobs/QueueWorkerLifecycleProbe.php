@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Jobs;
+namespace Tests\Fixtures\Jobs;
 
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -21,6 +21,8 @@ class QueueWorkerLifecycleProbe implements ShouldQueue
         public readonly string $attemptsPath,
         public readonly string $successPath,
         public readonly bool $failFirstAttempt = false,
+        public readonly ?string $startedPath = null,
+        public readonly int $holdFirstAttemptSeconds = 0,
     ) {}
 
     public function handle(): void
@@ -46,6 +48,14 @@ class QueueWorkerLifecycleProbe implements ShouldQueue
             flock($attemptsFile, LOCK_UN);
         } finally {
             fclose($attemptsFile);
+        }
+
+        if ($attempt === 1 && $this->startedPath !== null) {
+            file_put_contents($this->startedPath, 'started');
+        }
+
+        if ($attempt === 1 && $this->holdFirstAttemptSeconds > 0) {
+            sleep($this->holdFirstAttemptSeconds);
         }
 
         if ($this->failFirstAttempt && $attempt === 1) {
