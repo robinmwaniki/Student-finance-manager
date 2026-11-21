@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Jobs\QueueWorkerLifecycleProbe;
+use Tests\Fixtures\Jobs\QueueWorkerLifecycleProbe;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Str;
