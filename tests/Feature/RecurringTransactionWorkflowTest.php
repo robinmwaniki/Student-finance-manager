@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Services\RecurringTransactionProcessor;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Schedule;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
@@ -189,6 +190,43 @@ class RecurringTransactionWorkflowTest extends TestCase
             $this->assertDatabaseCount('recurring_log', 0);
             $this->assertDatabaseHas('recurring_transactions', ['id' => $schedule->id, 'next_due' => '2026-11-19']);
         }
+    }
+
+    public function test_scheduled_command_processes_due_records_for_all_users(): void
+    {
+        Carbon::setTestNow('2026-11-19 00:05:00');
+        $first = $this->makeUser('first@example.test');
+        $second = $this->makeUser('second@example.test');
+
+        foreach ([$first, $second] as $user) {
+            $user->recurringTransactions()->create([
+                'type' => 'expense',
+                'category' => 'Utilities',
+                'amount' => '75.50',
+                'frequency' => 'monthly',
+                'next_due' => '2026-11-19',
+                'day_of_month' => 19,
+                'status' => 'active',
+                'active' => true,
+            ]);
+        }
+
+        $this->artisan('finance:process-recurring')->assertExitCode(0);
+
+        $this->assertDatabaseCount('expenses', 2);
+        $this->assertDatabaseCount('recurring_log', 2);
+        $this->assertDatabaseHas('expenses', ['user_id' => $first->id, 'wallet_id' => $first->wallets()->where('is_default', true)->value('id')]);
+        $this->assertDatabaseHas('expenses', ['user_id' => $second->id, 'wallet_id' => $second->wallets()->where('is_default', true)->value('id')]);
+    }
+
+    public function test_recurring_command_is_registered_in_the_laravel_scheduler(): void
+    {
+        $scheduled = collect(Schedule::events())->first(
+            fn ($event) => str_contains($event->command ?? '', 'finance:process-recurring')
+        );
+
+        $this->assertNotNull($scheduled);
+        $this->assertSame('5 0 * * *', $scheduled->expression);
     }
 
     private function makeUser(string $email = 'recurring@example.test'): User
