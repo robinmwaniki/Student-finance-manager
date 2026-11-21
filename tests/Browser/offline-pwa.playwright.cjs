@@ -85,15 +85,31 @@ async function outboxCount(page) {
         await dateInput.fill(await dateInput.getAttribute('max'));
         await incomeForm.locator('select[name="wallet_id"]').selectOption({ index: 0 });
 
+        const runtime = await page.evaluate(() => ({
+            userId: document.body.dataset.userId || null,
+            retryPolicyLoaded: Boolean(window.OfflineRetryPolicy),
+            queueType: document.querySelector('form[action$="/income"]')?.dataset.offlineQueue || null,
+            scriptLoaded: [...document.scripts].some(script => script.src.endsWith('/offline-transactions.js')),
+            invalidControls: [...document.querySelectorAll('form[action$="/income"] :invalid')].map(element => ({
+                name: element.name || element.id || element.tagName,
+                validity: element.validationMessage,
+            })),
+        }));
+        assert.ok(runtime.userId, 'authenticated layout must expose the current user ID to the offline runtime');
+        assert.equal(runtime.retryPolicyLoaded, true, 'offline retry policy must be loaded');
+        assert.equal(runtime.queueType, 'income', 'income form must be registered with the offline queue');
+        assert.equal(runtime.scriptLoaded, true, 'offline transaction runtime script must be included');
+        assert.deepEqual(runtime.invalidControls, [], 'income form must be valid before submission');
+
         await context.setOffline(true);
-        // The page uses a constrained/scrolling layout in headless CI; invoke the
-        // browser's native form submission path rather than relying on pointer
-        // hit-testing for a button that can be outside the visual viewport.
+        assert.equal(await page.evaluate(() => navigator.onLine), false, 'Chromium must report offline before submitting');
+        // requestSubmit dispatches the browser's native submit event; the offline
+        // runtime must intercept it and persist the transaction without navigation.
         await incomeForm.evaluate(form => {
             const submitter = form.querySelector('button[type="submit"]');
             form.requestSubmit(submitter);
         });
-        await page.locator('#offline-sync-detail').filter({ hasText: 'Saved on this device' }).waitFor({ timeout: 10000 });
+        await page.locator('#offline-sync-detail').filter({ hasText: 'Saved on this device' }).waitFor({ state: 'attached', timeout: 10000 });
         assert.equal(await outboxCount(page), 1, 'offline transaction must be persisted in IndexedDB');
 
         await page.goto(baseUrl + '/dashboard', { waitUntil: 'domcontentloaded', timeout: 15000 });
