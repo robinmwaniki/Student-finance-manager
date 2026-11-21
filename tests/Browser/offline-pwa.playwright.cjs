@@ -86,7 +86,13 @@ async function outboxCount(page) {
         await incomeForm.locator('select[name="wallet_id"]').selectOption({ index: 0 });
 
         await context.setOffline(true);
-        await incomeForm.locator('button[type="submit"]').click();
+        // The page uses a constrained/scrolling layout in headless CI; invoke the
+        // browser's native form submission path rather than relying on pointer
+        // hit-testing for a button that can be outside the visual viewport.
+        await incomeForm.evaluate(form => {
+            const submitter = form.querySelector('button[type="submit"]');
+            form.requestSubmit(submitter);
+        });
         await page.locator('#offline-sync-detail').filter({ hasText: 'Saved on this device' }).waitFor({ timeout: 10000 });
         assert.equal(await outboxCount(page), 1, 'offline transaction must be persisted in IndexedDB');
 
