@@ -50,16 +50,18 @@ class SavingsController extends Controller
             'title' => ['required', 'string', 'max:100'],
             'target_amount' => ['nullable', 'numeric', 'gt:0', 'decimal:0,2', 'max:999999999999'],
             'due_date' => ['nullable', 'date'],
-            'status' => ['required', Rule::in(['active', 'completed'])],
             'notes' => ['nullable', 'string', 'max:500'],
         ]);
         $user = $request->user();
         $user->savingsGoals()->whereKey($goal)->firstOrFail();
         $version = (int) $data['lock_version'];
         unset($data['lock_version']);
-        $updated = $user->savingsGoals()->whereKey($goal)->where('lock_version', $version)
-            ->update([...$data, 'lock_version' => DB::raw('lock_version + 1')]);
-        abort_unless($updated === 1, 409, 'This savings goal changed after you opened it. Refresh and try again.');
+        DB::transaction(function () use ($user, $goal, $version, $data): void {
+            $updated = $user->savingsGoals()->whereKey($goal)->where('lock_version', $version)
+                ->update([...$data, 'lock_version' => DB::raw('lock_version + 1')]);
+            abort_unless($updated === 1, 409, 'This savings goal changed after you opened it. Refresh and try again.');
+            $this->syncGoal($user->savingsGoals()->whereKey($goal)->firstOrFail());
+        });
 
         return back()->with('success', 'Savings goal updated.');
     }
@@ -93,12 +95,19 @@ class SavingsController extends Controller
         $goal = $goalId ? $request->user()->savingsGoals()->whereKey($goalId)->firstOrFail() : null;
 
         DB::transaction(function () use ($request, $data, $token, $goal): void {
-            $request->user()->savings()->firstOrCreate(['submission_token' => $token], [
+            // PostgreSQL INSERT ... ON CONFLICT DO NOTHING makes retries safe even
+            // when two identical submissions arrive at the same time.
+            DB::table('savings')->insertOrIgnore([
+                'user_id' => $request->user()->id,
                 'goal_id' => $goal?->id,
                 'goal' => $goal?->title ?? $data['goal'],
                 'amount' => $data['amount'],
                 'transaction_date' => $data['transaction_date'],
                 'savings_month' => substr($data['transaction_date'], 0, 7),
+                'submission_token' => $token,
+                'lock_version' => 0,
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
             if ($goal) {
                 $this->syncGoal($goal);
@@ -170,11 +179,19 @@ class SavingsController extends Controller
         $lockedGoal = SavingsGoal::query()->whereKey($goal->id)->lockForUpdate()->firstOrFail();
         $total = $lockedGoal->contributions()->sum('amount');
         $completed = $lockedGoal->target_amount !== null
-            && round((float) $total, 2) >= round((float) $lockedGoal->target_amount, 2);
+            && $this->toMinorUnits((string) $total) >= $this->toMinorUnits((string) $lockedGoal->target_amount);
 
         $lockedGoal->forceFill([
             'current_amount' => $total,
             'status' => $completed ? 'completed' : 'active',
         ])->save();
+    }
+
+    /** Convert a non-negative decimal money value to integer cents without floats. */
+    private function toMinorUnits(string $amount): int
+    {
+        [$whole, $fraction] = array_pad(explode('.', $amount, 2), 2, '0');
+
+        return ((int) $whole * 100) + (int) str_pad(substr($fraction, 0, 2), 2, '0');
     }
 }
