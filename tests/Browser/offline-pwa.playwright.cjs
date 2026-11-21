@@ -52,7 +52,7 @@ async function outboxCount(page) {
             await page.waitForURL(url => url.pathname !== '/login', { timeout: 15000 });
         }
         await page.goto(baseUrl + '/income', { waitUntil: 'networkidle' });
-        await page.evaluate(() => navigator.serviceWorker.ready);
+        await page.evaluate(async () => { await navigator.serviceWorker.ready; return true; });
         await page.reload({ waitUntil: 'networkidle' });
         await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller), { timeout: 15000 });
 
