@@ -15,5 +15,11 @@ self.addEventListener('fetch', event => {
         event.respondWith(caches.match(request).then(cached => cached || fetch(request)));
         return;
     }
-    if (request.mode === 'navigate') event.respondWith(fetch(request).catch(() => caches.match('/offline.html')));
+    if (request.mode === 'navigate') {
+        // Bypass the browser HTTP cache for document navigations. Otherwise a
+        // previously visited authenticated page can appear to load while the
+        // device is offline, preventing the offline shell from being shown.
+        const networkRequest = new Request(request, { cache: 'no-store' });
+        event.respondWith(fetch(networkRequest).catch(() => caches.match('/offline.html')));
+    }
 });
