@@ -26,6 +26,7 @@
     let retryTimer = null;
     let accountVerified = !navigator.onLine;
     let accountMismatch = false;
+    let accountVerification = null;
 
     const openDatabase = () => new Promise((resolve, reject) => {
         const request = indexedDB.open('student-finance-offline', 1);
@@ -77,36 +78,45 @@
 
     const verifyCurrentAccount = async () => {
         if (!navigator.onLine) return accountVerified && !accountMismatch;
-        try {
-            const response = await fetch('/offline/session', {
-                method: 'GET',
-                credentials: 'same-origin',
-                cache: 'no-store',
-                headers: {'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest'},
-            });
-            if (!response.ok) {
+        // Focus, visibility and startup can fire together after a browser
+        // resumes. Share one verification request so an aborted duplicate
+        // cannot overwrite a successful identity check.
+        if (accountVerification) return accountVerification;
+        accountVerification = (async () => {
+            try {
+                const response = await fetch('/offline/session', {
+                    method: 'GET',
+                    credentials: 'same-origin',
+                    cache: 'no-store',
+                    headers: {'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest'},
+                });
+                if (!response.ok) {
+                    accountVerified = false;
+                    detail.textContent = 'Your session could not be verified. Sign in again or refresh this page before syncing pending transactions.';
+                    return false;
+                }
+                const identity = await response.json();
+                if (String(identity.user_id) !== String(userId)) {
+                    accountVerified = false;
+                    accountMismatch = true;
+                    items.innerHTML = '';
+                    syncButton.disabled = true;
+                    state.textContent = 'Account changed';
+                    detail.textContent = 'This page belongs to a different account from the current session. Reload it after signing in to the original account. Pending entries remain safely stored.';
+                    return false;
+                }
+                accountVerified = true;
+                accountMismatch = false;
+                return true;
+            } catch (error) {
                 accountVerified = false;
-                detail.textContent = 'Your session could not be verified. Sign in again or refresh this page before syncing pending transactions.';
+                detail.textContent = 'Unable to verify the signed-in account. Reconnect and refresh before syncing pending transactions.';
                 return false;
+            } finally {
+                accountVerification = null;
             }
-            const identity = await response.json();
-            if (String(identity.user_id) !== String(userId)) {
-                accountVerified = false;
-                accountMismatch = true;
-                items.innerHTML = '';
-                syncButton.disabled = true;
-                state.textContent = 'Account changed';
-                detail.textContent = 'This page belongs to a different account from the current session. Reload it after signing in to the original account. Pending entries remain safely stored.';
-                return false;
-            }
-            accountVerified = true;
-            accountMismatch = false;
-            return true;
-        } catch (error) {
-            accountVerified = false;
-            detail.textContent = 'Unable to verify the signed-in account. Reconnect and refresh before syncing pending transactions.';
-            return false;
-        }
+        })();
+        return accountVerification;
     };
 
     const postEntry = async entry => {
@@ -159,11 +169,14 @@
     const sync = async (force = false) => {
         if (!database) return;
         if (!navigator.onLine || syncInProgress) return render();
-        if (!(await verifyCurrentAccount())) return render();
+        // Acquire the sync lock before awaiting account verification. Startup,
+        // focus and visibility events may otherwise race and launch duplicate
+        // outbox drains against the same idempotency tokens.
         syncInProgress = true;
         syncButton.disabled = true;
         let synced = 0;
         try {
+            if (!(await verifyCurrentAccount())) return;
             const mine = (await allEntries()).filter(entry => String(entry.owner) === String(userId));
             for (const entry of mine) {
                 if (force) {
