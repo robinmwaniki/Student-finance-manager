@@ -100,6 +100,15 @@ else
 fi
 
 docker start "$REDIS_CONTAINER" >/dev/null
+# Docker may allocate a new ephemeral host port when a stopped container is
+# started again. Resolve the live mapping instead of reusing the pre-outage
+# port, then let Laravel read through that recovered endpoint.
+REDIS_PORT="$(docker port "$REDIS_CONTAINER" 6379/tcp | awk -F: 'NR == 1 { print $NF }')"
+if [[ -z "$REDIS_PORT" ]]; then
+    echo "Could not determine the isolated Redis host port after restart." >&2
+    exit 1
+fi
+export REDIS_PORT
 wait_for_redis
 RECOVERED_VALUE="$(redis_app_command read)"
 if [[ "$RECOVERED_VALUE" != "persisted-through-restart" ]]; then
