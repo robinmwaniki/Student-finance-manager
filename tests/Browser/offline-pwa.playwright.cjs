@@ -259,7 +259,28 @@ async function outboxCount(page) {
             }));
             throw new Error(`reconnected browser did not clear the outbox: ${JSON.stringify(syncDiagnostics)}; requests=${JSON.stringify(reconnectRequests)}; pageErrors=${JSON.stringify(reconnectErrors)}; cause=${error.message}`);
         }
-        assert.equal(await outboxCount(page), 0, 'reconnected browser must clear the outbox only after successful server acknowledgement');
+        const remainingOutbox = await outboxCount(page);
+        if (remainingOutbox !== 0) {
+            const syncDiagnostics = await page.evaluate(async () => ({
+                online: navigator.onLine,
+                state: document.querySelector('#offline-sync-state')?.textContent || null,
+                detail: document.querySelector('#offline-sync-detail')?.textContent || null,
+                buttonDisabled: document.querySelector('#offline-sync-now')?.disabled ?? true,
+                csrfMetaPresent: Boolean(document.querySelector('meta[name="csrf-token"]')?.content),
+                bodyUserId: document.body.dataset.userId || null,
+                entries: await new Promise((resolve, reject) => {
+                    const request = indexedDB.open('student-finance-offline', 1);
+                    request.onsuccess = () => {
+                        const db = request.result;
+                        const read = db.transaction('outbox', 'readonly').objectStore('outbox').getAll();
+                        read.onsuccess = () => { db.close(); resolve(read.result.map(entry => ({ id: entry.id, owner: entry.owner, action: entry.action, attempts: entry.attempts, status: entry.status, nextAttemptAt: entry.nextAttemptAt }))); };
+                        read.onerror = () => reject(read.error);
+                    };
+                    request.onerror = () => reject(request.error);
+                }),
+            }));
+            throw new Error(`outbox remained after reconnect acknowledgement wait: ${JSON.stringify(syncDiagnostics)}; requests=${JSON.stringify(reconnectRequests)}; pageErrors=${JSON.stringify(reconnectErrors)}`);
+        }
         console.log('PASS: pending transaction survived browser-context restart and reconnect sync.');
     } finally {
         if (context) await context.close();
