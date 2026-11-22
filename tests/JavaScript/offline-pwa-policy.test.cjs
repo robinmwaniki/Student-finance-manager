@@ -53,7 +53,7 @@ class RequestShim {
     }
 }
 
-function createServiceWorkerHarness(fetchImplementation = async () => 'network-response') {
+function createServiceWorkerHarness(fetchImplementation = async () => 'network-response', isOnline = true) {
     const listeners = new Map();
     const deletedCaches = [];
     const cachedResponses = new Map([
@@ -80,6 +80,7 @@ function createServiceWorkerHarness(fetchImplementation = async () => 'network-r
     };
     const self = {
         location: { origin: 'https://finance.example.test' },
+        navigator: { onLine: isOnline },
         clients: { async claim() { clientsClaimed = true; } },
         addEventListener(name, callback) { listeners.set(name, callback); },
         async skipWaiting() { skipWaitingCalled = true; },
@@ -156,6 +157,21 @@ test('service worker serves a cached shell asset without fetching it again', asy
 
     harness.listeners.get('fetch')({
         request: { method: 'GET', url: 'https://finance.example.test/offline.html', mode: 'cors' },
+        respondWith(promise) { response = promise; },
+    });
+
+    assert.equal(await response, 'offline-fallback');
+    assert.equal(fetchCalls, 0);
+});
+
+
+test('navigation serves the cached offline shell immediately when the worker reports offline', async () => {
+    let fetchCalls = 0;
+    const harness = createServiceWorkerHarness(async () => { fetchCalls++; return 'network-response'; }, false);
+    let response;
+
+    harness.listeners.get('fetch')({
+        request: { method: 'GET', url: 'https://finance.example.test/dashboard', mode: 'navigate' },
         respondWith(promise) { response = promise; },
     });
 
