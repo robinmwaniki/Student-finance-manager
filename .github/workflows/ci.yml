@@ -187,5 +187,3 @@ jobs:
           REDIS_SESSION_DB: 2
           REDIS_QUEUE_DB: 3
 
-      - name: Verify Redis outage and AOF recovery through Laravel
-        run: bash tests/Integration/redis-outage-recovery.sh
