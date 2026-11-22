@@ -37,7 +37,7 @@ export REDIS_URL=""
 wait_for_redis() {
     for attempt in $(seq 1 30); do
         if docker exec "$REDIS_CONTAINER" redis-cli ping 2>/dev/null | grep -q '^PONG$' \
-            && php -r '$socket = @fsockopen("127.0.0.1", (int) getenv("REDIS_PORT"), $errno, $error, 1); if (! $socket) exit(1); fclose($socket);' 2>/dev/null; then
+            && (timeout 1 bash -c ":</dev/tcp/127.0.0.1/$REDIS_PORT" >/dev/null 2>&1); then
             return 0
         fi
         sleep 1
@@ -48,24 +48,23 @@ wait_for_redis() {
 }
 
 redis_app_command() {
-    php -r '
-    require "vendor/autoload.php";
-    $app = require "bootstrap/app.php";
-    $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
-    $redis = Illuminate\Support\Facades\Redis::connection("default");
-    $operation = $argv[1];
-    $key = $argv[2];
-    if ($operation === "write") {
-        $redis->set($key, "persisted-through-restart");
-        exit(0);
-    }
-    $value = $redis->get($key);
-    if ($value !== "persisted-through-restart") {
-        fwrite(STDERR, "Expected persisted Redis probe value; received " . var_export($value, true) . PHP_EOL);
-        exit(2);
-    }
-    echo $value . PHP_EOL;
-    ' "$1" "$PROBE_KEY"
+    REDIS_PROBE_OPERATION="$1" REDIS_PROBE_KEY="$PROBE_KEY" php <<'PHP'
+<?php
+require "vendor/autoload.php";
+$app = require "bootstrap/app.php";
+$app->make(Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();
+$redis = Illuminate\\Support\\Facades\\Redis::connection("default");
+if (getenv("REDIS_PROBE_OPERATION") === "write") {
+    $redis->set(getenv("REDIS_PROBE_KEY"), "persisted-through-restart");
+    exit(0);
+}
+$value = $redis->get(getenv("REDIS_PROBE_KEY"));
+if ($value !== "persisted-through-restart") {
+    fwrite(STDERR, "Expected persisted Redis probe value; received " . var_export($value, true) . PHP_EOL);
+    exit(2);
+}
+echo $value . PHP_EOL;
+PHP
 }
 
 wait_for_redis
@@ -76,12 +75,13 @@ docker stop "$REDIS_CONTAINER" >/dev/null
 
 # A Redis outage must be visible to the application. Silent success, a false
 # value, or an unhandled command result must not be mistaken for recovery.
-if php -r '
+if REDIS_PROBE_KEY="$PROBE_KEY" php <<'PHP'
+<?php
 require "vendor/autoload.php";
 $app = require "bootstrap/app.php";
-$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+$app->make(Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();
 try {
-    Illuminate\Support\Facades\Redis::connection("default")->get($argv[1]);
+    Illuminate\\Support\\Facades\\Redis::connection("default")->get(getenv("REDIS_PROBE_KEY"));
     fwrite(STDERR, "Redis read unexpectedly succeeded while the isolated server was stopped." . PHP_EOL);
     exit(1);
 } catch (Throwable $exception) {
@@ -92,7 +92,8 @@ try {
     }
     echo "EXPECTED OUTAGE: " . get_class($exception) . PHP_EOL;
 }
-' "$PROBE_KEY"; then
+PHP
+then
     :
 else
     echo "Application did not report the isolated Redis outage as expected." >&2
