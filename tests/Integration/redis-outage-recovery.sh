@@ -51,8 +51,8 @@ redis_app_command() {
     php -r '
     require "vendor/autoload.php";
     $app = require "bootstrap/app.php";
-    $app->make(Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();
-    $redis = Illuminate\\Support\\Facades\\Redis::connection("default");
+    $app->make(Illuminate\Contracts\\Console\\Kernel::class)->bootstrap();
+    $redis = Illuminate\Support\\Facades\\Redis::connection("default");
     $operation = $argv[1];
     $key = $argv[2];
     if ($operation === "write") {
@@ -79,9 +79,9 @@ docker stop "$REDIS_CONTAINER" >/dev/null
 if php -r '
 require "vendor/autoload.php";
 $app = require "bootstrap/app.php";
-$app->make(Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();
+$app->make(Illuminate\Contracts\\Console\\Kernel::class)->bootstrap();
 try {
-    Illuminate\\Support\\Facades\\Redis::connection("default")->get($argv[1]);
+    Illuminate\Support\\Facades\\Redis::connection("default")->get($argv[1]);
     fwrite(STDERR, "Redis read unexpectedly succeeded while the isolated server was stopped." . PHP_EOL);
     exit(1);
 } catch (Throwable $exception) {
