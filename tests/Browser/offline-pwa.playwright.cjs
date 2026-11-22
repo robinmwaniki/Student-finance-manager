@@ -188,6 +188,19 @@ async function outboxCount(page) {
         await context.close();
         context = await openContext();
         page = context.pages()[0] || await context.newPage();
+        const reconnectRequests = [];
+        const reconnectErrors = [];
+        page.on('request', request => {
+            if (['/offline/session', '/income', '/expenses'].some(path => new URL(request.url()).pathname === path)) {
+                reconnectRequests.push({ method: request.method(), url: request.url() });
+            }
+        });
+        page.on('response', response => {
+            if (['/offline/session', '/income', '/expenses'].some(path => new URL(response.url()).pathname === path)) {
+                reconnectRequests.push({ status: response.status(), url: response.url() });
+            }
+        });
+        page.on('pageerror', error => reconnectErrors.push(error.message));
         await page.goto(baseUrl + '/income', { waitUntil: 'domcontentloaded' });
         await assertAuthenticated(page);
         await page.evaluate(async () => { await navigator.serviceWorker.ready; return true; });
@@ -211,19 +224,41 @@ async function outboxCount(page) {
             assert.equal(syncState.disabled, false, `pending outbox must be eligible for a manual retry: ${JSON.stringify(syncState)}`);
             await syncControl.click();
         }
-        await page.waitForFunction(async () => {
-            if (!('indexedDB' in window)) return false;
-            const db = await new Promise((resolve, reject) => {
-                const request = indexedDB.open('student-finance-offline', 1);
-                request.onsuccess = () => resolve(request.result);
-                request.onerror = () => reject(request.error);
-            });
-            return new Promise((resolve, reject) => {
-                const request = db.transaction('outbox', 'readonly').objectStore('outbox').count();
-                request.onsuccess = () => { db.close(); resolve(request.result === 0); };
-                request.onerror = () => reject(request.error);
-            });
-        }, null, { timeout: 20000 });
+        try {
+            await page.waitForFunction(async () => {
+                if (!('indexedDB' in window)) return false;
+                const db = await new Promise((resolve, reject) => {
+                    const request = indexedDB.open('student-finance-offline', 1);
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
+                return new Promise((resolve, reject) => {
+                    const request = db.transaction('outbox', 'readonly').objectStore('outbox').count();
+                    request.onsuccess = () => { db.close(); resolve(request.result === 0); };
+                    request.onerror = () => reject(request.error);
+                });
+            }, null, { timeout: 20000 });
+        } catch (error) {
+            const syncDiagnostics = await page.evaluate(async () => ({
+                online: navigator.onLine,
+                state: document.querySelector('#offline-sync-state')?.textContent || null,
+                detail: document.querySelector('#offline-sync-detail')?.textContent || null,
+                buttonDisabled: document.querySelector('#offline-sync-now')?.disabled ?? true,
+                csrfMetaPresent: Boolean(document.querySelector('meta[name="csrf-token"]')?.content),
+                bodyUserId: document.body.dataset.userId || null,
+                entries: await new Promise((resolve, reject) => {
+                    const request = indexedDB.open('student-finance-offline', 1);
+                    request.onsuccess = () => {
+                        const db = request.result;
+                        const read = db.transaction('outbox', 'readonly').objectStore('outbox').getAll();
+                        read.onsuccess = () => { db.close(); resolve(read.result.map(entry => ({ id: entry.id, owner: entry.owner, action: entry.action, attempts: entry.attempts, status: entry.status, nextAttemptAt: entry.nextAttemptAt }))); };
+                        read.onerror = () => reject(read.error);
+                    };
+                    request.onerror = () => reject(request.error);
+                }),
+            }));
+            throw new Error(`reconnected browser did not clear the outbox: ${JSON.stringify(syncDiagnostics)}; requests=${JSON.stringify(reconnectRequests)}; pageErrors=${JSON.stringify(reconnectErrors)}; cause=${error.message}`);
+        }
         assert.equal(await outboxCount(page), 0, 'reconnected browser must clear the outbox only after successful server acknowledgement');
         console.log('PASS: pending transaction survived browser-context restart and reconnect sync.');
     } finally {
