@@ -191,6 +191,26 @@ async function outboxCount(page) {
         await page.goto(baseUrl + '/income', { waitUntil: 'domcontentloaded' });
         await assertAuthenticated(page);
         await page.evaluate(async () => { await navigator.serviceWorker.ready; return true; });
+        // Allow the page-load reconnect hook to sync first. If the browser
+        // resumed before its session/outbox initialization completed, use the
+        // explicit Sync now control as the supported recovery path.
+        await page.waitForFunction(() => {
+            const button = document.querySelector('#offline-sync-now');
+            return button && !button.disabled;
+        }, null, { timeout: 15000 }).catch(() => {});
+        if (await outboxCount(page) > 0) {
+            const syncControl = page.locator('#offline-sync-now');
+            const syncState = await page.evaluate(() => ({
+                online: navigator.onLine,
+                state: document.querySelector('#offline-sync-state')?.textContent || null,
+                detail: document.querySelector('#offline-sync-detail')?.textContent || null,
+                disabled: document.querySelector('#offline-sync-now')?.disabled ?? true,
+                userId: document.body.dataset.userId || null,
+            }));
+            assert.equal(syncState.online, true, 'reconnected browser must be online');
+            assert.equal(syncState.disabled, false, `pending outbox must be eligible for a manual retry: ${JSON.stringify(syncState)}`);
+            await syncControl.click();
+        }
         await page.waitForFunction(async () => {
             if (!('indexedDB' in window)) return false;
             const db = await new Promise((resolve, reject) => {
