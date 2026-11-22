@@ -121,11 +121,19 @@
 
     const postEntry = async entry => {
         const target = new URL(entry.action, window.location.origin);
-        if (target.origin !== window.location.origin || !['/income', '/expenses'].includes(target.pathname)) {
+        const currentOrigin = new URL(window.location.origin);
+        // Older queued records may contain an absolute URL generated from
+        // APP_URL without the reverse-proxy port. Only accept the current
+        // protocol/host and the two allowlisted transaction paths, then
+        // rebuild the request against this page's actual origin.
+        if (target.protocol !== currentOrigin.protocol
+            || target.hostname !== currentOrigin.hostname
+            || !['/income', '/expenses'].includes(target.pathname)) {
             const error = new Error('This pending transaction has an unsupported destination and was not sent.');
             error.status = 400;
             throw error;
         }
+        const requestUrl = new URL(target.pathname + target.search, currentOrigin.origin);
         const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
         if (!csrf) {
             const error = new Error('A fresh session is required before syncing.');
@@ -135,7 +143,7 @@
         const body = new URLSearchParams();
         Object.entries(entry.payload).forEach(([key, value]) => body.set(key, value));
         body.set('offline_owner_id', String(entry.owner));
-        const response = await fetch(target.href, {
+        const response = await fetch(requestUrl.href, {
             method: 'POST', credentials: 'same-origin',
             headers: {'Accept':'application/json','Content-Type':'application/x-www-form-urlencoded;charset=UTF-8','X-CSRF-TOKEN':csrf,'X-Requested-With':'XMLHttpRequest'},
             body
@@ -231,7 +239,10 @@
             id: payload.submission_token,
             owner: String(userId),
             kind,
-            action: form.action,
+            action: (() => {
+                const target = new URL(form.action, window.location.href);
+                return target.pathname + target.search;
+            })(),
             payload,
             status: 'Pending',
             attempts: 0,
