@@ -46,15 +46,22 @@ function login() {
 function readSyntheticFinancePage() {
     const paths = ['/reports', '/income', '/expenses', '/wallets', '/budgets'];
     const path = paths[Math.floor(Math.random() * paths.length)];
-    const response = http.get(BASE_URL + path);
-    check(response, { [path + ' read succeeds']: result => result.status === 200 });
-    if (response.status === 401 || response.status === 419) authenticated = false;
+    const response = http.get(BASE_URL + path, { redirects: 0 });
+    const pageLoaded = response.status === 200
+        && response.url.endsWith(path)
+        && response.body.includes('name="csrf-token"');
+    check(response, { [path + ' read succeeds for an authenticated session']: () => pageLoaded });
+    if (!pageLoaded && [302, 401, 403, 419].includes(response.status)) authenticated = false;
 }
 
 function writeSyntheticTransaction(kind) {
     const path = kind === 'income' ? '/income' : '/expenses';
-    const page = http.get(BASE_URL + path);
-    if (page.status !== 200) { authenticated = false; return; }
+    const page = http.get(BASE_URL + path, { redirects: 0 });
+    if (page.status !== 200 || !page.url.endsWith(path) || !page.body.includes('name="csrf-token"')) {
+        authenticated = false;
+        check(page, { [kind + ' form page requires an authenticated session']: () => false });
+        return;
+    }
     const csrf = extract(/name="csrf-token" content="([^"]+)"/, page.body, 'CSRF token');
     const token = extract(/name="submission_token" value="([^"]+)"/, page.body, 'idempotency token');
     const wallet = page.body.match(/name="wallet_id"[^>]*>[\s\S]*?<option value="(\d+)"/);
