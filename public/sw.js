@@ -15,5 +15,25 @@ self.addEventListener('fetch', event => {
         event.respondWith(caches.match(request).then(cached => cached || fetch(request)));
         return;
     }
-    if (request.mode === 'navigate') event.respondWith(fetch(request).catch(() => caches.match('/offline.html')));
+    if (request.mode === 'navigate') {
+        // Bypass the browser HTTP cache for document navigations. Otherwise a
+        // previously visited authenticated page can appear to load while the
+        // device is offline, preventing the offline shell from being shown.
+        const networkRequest = new Request(request, { cache: 'no-store' });
+        event.respondWith((async () => {
+            // Chromium's offline emulation can still allow a service-worker
+            // initiated fetch to reach the test server. Check the worker's own
+            // network state first, then retain the fetch failure fallback for
+            // captive portals and other real-world connectivity failures.
+            if (!self.navigator.onLine) {
+                return caches.match('/offline.html');
+            }
+
+            try {
+                return await fetch(networkRequest);
+            } catch {
+                return caches.match('/offline.html');
+            }
+        })());
+    }
 });

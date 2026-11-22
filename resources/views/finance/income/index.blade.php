@@ -4,7 +4,7 @@
 @section('content')
 <div class="card" style="margin-bottom:18px"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div><div class="eyebrow">Monthly received</div><div class="stat-value">KES {{ number_format((float)$total,2) }}</div></div><form method="GET" class="field" style="display:flex;align-items:end;gap:8px"><div><label for="month">Month</label><input id="month" type="month" name="month" value="{{ $month }}"></div><button class="btn" type="submit">Apply</button></form></div></div>
 <div class="card" style="margin-bottom:18px"><h2 class="section-heading">Add income</h2>
-<form method="POST" action="{{ route('income.store') }}" class="form-grid">@csrf<input type="hidden" name="submission_token" value="{{ old('submission_token', $submissionToken) }}">
+<form method="POST" action="{{ route('income.store') }}" class="form-grid" data-offline-queue="income">@csrf<input type="hidden" name="submission_token" value="{{ old('submission_token', $submissionToken) }}">
 <div class="field"><label for="source">Income source</label><input id="source" name="source" maxlength="100" placeholder="e.g. Allowance, salary" value="{{ old('source') }}" required></div>
 <div class="field"><label for="amount">Amount (KES)</label><input id="amount" name="amount" type="number" min="0.01" step="0.01" placeholder="0.00" value="{{ old('amount') }}" required></div>
 <div class="field"><label for="income-wallet">Deposit to wallet</label><select id="income-wallet" name="wallet_id" required>@foreach($wallets as $wallet)<option value="{{ $wallet->id }}" @selected(old('wallet_id', $wallet->is_default ? $wallet->id : null) == $wallet->id)>{{ $wallet->name }}</option>@endforeach</select></div>

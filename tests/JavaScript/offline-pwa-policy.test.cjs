@@ -44,7 +44,16 @@ test('offline outbox is account scoped and never stores credentials or CSRF toke
 });
 
 
-function createServiceWorkerHarness(fetchImplementation = async () => 'network-response') {
+class RequestShim {
+    constructor(input, init = {}) {
+        this.url = input.url;
+        this.method = input.method;
+        this.mode = input.mode;
+        this.cache = init.cache ?? input.cache;
+    }
+}
+
+function createServiceWorkerHarness(fetchImplementation = async () => 'network-response', isOnline = true) {
     const listeners = new Map();
     const deletedCaches = [];
     const cachedResponses = new Map([
@@ -71,6 +80,7 @@ function createServiceWorkerHarness(fetchImplementation = async () => 'network-r
     };
     const self = {
         location: { origin: 'https://finance.example.test' },
+        navigator: { onLine: isOnline },
         clients: { async claim() { clientsClaimed = true; } },
         addEventListener(name, callback) { listeners.set(name, callback); },
         async skipWaiting() { skipWaitingCalled = true; },
@@ -81,6 +91,7 @@ function createServiceWorkerHarness(fetchImplementation = async () => 'network-r
         caches: cacheStorage,
         fetch: fetchImplementation,
         URL,
+        Request: RequestShim,
         Promise,
     }, { filename: 'sw.js' });
 
@@ -153,8 +164,10 @@ test('service worker serves a cached shell asset without fetching it again', asy
     assert.equal(fetchCalls, 0);
 });
 
-test('navigation falls back to the offline page only when the network request fails', async () => {
-    const harness = createServiceWorkerHarness(async () => { throw new TypeError('offline'); });
+
+test('navigation serves the cached offline shell immediately when the worker reports offline', async () => {
+    let fetchCalls = 0;
+    const harness = createServiceWorkerHarness(async () => { fetchCalls++; return 'network-response'; }, false);
     let response;
 
     harness.listeners.get('fetch')({
@@ -162,5 +175,24 @@ test('navigation falls back to the offline page only when the network request fa
         respondWith(promise) { response = promise; },
     });
 
+    assert.equal(await response, 'offline-fallback');
+    assert.equal(fetchCalls, 0);
+});
+
+test('navigation bypasses the HTTP cache and falls back only when the network request fails', async () => {
+    let networkRequest;
+    const harness = createServiceWorkerHarness(async request => {
+        networkRequest = request;
+        throw new TypeError('offline');
+    });
+    let response;
+
+    harness.listeners.get('fetch')({
+        request: { method: 'GET', url: 'https://finance.example.test/dashboard', mode: 'navigate' },
+        respondWith(promise) { response = promise; },
+    });
+
+    assert.equal(networkRequest.cache, 'no-store');
+    assert.equal(networkRequest.url, 'https://finance.example.test/dashboard');
     assert.equal(await response, 'offline-fallback');
 });
