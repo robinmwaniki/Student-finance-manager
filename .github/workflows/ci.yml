@@ -170,3 +170,20 @@ jobs:
           REDIS_CACHE_DB: 1
           REDIS_SESSION_DB: 2
           REDIS_QUEUE_DB: 3
+
+      - name: Verify Laravel Redis outage and AOF recovery on an isolated instance
+        run: bash tests/Integration/redis-outage-recovery.sh
+        env:
+          APP_ENV: testing
+          DB_CONNECTION: pgsql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
+          DB_DATABASE: student_finance_test
+          DB_USERNAME: student_finance
+          DB_PASSWORD: student_finance_test_password
+          REDIS_CLIENT: phpredis
+          REDIS_HOST: 127.0.0.1
+          REDIS_CACHE_DB: 1
+          REDIS_SESSION_DB: 2
+          REDIS_QUEUE_DB: 3
+
