@@ -146,6 +146,19 @@ async function outboxCount(page) {
         const savedDetail = await page.locator('#offline-sync-detail').textContent();
         assert.ok(savedDetail.includes('Saved on this device'), `offline submission failed: ${savedDetail}`);
         assert.equal(await outboxCount(page), 1, 'offline transaction must be persisted in IndexedDB');
+        const queuedAction = await page.evaluate(async () => {
+            const db = await new Promise((resolve, reject) => {
+                const request = indexedDB.open('student-finance-offline', 1);
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+            return new Promise((resolve, reject) => {
+                const request = db.transaction('outbox', 'readonly').objectStore('outbox').getAll();
+                request.onsuccess = () => { db.close(); resolve(request.result[0]?.action || null); };
+                request.onerror = () => reject(request.error);
+            });
+        });
+        assert.equal(queuedAction, '/income', 'offline queue must store a same-origin path, not an APP_URL-derived absolute URL');
 
         const offlineShell = await page.evaluate(async () => {
             const registrations = await navigator.serviceWorker.getRegistrations();
