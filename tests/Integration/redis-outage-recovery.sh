@@ -52,8 +52,8 @@ redis_app_command() {
 <?php
 require "vendor/autoload.php";
 $app = require "bootstrap/app.php";
-$app->make(Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();
-$redis = Illuminate\\Support\\Facades\\Redis::connection("default");
+$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+$redis = Illuminate\Support\Facades\Redis::connection("default");
 if (getenv("REDIS_PROBE_OPERATION") === "write") {
     $redis->set(getenv("REDIS_PROBE_KEY"), "persisted-through-restart");
     exit(0);
@@ -79,9 +79,9 @@ if REDIS_PROBE_KEY="$PROBE_KEY" php <<'PHP'
 <?php
 require "vendor/autoload.php";
 $app = require "bootstrap/app.php";
-$app->make(Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();
+$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 try {
-    Illuminate\\Support\\Facades\\Redis::connection("default")->get(getenv("REDIS_PROBE_KEY"));
+    Illuminate\Support\Facades\Redis::connection("default")->get(getenv("REDIS_PROBE_KEY"));
     fwrite(STDERR, "Redis read unexpectedly succeeded while the isolated server was stopped." . PHP_EOL);
     exit(1);
 } catch (Throwable $exception) {
