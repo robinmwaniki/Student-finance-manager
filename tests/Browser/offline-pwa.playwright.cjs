@@ -163,6 +163,12 @@ async function outboxCount(page) {
         await page.evaluate(async () => { await navigator.serviceWorker.ready; return true; });
         await page.reload({ waitUntil: 'domcontentloaded' });
         await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller), null, { timeout: 15000 });
+        // WebKit can expose an activated controller before CacheStorage reads are observable
+        // to the page. Wait for the install-time shell entry before taking the browser offline.
+        await page.waitForFunction(async () => {
+            const shell = await caches.match(new URL('/offline.html', location.origin).href);
+            return Boolean(shell);
+        }, null, { timeout: 15000 });
 
         const incomeForm = page.locator('form[action$="/income"]').first();
         const tokenInput = incomeForm.locator('input[name="submission_token"]');
