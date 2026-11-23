@@ -95,9 +95,23 @@ async function outboxCount(page) {
                 const bounds = element.getBoundingClientRect();
                 return { name: element.name || element.tagName.toLowerCase(), left: bounds.left, right: bounds.right };
             });
+            const boundsOf = selector => {
+                const element = document.querySelector(selector);
+                const bounds = element?.getBoundingClientRect();
+                return bounds ? { left: bounds.left, right: bounds.right, width: bounds.width } : null;
+            };
             return {
                 viewportWidth: window.innerWidth,
+                visualViewportWidth: window.visualViewport?.width ?? null,
+                scrollX: window.scrollX,
                 documentWidth: document.documentElement.scrollWidth,
+                bodyWidth: document.body.getBoundingClientRect().width,
+                shellBounds: boundsOf('.shell'),
+                sidebarBounds: boundsOf('.sidebar'),
+                mainBounds: boundsOf('.main'),
+                mainMarginLeft: document.querySelector('.main') ? getComputedStyle(document.querySelector('.main')).marginLeft : null,
+                sidebarPosition: document.querySelector('.sidebar') ? getComputedStyle(document.querySelector('.sidebar')).position : null,
+                bodyDisplay: getComputedStyle(document.body).display,
                 gridColumns: form ? getComputedStyle(form).gridTemplateColumns.split(' ').length : 0,
                 formBounds: formBounds ? { left: formBounds.left, right: formBounds.right, width: formBounds.width } : null,
                 controlsInsideViewport: controlBounds.length > 0 && controlBounds.every(bounds => bounds.left >= 0 && bounds.right <= window.innerWidth + 1),
