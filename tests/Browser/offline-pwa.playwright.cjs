@@ -77,13 +77,15 @@ async function outboxCount(page) {
                 retryPolicyResponses.push({ status: response.status(), contentType: response.headers()['content-type'] || null });
             }
         });
+        // Load the page at the mobile viewport from the start. Resizing an
+        // already-rendered desktop page can preserve stale layout/scroll state
+        // in Chromium and produce misleading element coordinates.
+        await page.setViewportSize({ width: 390, height: 844 });
         await page.goto(baseUrl + '/income', { waitUntil: 'domcontentloaded' });
         await assertAuthenticated(page);
 
-        // Exercise the income form at a common mobile viewport before the
-        // offline flow. This is browser emulation, not a substitute for a
-        // physical Android/iOS device check.
-        await page.setViewportSize({ width: 390, height: 844 });
+        // This is browser emulation, not a substitute for a physical
+        // Android/iOS device check.
         const mobileLayout = await page.evaluate(() => {
             const form = document.querySelector('form[action$="/income"]');
             const submit = form?.querySelector('button[type="submit"]');
