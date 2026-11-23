@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\RequestCorrelationId;
+use App\Http\Middleware\EnsureActiveAccount;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -16,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Trust the Render reverse proxy so Laravel detects HTTPS and the public host.
         // The container is exposed through Render's managed proxy, not directly to clients.
         $middleware->trustProxies(at: '*');
+        $middleware->alias(['active.account' => EnsureActiveAccount::class]);
 
         // Add a safe correlation ID to every response and request log context.
         $middleware->append(RequestCorrelationId::class);
