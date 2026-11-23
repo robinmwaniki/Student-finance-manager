@@ -89,7 +89,7 @@ class AccountSettingsController extends Controller
     public function updatePreferences(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'theme' => ['required', 'in:light,dark'],
+            'theme' => ['required', 'in:light,dark,blue,red'],
             'show_daily_quote' => ['sometimes', 'boolean'],
             'show_weather' => ['sometimes', 'boolean'],
             'show_forecast' => ['sometimes', 'boolean'],
