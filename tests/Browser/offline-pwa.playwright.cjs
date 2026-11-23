@@ -199,7 +199,23 @@ async function outboxCount(page) {
         assert.deepEqual(runtime.invalidControls, [], 'income form must be valid before submission');
 
         await context.setOffline(true);
-        assert.equal(await page.evaluate(() => navigator.onLine), false, 'Chromium must report offline before submitting');
+        assert.equal(await page.evaluate(() => navigator.onLine), false, `${browserName} must report offline before submitting`);
+        // Ensure the active worker has received this client's offline state.
+        await page.evaluate(() => new Promise((resolve, reject) => {
+            const worker = navigator.serviceWorker.controller;
+            if (!worker) return reject(new Error('service worker controller missing before offline navigation'));
+            const channel = new MessageChannel();
+            const timeout = setTimeout(() => reject(new Error('service worker did not acknowledge offline client state')), 5000);
+            channel.port1.onmessage = event => {
+                clearTimeout(timeout);
+                if (event.data?.type !== 'SFM_CLIENT_CONNECTIVITY_ACK' || event.data.online !== false) {
+                    reject(new Error('service worker acknowledged an unexpected connectivity state'));
+                    return;
+                }
+                resolve();
+            };
+            worker.postMessage({ type: 'SFM_CLIENT_CONNECTIVITY', online: false }, [channel.port2]);
+        }));
         // requestSubmit dispatches the browser's native submit event; the offline
         // runtime must intercept it and persist the transaction without navigation.
         await incomeForm.evaluate(form => {
