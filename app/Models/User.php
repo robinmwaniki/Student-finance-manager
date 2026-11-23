@@ -22,6 +22,10 @@ class User extends Authenticatable
         });
     }
 
+    protected $attributes = [
+        'is_active' => true,
+    ];
+
     protected $fillable = [
         'fullname',
         'email',
