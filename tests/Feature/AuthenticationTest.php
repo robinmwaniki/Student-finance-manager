@@ -125,7 +125,7 @@ class AuthenticationTest extends TestCase
         $this->get(route('dashboard'))->assertRedirect(route('login'));
     }
 
-public function test_deactivated_user_cannot_use_an_existing_authenticated_session(): void
+    public function test_deactivated_user_cannot_use_an_existing_authenticated_session(): void
     {
         $user = User::create([
             'fullname' => 'Inactive Student',
