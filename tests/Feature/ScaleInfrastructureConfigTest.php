@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Tests\TestCase;
 
 class ScaleInfrastructureConfigTest extends TestCase
@@ -19,5 +21,26 @@ class ScaleInfrastructureConfigTest extends TestCase
         $this->assertNull(config('database.redis.cache.url'));
         $this->assertNull(config('database.redis.session.url'));
         $this->assertNull(config('database.redis.queue.url'));
+    }
+
+    public function test_slow_database_query_logs_metadata_without_sql_or_binding_values(): void
+    {
+        config(['performance.slow_database_query_threshold_ms' => 0]);
+        Log::spy();
+
+        DB::select('select ? as synthetic_value', ['sensitive-fixture']);
+
+        Log::shouldHaveReceived('warning')
+            ->withArgs(function (string $message, array $context): bool {
+                return $message === 'Slow database query'
+                    && isset($context['connection'])
+                    && isset($context['duration_ms'])
+                    && $context['bindings_count'] === 1
+                    && isset($context['route_name'])
+                    && ! array_key_exists('sql', $context)
+                    && ! array_key_exists('bindings', $context);
+            })
+            ->atLeast()
+            ->once();
     }
 }
