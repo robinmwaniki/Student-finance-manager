@@ -11,11 +11,13 @@ class HealthCheckTest extends TestCase
         $this->get('/up')->assertOk();
     }
 
-    public function test_home_page_displays_migration_notice(): void
+    public function test_home_page_displays_the_public_landing_page(): void
     {
         $this->get('/')
             ->assertOk()
             ->assertSee('Student Finance Manager')
-            ->assertSee('Application rebuild in progress');
+            ->assertSee('Make your money')
+            ->assertSee('Track income')
+            ->assertSee('Explore features');
     }
 }
