@@ -195,7 +195,7 @@ test('navigation bypasses the HTTP cache and falls back only when the network re
         respondWith(promise) { response = promise; },
     });
 
+    assert.equal(await response, 'offline-fallback');
     assert.equal(networkRequest.cache, 'no-store');
     assert.equal(networkRequest.url, 'https://finance.example.test/dashboard');
-    assert.equal(await response, 'offline-fallback');
 });
