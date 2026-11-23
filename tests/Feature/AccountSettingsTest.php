@@ -247,4 +247,45 @@ class AccountSettingsTest extends TestCase
             'password' => 'StrongPassword123',
         ], $overrides));
     }
+
+public function test_account_deactivation_requires_password_and_exact_confirmation(): void
+    {
+        $user = $this->makeUser();
+
+        $this->actingAs($user)->from(route('settings.index'))->post(route('settings.account.deactivate'), [
+            'current_password' => 'StrongPassword123',
+            'confirmation' => 'deactivate',
+        ])->assertRedirect(route('settings.index'))->assertSessionHasErrors('confirmation');
+
+        $this->assertTrue($user->fresh()->is_active);
+        $this->assertAuthenticatedAs($user);
+    }
+
+public function test_account_deactivation_preserves_financial_records_and_blocks_sign_in(): void
+    {
+        $user = $this->makeUser();
+        DB::table('income')->insert([
+            'user_id' => $user->id,
+            'amount' => '1500.00',
+            'source' => 'Salary',
+            'transaction_date' => '2026-11-19',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($user)->post(route('settings.account.deactivate'), [
+            'current_password' => 'StrongPassword123',
+            'confirmation' => 'DEACTIVATE',
+        ])->assertRedirect(route('login'))->assertSessionHas('success');
+
+        $this->assertGuest();
+        $this->assertDatabaseHas('users', ['id' => $user->id, 'is_active' => false]);
+        $this->assertDatabaseHas('income', ['user_id' => $user->id, 'source' => 'Salary']);
+
+        $this->post(route('login'), [
+            'email' => $user->email,
+            'password' => 'StrongPassword123',
+        ])->assertRedirect(route('home'))->assertSessionHasErrors('email');
+        $this->assertGuest();
+    }
 }
