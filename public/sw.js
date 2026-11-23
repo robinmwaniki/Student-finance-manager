@@ -1,10 +1,21 @@
-const CACHE_NAME = 'sfm-shell-v2';
+const CACHE_NAME = 'sfm-shell-v3';
 const SHELL_FILES = ['/offline.html', '/manifest.webmanifest', '/offline-transactions.js', '/offline-retry-policy.js', '/icons/icon.svg'];
 self.addEventListener('install', event => {
     event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(SHELL_FILES)).then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', event => {
     event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key.startsWith('sfm-') && key !== CACHE_NAME).map(key => caches.delete(key)))).then(() => self.clients.claim()));
+});
+// Track client connectivity because some engines expose stale online state in service workers.
+const offlineClients = new Set();
+self.addEventListener('message', event => {
+    if (event.data?.type !== 'SFM_CLIENT_CONNECTIVITY') return;
+    const clientId = event.source?.id;
+    if (clientId) {
+        if (event.data.online === false) offlineClients.add(clientId);
+        else offlineClients.delete(clientId);
+    }
+    event.ports?.[0]?.postMessage({ type: 'SFM_CLIENT_CONNECTIVITY_ACK', online: event.data.online === true });
 });
 self.addEventListener('fetch', event => {
     const request = event.request;
@@ -25,7 +36,7 @@ self.addEventListener('fetch', event => {
             // initiated fetch to reach the test server. Check the worker's own
             // network state first, then retain the fetch failure fallback for
             // captive portals and other real-world connectivity failures.
-            if (!self.navigator.onLine) {
+            if (!self.navigator.onLine || offlineClients.has(event.clientId) || offlineClients.has(event.resultingClientId)) {
                 return caches.match('/offline.html');
             }
 
