@@ -49,10 +49,12 @@ Route::middleware(['auth', 'auth.session'])->group(function (): void {
         'user_id' => (string) $request->user()->getAuthIdentifier(),
     ])->header('Cache-Control', 'no-store, private')->header('Pragma', 'no-cache'))->name('offline.session');
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
+    Route::get('/profile', [AccountSettingsController::class, 'profile'])->name('profile.show');
     Route::get('/settings', [AccountSettingsController::class, 'index'])->name('settings.index');
     Route::put('/settings/profile', [AccountSettingsController::class, 'updateProfile'])->name('settings.profile.update');
     Route::put('/settings/password', [AccountSettingsController::class, 'updatePassword'])->middleware('throttle:5,1')->name('settings.password.update');
     Route::put('/settings/preferences', [AccountSettingsController::class, 'updatePreferences'])->name('settings.preferences.update');
+    Route::post('/settings/account/deactivate', [AccountSettingsController::class, 'deactivate'])->middleware('throttle:3,1')->name('settings.account.deactivate');
     Route::delete('/settings/account', [AccountSettingsController::class, 'destroy'])->middleware('throttle:3,1')->name('settings.account.destroy');
     Route::get('/assistant', [FinancialAssistantController::class, 'index'])->name('assistant.index');
     Route::post('/assistant', [FinancialAssistantController::class, 'ask'])->middleware('throttle:10,1')->name('assistant.ask');
