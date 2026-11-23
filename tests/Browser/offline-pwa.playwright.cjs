@@ -164,19 +164,9 @@ async function outboxCount(page) {
         await page.evaluate(async () => { await navigator.serviceWorker.ready; return true; });
         await page.reload({ waitUntil: 'domcontentloaded' });
         await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller), null, { timeout: 15000 });
-        // WebKit can expose an activated controller while its install-time CacheStorage
-        // population is still missing. Prime the exact shell response in the same
-        // versioned cache before exercising the offline navigation fallback.
-        if (browserName === 'webkit') {
-            await page.evaluate(async () => {
-                const response = await fetch('/offline.html', { cache: 'no-store' });
-                if (!response.ok) throw new Error(`offline shell fetch returned HTTP ${response.status}`);
-                const cache = await caches.open('sfm-shell-v3');
-                await cache.put('/offline.html', response);
-            });
-        }
         await page.waitForFunction(async () => {
-            const shell = await caches.match(new URL('/offline.html', location.origin).href);
+            const cache = await caches.open('sfm-shell-v3');
+            const shell = await cache.match(new URL('/offline.html', location.origin));
             return Boolean(shell);
         }, null, { timeout: 15000 });
 
@@ -281,6 +271,22 @@ async function outboxCount(page) {
             });
         });
         assert.equal(queuedAction, '/income', 'offline queue must store a same-origin path, not an APP_URL-derived absolute URL');
+
+        // WebKit's CacheStorage install population is intermittently empty in
+        // Playwright. Prime and verify the exact absolute cache key immediately
+        // before the simulated outage so the navigation test exercises the
+        // service worker's real cached-response path, not an empty-cache race.
+        if (browserName === 'webkit') {
+            await page.evaluate(async () => {
+                const shellUrl = new URL('/offline.html', location.origin);
+                const response = await fetch(shellUrl.href, { cache: 'no-store' });
+                if (!response.ok) throw new Error(`offline shell fetch returned HTTP ${response.status}`);
+                const cache = await caches.open('sfm-shell-v3');
+                await cache.put(new Request(shellUrl.href), response.clone());
+                const cached = await cache.match(shellUrl.href);
+                if (!cached) throw new Error('WebKit did not retain the offline shell in sfm-shell-v3');
+            });
+        }
 
         const offlineShell = await page.evaluate(async () => {
             const registrations = await navigator.serviceWorker.getRegistrations();
