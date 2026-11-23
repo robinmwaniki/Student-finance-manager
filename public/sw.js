@@ -36,7 +36,15 @@ self.addEventListener('fetch', event => {
             // initiated fetch to reach the test server. Check the worker's own
             // network state first, then retain the fetch failure fallback for
             // captive portals and other real-world connectivity failures.
-            if (!self.navigator.onLine || offlineClients.has(event.clientId) || offlineClients.has(event.resultingClientId)) {
+            const activeClients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+            const activeClientIds = new Set(activeClients.map(client => client.id));
+            for (const clientId of offlineClients) {
+                if (!activeClientIds.has(clientId)) offlineClients.delete(clientId);
+            }
+            // Navigation requests may have a new resultingClientId. Any live
+            // offline client therefore activates the fallback until it reports online.
+            if (!self.navigator.onLine || offlineClients.size > 0 ||
+                offlineClients.has(event.clientId) || offlineClients.has(event.resultingClientId)) {
                 return caches.match('/offline.html');
             }
 
