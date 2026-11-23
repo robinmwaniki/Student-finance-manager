@@ -414,13 +414,13 @@ if [[ "${SFM_RUN_BROWSER_E2E:-false}" == "true" ]]; then
         OFFLINE_RECORD="$(php -r '
         require "vendor/autoload.php";
         $app = require "bootstrap/app.php";
-        $app->make(Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();
-        $record = Illuminate\\Support\\Facades\\DB::table("income")
+        $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+        $record = Illuminate\Support\Facades\DB::table("income")
             ->where("user_id", (int) $argv[1])
             ->where("submission_token", $argv[2])
             ->first();
         echo json_encode([
-            "count" => Illuminate\\Support\\Facades\\DB::table("income")->where("user_id", (int) $argv[1])->where("submission_token", $argv[2])->count(),
+            "count" => Illuminate\Support\Facades\DB::table("income")->where("user_id", (int) $argv[1])->where("submission_token", $argv[2])->count(),
             "amount" => $record?->amount,
             "source" => $record?->source,
         ], JSON_THROW_ON_ERROR);
