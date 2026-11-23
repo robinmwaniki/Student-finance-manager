@@ -13,6 +13,12 @@ use Illuminate\View\View;
 
 class AccountSettingsController extends Controller
 {
+    public function profile(Request $request): View
+    {
+        $user = $request->user();
+        return view('profile.show', ['user' => $user, 'avatarUrl' => $user->avatar ? Storage::disk('public')->url($user->avatar) : null]);
+    }
+
     public function index(Request $request): View
     {
         $user = $request->user();
@@ -99,6 +105,16 @@ class AccountSettingsController extends Controller
         ])->save();
 
         return back()->with('success', 'Your appearance and dashboard preferences have been saved.');
+    }
+
+    public function deactivate(Request $request): RedirectResponse
+    {
+        $request->validate(['current_password' => ['required', 'current_password:web'], 'confirmation' => ['required', 'in:DEACTIVATE']]);
+        $request->user()->forceFill(['is_active' => false, 'remember_token' => Str::random(60)])->save();
+        Auth::guard('web')->logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+        return redirect()->route('login')->with('success', 'Your account has been deactivated. Contact support if you want to reactivate it.');
     }
 
     public function destroy(Request $request): RedirectResponse
