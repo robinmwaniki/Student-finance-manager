@@ -68,7 +68,7 @@ function createServiceWorkerHarness(fetchImplementation = async () => 'network-r
     const cache = {
         async addAll(files) { addedShellFiles = files; },
         async match(request) {
-            const key = typeof request === 'string' ? request : new URL(request.url).pathname;
+            const key = typeof request === 'string' ? new URL(request, 'https://finance.example.test').pathname : request instanceof URL ? request.pathname : new URL(request.url).pathname;
             return cachedResponses.get(key);
         },
     };
