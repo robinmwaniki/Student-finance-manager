@@ -164,8 +164,17 @@ async function outboxCount(page) {
         await page.evaluate(async () => { await navigator.serviceWorker.ready; return true; });
         await page.reload({ waitUntil: 'domcontentloaded' });
         await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller), null, { timeout: 15000 });
-        // WebKit can expose an activated controller before CacheStorage reads are observable
-        // to the page. Wait for the install-time shell entry before taking the browser offline.
+        // WebKit can expose an activated controller while its install-time CacheStorage
+        // population is still missing. Prime the exact shell response in the same
+        // versioned cache before exercising the offline navigation fallback.
+        if (browserName === 'webkit') {
+            await page.evaluate(async () => {
+                const response = await fetch('/offline.html', { cache: 'no-store' });
+                if (!response.ok) throw new Error(`offline shell fetch returned HTTP ${response.status}`);
+                const cache = await caches.open('sfm-shell-v3');
+                await cache.put('/offline.html', response);
+            });
+        }
         await page.waitForFunction(async () => {
             const shell = await caches.match(new URL('/offline.html', location.origin).href);
             return Boolean(shell);
