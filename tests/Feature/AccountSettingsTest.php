@@ -124,6 +124,26 @@ class AccountSettingsTest extends TestCase
             ->assertSee('Permanently delete account');
     }
 
+    public function test_all_four_appearance_themes_are_accepted_and_rendered(): void
+    {
+        $user = $this->makeUser();
+
+        foreach (['light', 'dark', 'blue', 'red'] as $theme) {
+            $this->actingAs($user)->put(route('settings.preferences.update'), [
+                'theme' => $theme,
+                'show_daily_quote' => '1',
+                'show_weather' => '1',
+                'show_forecast' => '1',
+            ])->assertRedirect()->assertSessionHasNoErrors();
+
+            $this->assertSame($theme, $user->fresh()->theme);
+
+            $this->actingAs($user)->get(route('dashboard'))
+                ->assertOk()
+                ->assertSee('data-theme="'.$theme.'"', false);
+        }
+    }
+
     public function test_settings_page_requires_authentication(): void
     {
         $this->get(route('settings.index'))->assertRedirect(route('login'));
