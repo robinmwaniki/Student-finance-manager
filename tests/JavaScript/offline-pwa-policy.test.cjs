@@ -81,7 +81,10 @@ function createServiceWorkerHarness(fetchImplementation = async () => 'network-r
     const self = {
         location: { origin: 'https://finance.example.test' },
         navigator: { onLine: isOnline },
-        clients: { async claim() { clientsClaimed = true; } },
+        clients: {
+            async claim() { clientsClaimed = true; },
+            async matchAll() { return []; },
+        },
         addEventListener(name, callback) { listeners.set(name, callback); },
         async skipWaiting() { skipWaitingCalled = true; },
     };
@@ -113,7 +116,7 @@ test('service worker installation precaches only the declared static shell and a
     harness.listeners.get('install')({ waitUntil(promise) { waits.push(promise); } });
     await Promise.all(waits);
 
-    assert.equal(harness.openedCache, 'sfm-shell-v2');
+    assert.equal(harness.openedCache, 'sfm-shell-v3');
     assert.deepEqual(Array.from(harness.addedShellFiles), [
         '/offline.html',
         '/manifest.webmanifest',
