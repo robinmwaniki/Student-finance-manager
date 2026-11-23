@@ -205,7 +205,16 @@ async function outboxCount(page) {
         assert.equal(runtime.scriptLoaded, true, 'offline transaction runtime script must be included');
         assert.deepEqual(runtime.invalidControls, [], 'income form must be valid before submission');
 
-        await context.setOffline(true);
+        if (browserName === 'webkit') {
+            // WebKit's Playwright offline emulation can invalidate service-worker
+            // CacheStorage/navigation behavior. Keep transport available for the
+            // later real container outage, but expose the app's offline state.
+            await page.evaluate(() => {
+                Object.defineProperty(navigator, 'onLine', { configurable: true, get: () => false });
+            });
+        } else {
+            await context.setOffline(true);
+        }
         assert.equal(await page.evaluate(() => navigator.onLine), false, `${browserName} must report offline before submitting`);
         // Ensure the active worker has received this client's offline state.
         await page.evaluate(() => new Promise((resolve, reject) => {
