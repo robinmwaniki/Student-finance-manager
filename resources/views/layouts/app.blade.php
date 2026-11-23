@@ -78,6 +78,7 @@ body[data-theme="dark"] #offline-sync-panel{background:#142035!important;border-
 @auth
 <aside class="sidebar"><a class="brand brand-link" href="{{ route('home') }}" aria-label="Go to homepage"><span class="brand-mark">SF</span>Student Finance</a><div class="nav-label">Workspace</div>
 <nav class="nav-items">
+<a class="nav-link {{ request()->routeIs('profile.*') ? 'active' : '' }}" href="{{ route('profile.show') }}"><span class="nav-icon">◉</span>My profile</a>
 <a class="nav-link {{ request()->routeIs('home') ? 'active' : '' }}" href="{{ route('home') }}"><span class="nav-icon">⌂</span>Homepage</a>
 <a class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}"><span class="nav-icon">▦</span>Overview</a>
 <a class="nav-link {{ request()->routeIs('income.*') ? 'active' : '' }}" href="{{ route('income.index') }}"><span class="nav-icon">↗</span>Income</a>
