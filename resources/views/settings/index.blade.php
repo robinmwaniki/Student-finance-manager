@@ -51,7 +51,7 @@
         <form method="POST" action="{{ route('settings.preferences.update') }}">
             @csrf
             @method('PUT')
-            <div class="settings-field"><label for="theme">Appearance</label><select id="theme" name="theme"><option value="light" @selected(old('theme', $user->theme) === 'light')>Light</option><option value="dark" @selected(old('theme', $user->theme) === 'dark')>Dark</option></select></div>
+            <div class="settings-field"><label for="theme">Appearance</label><select id="theme" name="theme"><option value="light" @selected(old('theme', $user->theme) === 'light')>Light</option><option value="dark" @selected(old('theme', $user->theme) === 'dark')>Dark</option><option value="blue" @selected(old('theme', $user->theme) === 'blue')>Blue</option><option value="red" @selected(old('theme', $user->theme) === 'red')>Red</option></select></div>
             <label class="settings-check"><input type="checkbox" name="show_daily_quote" value="1" @checked(old('show_daily_quote', $preferences['show_daily_quote']))><span>Show daily money reminder<small>Display the daily reminder card on the dashboard.</small></span></label>
             <label class="settings-check"><input type="checkbox" name="show_weather" value="1" @checked(old('show_weather', $preferences['show_weather']))><span>Show weather widget<small>Keep the optional, user-initiated weather card on the dashboard.</small></span></label>
             <label class="settings-check"><input type="checkbox" name="show_forecast" value="1" @checked(old('show_forecast', $preferences['show_forecast']))><span>Show cash-flow estimate<small>Display the three-month average forecast on the dashboard.</small></span></label>
