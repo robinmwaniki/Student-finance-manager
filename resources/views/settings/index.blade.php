@@ -51,22 +51,11 @@
         <form method="POST" action="{{ route('settings.preferences.update') }}">
             @csrf
             @method('PUT')
-            <div class="settings-field"><label for="theme">Appearance</label><select id="theme" name="theme"><option value="light" @selected(old('theme', $user->theme) === 'light')>Light</option><option value="dark" @selected(old('theme', $user->theme) === 'dark')>Dark</option></select></div>
+            <div class="settings-field"><label for="theme">Appearance</label><select id="theme" name="theme"><option value="light" @selected(old('theme', $user->theme) === 'light')>Light</option><option value="dark" @selected(old('theme', $user->theme) === 'dark')>Dark</option><option value="blue" @selected(old('theme', $user->theme) === 'blue')>Blue</option><option value="red" @selected(old('theme', $user->theme) === 'red')>Red</option></select></div>
             <label class="settings-check"><input type="checkbox" name="show_daily_quote" value="1" @checked(old('show_daily_quote', $preferences['show_daily_quote']))><span>Show daily money reminder<small>Display the daily reminder card on the dashboard.</small></span></label>
             <label class="settings-check"><input type="checkbox" name="show_weather" value="1" @checked(old('show_weather', $preferences['show_weather']))><span>Show weather widget<small>Keep the optional, user-initiated weather card on the dashboard.</small></span></label>
             <label class="settings-check"><input type="checkbox" name="show_forecast" value="1" @checked(old('show_forecast', $preferences['show_forecast']))><span>Show cash-flow estimate<small>Display the three-month average forecast on the dashboard.</small></span></label>
             <div class="settings-actions"><button class="btn" type="submit">Save preferences</button></div>
-        </form>
-    </section>
-
-    <section class="card settings-card danger-card">
-        <h2>Deactivate account</h2>
-        <p class="settings-help">Temporarily disable sign-in and access to this account without deleting your financial records. Deactivation signs you out immediately. Contact support to reactivate the account.</p>
-        <form method="POST" action="{{ route('settings.account.deactivate') }}" onsubmit="return confirm('Deactivate your account now? You will be signed out and cannot sign in until it is reactivated.');">
-            @csrf
-            <div class="settings-field"><label for="deactivate_password">Confirm your password</label><input id="deactivate_password" name="current_password" type="password" autocomplete="current-password" required></div>
-            <div class="settings-field"><label for="deactivate_confirmation">Type DEACTIVATE to confirm</label><input id="deactivate_confirmation" name="confirmation" type="text" autocomplete="off" required></div>
-            <div class="settings-actions"><button class="btn btn-danger" type="submit">Deactivate account</button></div>
         </form>
     </section>
 
