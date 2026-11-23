@@ -2,6 +2,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const { execFileSync } = require('node:child_process');
 const { chromium, firefox, webkit } = require('playwright');
 const browserName = process.env.SFM_BROWSER_ENGINE || 'chromium';
 const browserType = ({ chromium, firefox, webkit })[browserName];
@@ -283,11 +284,39 @@ async function outboxCount(page) {
             };
         });
         let offlineNavigationResponse = null;
+        let stoppedContainer = false;
+        const outageContainer = browserName === 'webkit' ? (process.env.SFM_BROWSER_OUTAGE_CONTAINER || '') : '';
         try {
+            if (outageContainer) {
+                // Playwright's WebKit offline emulation currently fails service-worker
+                // navigations even when the worker can return a cached/literal response.
+                // Stop only the isolated CI app container to simulate a real network outage.
+                await context.setOffline(false);
+                execFileSync('docker', ['stop', outageContainer], { stdio: 'pipe' });
+                stoppedContainer = true;
+            }
             const response = await page.goto(baseUrl + '/dashboard', { waitUntil: 'domcontentloaded', timeout: 15000 });
             offlineNavigationResponse = response ? { status: response.status(), url: response.url() } : null;
         } catch (error) {
             offlineNavigationResponse = { error: error.message };
+        } finally {
+            if (stoppedContainer) {
+                execFileSync('docker', ['start', outageContainer], { stdio: 'pipe' });
+                let restored = false;
+                for (let attempt = 0; attempt < 30; attempt += 1) {
+                    try {
+                        const response = await fetch(baseUrl + '/login', { signal: AbortSignal.timeout(2000) });
+                        if (response.ok) {
+                            restored = true;
+                            break;
+                        }
+                    } catch (error) {
+                        // The container may need a few seconds to restart PHP-FPM and Nginx.
+                    }
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+                assert.equal(restored, true, 'the isolated app container must recover after the WebKit outage simulation');
+            }
         }
         const offlineNavigationState = await page.evaluate(() => ({
             url: location.href,
