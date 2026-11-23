@@ -161,7 +161,7 @@ class AccountSettingsTest extends TestCase
         $this->post(route('login'), [
             'email' => $user->email,
             'password' => 'StrongPassword123',
-        ])->assertRedirect(route('login'))->assertSessionHasErrors('email');
+        ])->assertRedirect(route('home'))->assertSessionHasErrors('email');
         $this->assertGuest();
     }
 
