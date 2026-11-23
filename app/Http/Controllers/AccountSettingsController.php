@@ -57,7 +57,7 @@ class AccountSettingsController extends Controller
         $user->avatar = $newAvatar;
         $user->save();
 
-        if ($oldAvatar && $oldAvatar !== $newAvatar && str_starts_with($oldAvatar, 'avatars/') && ! str_contains($oldAvatar, '..')) {
+        if ($oldAvatar && $oldAvatar !== $newAvatar && str_starts_with($oldAvatar, 'avatars/') && !str_contains($oldAvatar, '..')) {
             Storage::disk('public')->delete($oldAvatar);
         }
 
@@ -138,7 +138,7 @@ class AccountSettingsController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        if ($avatar && str_starts_with($avatar, 'avatars/') && ! str_contains($avatar, '..')) {
+        if ($avatar && str_starts_with($avatar, 'avatars/') && !str_contains($avatar, '..')) {
             Storage::disk('public')->delete($avatar);
         }
 
