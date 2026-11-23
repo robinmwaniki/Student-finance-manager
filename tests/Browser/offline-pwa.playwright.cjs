@@ -2,7 +2,10 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { chromium } = require('playwright');
+const { chromium, firefox, webkit } = require('playwright');
+const browserName = process.env.SFM_BROWSER_ENGINE || 'chromium';
+const browserType = ({ chromium, firefox, webkit })[browserName];
+if (!browserType) throw new Error(`Unsupported SFM_BROWSER_ENGINE: ${browserName}`);
 
 const baseUrl = (process.env.SFM_BROWSER_BASE_URL || '').replace(/\/$/, '');
 const sessionCookie = process.env.SFM_BROWSER_SESSION_COOKIE || '';
@@ -25,11 +28,11 @@ const cookie = {
 };
 
 async function openContext() {
-    const context = await chromium.launchPersistentContext(profileDir, {
+    const context = await browserType.launchPersistentContext(profileDir, {
         headless: true,
         viewport: { width: 1365, height: 900 },
         serviceWorkers: 'allow',
-        args: ['--no-sandbox'],
+        ...(browserName === 'chromium' ? { args: ['--no-sandbox'] } : {}),
     });
     // Rehydrate the synthetic Laravel session minted by the preceding curl login.
     // This keeps browser UI login concerns separate from the offline transaction flow.
@@ -140,7 +143,7 @@ async function outboxCount(page) {
         }
         assert.equal(submitReachedByKeyboard, true,
             'income submit control must be reachable using keyboard Tab navigation');
-        console.log('PASS: mobile viewport layout and keyboard access to income submission.');
+        console.log(`PASS (${browserName}): mobile viewport layout and keyboard access to income submission.`);
 
         await page.setViewportSize({ width: 1365, height: 700 });
         const sidebarScroll = await page.locator('.sidebar .nav-items').evaluate(element => ({
@@ -273,7 +276,7 @@ async function outboxCount(page) {
         }));
         assert.match(offlineNavigationState.heading || '', /You are offline/i,
             `service worker must serve offline fallback; shell=${JSON.stringify(offlineShell)}; response=${JSON.stringify(offlineNavigationResponse)}; page=${JSON.stringify(offlineNavigationState)}; pageErrors=${JSON.stringify(pageErrors)}; console=${JSON.stringify(browserConsole)}`);
-        console.log('PASS: a controlled service worker served the offline navigation fallback.');
+        console.log(`PASS (${browserName}): a controlled service worker served the offline navigation fallback.`);
 
         await context.setOffline(false);
         await context.close();
@@ -372,7 +375,7 @@ async function outboxCount(page) {
             }));
             throw new Error(`outbox remained after reconnect acknowledgement wait: ${JSON.stringify(syncDiagnostics)}; requests=${JSON.stringify(reconnectRequests)}; pageErrors=${JSON.stringify(reconnectErrors)}`);
         }
-        console.log('PASS: pending transaction survived browser-context restart and reconnect sync.');
+        console.log(`PASS (${browserName}): pending transaction survived browser-context restart and reconnect sync.`);
     } finally {
         if (context) await context.close();
         fs.rmSync(profileDir, { recursive: true, force: true });
