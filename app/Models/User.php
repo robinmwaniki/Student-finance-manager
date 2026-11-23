@@ -30,6 +30,7 @@ class User extends Authenticatable
         'avatar',
         'theme',
         'dashboard_preferences',
+        'is_active',
     ];
 
     protected $hidden = [
@@ -43,6 +44,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'points' => 'integer',
+            'is_active' => 'boolean',
             'dashboard_preferences' => 'array',
         ];
     }
