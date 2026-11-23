@@ -36,8 +36,13 @@
         <a href="#features">Features</a><a href="#preview">Preview</a><a href="#how-it-works">How it works</a>
     </nav>
     <div class="nav-actions">
-        <a class="btn btn-quiet" href="{{ route('login') }}">Sign in</a>
-        <a class="btn btn-primary" href="{{ route('register') }}">Get started <span aria-hidden="true">↗</span></a>
+        @auth
+            <a class="btn btn-quiet" href="{{ route('dashboard') }}">Dashboard</a>
+            <form method="POST" action="{{ route('logout') }}">@csrf<button class="btn btn-primary" type="submit">Log out</button></form>
+        @else
+            <a class="btn btn-quiet" href="{{ route('login') }}">Sign in</a>
+            <a class="btn btn-primary" href="{{ route('register') }}">Get started <span aria-hidden="true">↗</span></a>
+        @endauth
     </div>
 </header>
 <main>
@@ -47,7 +52,11 @@
             <h1>Make your money <span>make sense.</span></h1>
             <p>Know what comes in, understand what goes out, and make confident decisions with a simpler way to manage your personal finances.</p>
             <div class="hero-actions">
-                <a class="btn btn-primary" href="{{ route('register') }}">Create your free account <span aria-hidden="true">→</span></a>
+                @auth
+                    <a class="btn btn-primary" href="{{ route('dashboard') }}">Open your dashboard <span aria-hidden="true">→</span></a>
+                @else
+                    <a class="btn btn-primary" href="{{ route('register') }}">Create your free account <span aria-hidden="true">→</span></a>
+                @endauth
                 <a class="btn btn-outline" href="#features">Explore features</a>
             </div>
             <div class="trust"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m5 12 4 4L19 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg> Built to help you build better money habits</div>
@@ -81,9 +90,9 @@
             </div>
         </div>
     </section>
-    <section class="band" id="how-it-works"><div class="shell band-inner"><div><h2>Start with a clearer view of your money.</h2><p>Create an account, add your transactions and build a routine that works for you.</p></div><a class="btn" href="{{ route('register') }}">Get started <span aria-hidden="true">→</span></a></div></section>
+    <section class="band" id="how-it-works"><div class="shell band-inner"><div><h2>Start with a clearer view of your money.</h2><p>Create an account, add your transactions and build a routine that works for you.</p></div>@auth<a class="btn" href="{{ route('dashboard') }}">Go to dashboard <span aria-hidden="true">→</span></a>@else<a class="btn" href="{{ route('register') }}">Get started <span aria-hidden="true">→</span></a>@endauth</div></section>
 </main>
-<footer><div class="shell footer-row"><span>© {{ date('Y') }} Student Finance Manager. Built for better money habits.</span><div class="footer-links"><a href="{{ route('login') }}">Sign in</a><a href="{{ route('register') }}">Create account</a></div></div></footer>
+<footer><div class="shell footer-row"><span>© {{ date('Y') }} Student Finance Manager. Built for better money habits.</span><div class="footer-links">@auth<a href="{{ route('dashboard') }}">Dashboard</a>@else<a href="{{ route('login') }}">Sign in</a><a href="{{ route('register') }}">Create account</a>@endauth</div></div></footer>
 <script>
     (() => {
         const items = document.querySelectorAll('.reveal');
