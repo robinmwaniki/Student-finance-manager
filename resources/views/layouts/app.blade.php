@@ -31,6 +31,44 @@ body[data-theme="dark"] .settings-check{color:#c5d0df;border-color:#293950}
 body[data-theme="dark"] .settings-check small{color:#94a3b8}
 body[data-theme="dark"] .avatar-preview{border-color:#34465f;background:#1c2b42}
 </style>
+<style>
+/* Theme palettes apply consistently to the workspace, forms, tables and controls. */
+body[data-theme="blue"]{background:#edf5ff;color:#142d4e}
+body[data-theme="blue"] .sidebar{background:#f8fbff;border-color:#d5e5f7}
+body[data-theme="blue"] .brand,body[data-theme="blue"] .user-chip{color:#17385f}
+body[data-theme="blue"] .nav-link{color:#496887}
+body[data-theme="blue"] .nav-link:hover,body[data-theme="blue"] .nav-link.active{background:#dcecff;color:#174b83}
+body[data-theme="blue"] .card,body[data-theme="blue"] .auth-card{background:#fff;border-color:#d5e5f7;box-shadow:0 5px 18px #164a7a0b}
+body[data-theme="blue"] .btn{background:#1768ac;color:#fff}
+body[data-theme="blue"] .btn:hover{background:#10558f}
+body[data-theme="blue"] .btn-light{background:#deedff;color:#194d7c}
+body[data-theme="blue"] .field input,body[data-theme="blue"] .field select,body[data-theme="blue"] input,body[data-theme="blue"] select,body[data-theme="blue"] textarea{background:#fbfdff;color:#17385f;border-color:#c6dbf2}
+body[data-theme="blue"] th,body[data-theme="blue"] td{border-color:#e0ebf7}
+body[data-theme="blue"] td,body[data-theme="blue"] .amount,body[data-theme="blue"] .section-heading,body[data-theme="blue"] .stat-value{color:#183b61}
+body[data-theme="blue"] .sidebar-bottom{border-color:#d5e5f7}
+body[data-theme="blue"] .alert-success{background:#e3f8ee;color:#087443}
+body[data-theme="blue"] .alert-error{background:#fff0f0;color:#a52222}
+body[data-theme="blue"] #offline-sync-panel{background:#f8fbff!important;border-color:#c6dbf2!important;color:#17385f!important}
+body[data-theme="red"]{background:#fff4f3;color:#421c20}
+body[data-theme="red"] .sidebar{background:#fffafa;border-color:#f2d9d7}
+body[data-theme="red"] .brand,body[data-theme="red"] .user-chip{color:#5a2027}
+body[data-theme="red"] .nav-link{color:#87545a}
+body[data-theme="red"] .nav-link:hover,body[data-theme="red"] .nav-link.active{background:#ffe5e3;color:#a52e38}
+body[data-theme="red"] .card,body[data-theme="red"] .auth-card{background:#fff;border-color:#f2d9d7;box-shadow:0 5px 18px #7f1d1d08}
+body[data-theme="red"] .btn{background:#bd3442;color:#fff}
+body[data-theme="red"] .btn:hover{background:#982735}
+body[data-theme="red"] .btn-light{background:#ffe7e5;color:#8d2934}
+body[data-theme="red"] .field input,body[data-theme="red"] .field select,body[data-theme="red"] input,body[data-theme="red"] select,body[data-theme="red"] textarea{background:#fffdfd;color:#51252a;border-color:#eccdca}
+body[data-theme="red"] th,body[data-theme="red"] td{border-color:#f4e2e0}
+body[data-theme="red"] td,body[data-theme="red"] .amount,body[data-theme="red"] .section-heading,body[data-theme="red"] .stat-value{color:#51252a}
+body[data-theme="red"] .sidebar-bottom{border-color:#f2d9d7}
+body[data-theme="red"] .alert-success{background:#e8f8ee;color:#087443}
+body[data-theme="red"] .alert-error{background:#ffe8e6;color:#a52222}
+body[data-theme="red"] #offline-sync-panel{background:#fffafa!important;border-color:#eccdca!important;color:#51252a!important}
+body[data-theme="dark"] .btn{background:#496da8;color:#fff}
+body[data-theme="dark"] .btn-danger{background:#6d2935;color:#ffe2e5}
+body[data-theme="dark"] #offline-sync-panel{background:#142035!important;border-color:#293950!important;color:#e5eaf3!important}
+</style>
 @stack('head')
 <link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#24385f">
 </head><body data-theme="{{ auth()->check() ? auth()->user()->theme : 'light' }}" @auth data-user-id="{{ auth()->id() }}" @endauth><div class="shell">
