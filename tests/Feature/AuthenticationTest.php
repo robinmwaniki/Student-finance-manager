@@ -82,6 +82,22 @@ class AuthenticationTest extends TestCase
         $this->assertGuest();
     }
 
+    public function test_deactivated_user_cannot_use_an_existing_authenticated_session(): void
+    {
+        $user = User::create([
+            'fullname' => 'Inactive Student',
+            'email' => 'inactive@example.test',
+            'password' => 'StrongPassword123',
+            'is_active' => false,
+        ]);
+
+        $this->actingAs($user)->get(route('dashboard'))
+            ->assertRedirect(route('login'))
+            ->assertSessionHasErrors('email');
+
+        $this->assertGuest();
+    }
+
     public function test_invalid_credentials_do_not_authenticate_a_user(): void
     {
         User::create([
