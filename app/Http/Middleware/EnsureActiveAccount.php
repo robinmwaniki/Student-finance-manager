@@ -11,7 +11,7 @@ class EnsureActiveAccount
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if ($request->user() && ! $request->user()->is_active) {
+        if ($request->user() && $request->user()->is_active === false) {
             Auth::guard('web')->logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
