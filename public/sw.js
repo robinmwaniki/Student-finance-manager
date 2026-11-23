@@ -1,11 +1,18 @@
 const CACHE_NAME = 'sfm-shell-v3';
 const SHELL_FILES = ['/offline.html', '/manifest.webmanifest', '/offline-transactions.js', '/offline-retry-policy.js', '/icons/icon.svg'];
+
+function cachedShellResponse() {
+    return caches.open(CACHE_NAME).then(cache => cache.match(new URL('/offline.html', self.location.origin)));
+}
+
 self.addEventListener('install', event => {
     event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(SHELL_FILES)).then(() => self.skipWaiting()));
 });
+
 self.addEventListener('activate', event => {
     event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key.startsWith('sfm-') && key !== CACHE_NAME).map(key => caches.delete(key)))).then(() => self.clients.claim()));
 });
+
 // Track client connectivity because some engines expose stale online state in service workers.
 const offlineClients = new Set();
 self.addEventListener('message', event => {
@@ -17,13 +24,14 @@ self.addEventListener('message', event => {
     }
     event.ports?.[0]?.postMessage({ type: 'SFM_CLIENT_CONNECTIVITY_ACK', online: event.data.online === true });
 });
+
 self.addEventListener('fetch', event => {
     const request = event.request;
     const url = new URL(request.url);
     // Never cache authenticated HTML, API responses, POST requests, or cross-origin data.
     if (request.method !== 'GET' || url.origin !== self.location.origin) return;
     if (['/offline.html', '/manifest.webmanifest', '/offline-transactions.js', '/offline-retry-policy.js', '/icons/icon.svg'].includes(url.pathname)) {
-        event.respondWith(caches.match(request).then(cached => cached || fetch(request)));
+        event.respondWith(caches.open(CACHE_NAME).then(cache => cache.match(request).then(cached => cached || fetch(request))));
         return;
     }
     if (request.mode === 'navigate') {
@@ -45,13 +53,13 @@ self.addEventListener('fetch', event => {
             // offline client therefore activates the fallback until it reports online.
             if (!self.navigator.onLine || offlineClients.size > 0 ||
                 offlineClients.has(event.clientId) || offlineClients.has(event.resultingClientId)) {
-                return caches.match('/offline.html');
+                return cachedShellResponse();
             }
 
             try {
                 return await fetch(networkRequest);
             } catch {
-                return caches.match('/offline.html');
+                return cachedShellResponse();
             }
         })());
     }
