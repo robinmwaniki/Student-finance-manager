@@ -248,7 +248,7 @@ class AccountSettingsTest extends TestCase
         ], $overrides));
     }
 
-public function test_account_deactivation_requires_password_and_exact_confirmation(): void
+    public function test_account_deactivation_requires_password_and_exact_confirmation(): void
     {
         $user = $this->makeUser();
 
@@ -261,7 +261,7 @@ public function test_account_deactivation_requires_password_and_exact_confirmati
         $this->assertAuthenticatedAs($user);
     }
 
-public function test_account_deactivation_preserves_financial_records_and_blocks_sign_in(): void
+    public function test_account_deactivation_preserves_financial_records_and_blocks_sign_in(): void
     {
         $user = $this->makeUser();
         DB::table('income')->insert([
