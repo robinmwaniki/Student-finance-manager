@@ -88,11 +88,18 @@ async function outboxCount(page) {
             const form = document.querySelector('form[action$="/income"]');
             const submit = form?.querySelector('button[type="submit"]');
             const formBounds = form?.getBoundingClientRect();
+            const controls = form ? [...form.querySelectorAll('input:not([type="hidden"]), select, button')] : [];
+            const controlBounds = controls.map(element => {
+                const bounds = element.getBoundingClientRect();
+                return { name: element.name || element.tagName.toLowerCase(), left: bounds.left, right: bounds.right };
+            });
             return {
                 viewportWidth: window.innerWidth,
                 documentWidth: document.documentElement.scrollWidth,
                 gridColumns: form ? getComputedStyle(form).gridTemplateColumns.split(' ').length : 0,
-                formInsideViewport: Boolean(formBounds && formBounds.left >= 0 && formBounds.right <= window.innerWidth + 1),
+                formBounds: formBounds ? { left: formBounds.left, right: formBounds.right, width: formBounds.width } : null,
+                controlsInsideViewport: controlBounds.length > 0 && controlBounds.every(bounds => bounds.left >= 0 && bounds.right <= window.innerWidth + 1),
+                controlBounds,
                 submitVisible: Boolean(submit && submit.getBoundingClientRect().width > 0 && submit.getBoundingClientRect().height > 0),
             };
         });
@@ -100,8 +107,8 @@ async function outboxCount(page) {
             `mobile layout must not introduce page-level horizontal scrolling: ${JSON.stringify(mobileLayout)}`);
         assert.equal(mobileLayout.gridColumns, 1,
             `income form must collapse to one column on a 390px viewport: ${JSON.stringify(mobileLayout)}`);
-        assert.equal(mobileLayout.formInsideViewport, true,
-            `income form must remain within the mobile viewport: ${JSON.stringify(mobileLayout)}`);
+        assert.equal(mobileLayout.controlsInsideViewport, true,
+            `income form controls must remain within the mobile viewport: ${JSON.stringify(mobileLayout)}`);
         assert.equal(mobileLayout.submitVisible, true,
             `income submit control must remain visible on mobile: ${JSON.stringify(mobileLayout)}`);
 
