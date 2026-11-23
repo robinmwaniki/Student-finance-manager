@@ -79,6 +79,47 @@ async function outboxCount(page) {
         });
         await page.goto(baseUrl + '/income', { waitUntil: 'domcontentloaded' });
         await assertAuthenticated(page);
+
+        // Exercise the income form at a common mobile viewport before the
+        // offline flow. This is browser emulation, not a substitute for a
+        // physical Android/iOS device check.
+        await page.setViewportSize({ width: 390, height: 844 });
+        const mobileLayout = await page.evaluate(() => {
+            const form = document.querySelector('form[action$="/income"]');
+            const submit = form?.querySelector('button[type="submit"]');
+            const formBounds = form?.getBoundingClientRect();
+            return {
+                viewportWidth: window.innerWidth,
+                documentWidth: document.documentElement.scrollWidth,
+                gridColumns: form ? getComputedStyle(form).gridTemplateColumns.split(' ').length : 0,
+                formInsideViewport: Boolean(formBounds && formBounds.left >= 0 && formBounds.right <= window.innerWidth + 1),
+                submitVisible: Boolean(submit && submit.getBoundingClientRect().width > 0 && submit.getBoundingClientRect().height > 0),
+            };
+        });
+        assert.ok(mobileLayout.documentWidth <= mobileLayout.viewportWidth + 1,
+            `mobile layout must not introduce page-level horizontal scrolling: ${JSON.stringify(mobileLayout)}`);
+        assert.equal(mobileLayout.gridColumns, 1,
+            `income form must collapse to one column on a 390px viewport: ${JSON.stringify(mobileLayout)}`);
+        assert.equal(mobileLayout.formInsideViewport, true,
+            `income form must remain within the mobile viewport: ${JSON.stringify(mobileLayout)}`);
+        assert.equal(mobileLayout.submitVisible, true,
+            `income submit control must remain visible on mobile: ${JSON.stringify(mobileLayout)}`);
+
+        const mobileSubmit = page.locator('form[action$="/income"] button[type="submit"]').first();
+        await page.evaluate(() => document.activeElement?.blur());
+        let submitReachedByKeyboard = false;
+        for (let tab = 0; tab < 50; tab += 1) {
+            await page.keyboard.press('Tab');
+            if (await mobileSubmit.evaluate(element => element === document.activeElement)) {
+                submitReachedByKeyboard = true;
+                break;
+            }
+        }
+        assert.equal(submitReachedByKeyboard, true,
+            'income submit control must be reachable using keyboard Tab navigation');
+        console.log('PASS: mobile viewport layout and keyboard access to income submission.');
+
+        await page.setViewportSize({ width: 1365, height: 900 });
         await page.evaluate(async () => { await navigator.serviceWorker.ready; return true; });
         await page.reload({ waitUntil: 'domcontentloaded' });
         await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller), null, { timeout: 15000 });
