@@ -60,6 +60,17 @@
     </section>
 
     <section class="card settings-card danger-card">
+        <h2>Deactivate account</h2>
+        <p class="settings-help">Temporarily disable sign-in and access to this account without deleting your financial records. Deactivation signs you out immediately. Contact support to reactivate the account.</p>
+        <form method="POST" action="{{ route('settings.account.deactivate') }}" onsubmit="return confirm('Deactivate your account now? You will be signed out and cannot sign in until it is reactivated.');">
+            @csrf
+            <div class="settings-field"><label for="deactivate_password">Confirm your password</label><input id="deactivate_password" name="current_password" type="password" autocomplete="current-password" required></div>
+            <div class="settings-field"><label for="deactivate_confirmation">Type DEACTIVATE to confirm</label><input id="deactivate_confirmation" name="confirmation" type="text" autocomplete="off" required></div>
+            <div class="settings-actions"><button class="btn btn-danger" type="submit">Deactivate account</button></div>
+        </form>
+    </section>
+
+    <section class="card settings-card danger-card">
         <h2>Delete account</h2>
         <p class="settings-help">This permanently deletes your account and all associated financial records, budgets, goals, reminders, journal entries, notifications, learning progress and webhook credentials. This action cannot be undone. Your profile image will also be deleted.</p>
         <form method="POST" action="{{ route('settings.account.destroy') }}" onsubmit="return confirm('Permanently delete your account and all associated financial data? This cannot be undone.');">
