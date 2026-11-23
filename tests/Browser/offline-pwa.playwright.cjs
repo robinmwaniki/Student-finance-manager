@@ -77,8 +77,72 @@ async function outboxCount(page) {
                 retryPolicyResponses.push({ status: response.status(), contentType: response.headers()['content-type'] || null });
             }
         });
+        // Load the page at the mobile viewport from the start. Resizing an
+        // already-rendered desktop page can preserve stale layout/scroll state
+        // in Chromium and produce misleading element coordinates.
+        await page.setViewportSize({ width: 390, height: 844 });
         await page.goto(baseUrl + '/income', { waitUntil: 'domcontentloaded' });
         await assertAuthenticated(page);
+
+        // This is browser emulation, not a substitute for a physical
+        // Android/iOS device check.
+        const mobileLayout = await page.evaluate(() => {
+            const form = document.querySelector('form[action$="/income"]');
+            const submit = form?.querySelector('button[type="submit"]');
+            const formBounds = form?.getBoundingClientRect();
+            const controls = form ? [...form.querySelectorAll('input:not([type="hidden"]), select, button')] : [];
+            const controlBounds = controls.map(element => {
+                const bounds = element.getBoundingClientRect();
+                return { name: element.name || element.tagName.toLowerCase(), left: bounds.left, right: bounds.right };
+            });
+            const boundsOf = selector => {
+                const element = document.querySelector(selector);
+                const bounds = element?.getBoundingClientRect();
+                return bounds ? { left: bounds.left, right: bounds.right, width: bounds.width } : null;
+            };
+            return {
+                viewportWidth: window.innerWidth,
+                visualViewportWidth: window.visualViewport?.width ?? null,
+                scrollX: window.scrollX,
+                documentWidth: document.documentElement.scrollWidth,
+                bodyWidth: document.body.getBoundingClientRect().width,
+                shellBounds: boundsOf('.shell'),
+                sidebarBounds: boundsOf('.sidebar'),
+                mainBounds: boundsOf('.main'),
+                mainMarginLeft: document.querySelector('.main') ? getComputedStyle(document.querySelector('.main')).marginLeft : null,
+                sidebarPosition: document.querySelector('.sidebar') ? getComputedStyle(document.querySelector('.sidebar')).position : null,
+                bodyDisplay: getComputedStyle(document.body).display,
+                gridColumns: form ? getComputedStyle(form).gridTemplateColumns.split(' ').length : 0,
+                formBounds: formBounds ? { left: formBounds.left, right: formBounds.right, width: formBounds.width } : null,
+                controlsInsideViewport: controlBounds.length > 0 && controlBounds.every(bounds => bounds.left >= 0 && bounds.right <= window.innerWidth + 1),
+                controlBounds,
+                submitVisible: Boolean(submit && submit.getBoundingClientRect().width > 0 && submit.getBoundingClientRect().height > 0),
+            };
+        });
+        assert.ok(mobileLayout.documentWidth <= mobileLayout.viewportWidth + 1,
+            `mobile layout must not introduce page-level horizontal scrolling: ${JSON.stringify(mobileLayout)}`);
+        assert.equal(mobileLayout.gridColumns, 1,
+            `income form must collapse to one column on a 390px viewport: ${JSON.stringify(mobileLayout)}`);
+        assert.equal(mobileLayout.controlsInsideViewport, true,
+            `income form controls must remain within the mobile viewport: ${JSON.stringify(mobileLayout)}`);
+        assert.equal(mobileLayout.submitVisible, true,
+            `income submit control must remain visible on mobile: ${JSON.stringify(mobileLayout)}`);
+
+        const mobileSubmit = page.locator('form[action$="/income"] button[type="submit"]').first();
+        await page.evaluate(() => document.activeElement?.blur());
+        let submitReachedByKeyboard = false;
+        for (let tab = 0; tab < 50; tab += 1) {
+            await page.keyboard.press('Tab');
+            if (await mobileSubmit.evaluate(element => element === document.activeElement)) {
+                submitReachedByKeyboard = true;
+                break;
+            }
+        }
+        assert.equal(submitReachedByKeyboard, true,
+            'income submit control must be reachable using keyboard Tab navigation');
+        console.log('PASS: mobile viewport layout and keyboard access to income submission.');
+
+        await page.setViewportSize({ width: 1365, height: 900 });
         await page.evaluate(async () => { await navigator.serviceWorker.ready; return true; });
         await page.reload({ waitUntil: 'domcontentloaded' });
         await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller), null, { timeout: 15000 });
