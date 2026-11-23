@@ -409,6 +409,7 @@ if [[ "${SFM_RUN_BROWSER_E2E:-false}" == "true" ]]; then
         SFM_BROWSER_BASE_URL="$BASE_A" \
         SFM_BROWSER_SESSION_COOKIE="$BROWSER_SESSION_COOKIE" \
         SFM_OFFLINE_E2E_TOKEN="$OFFLINE_E2E_TOKEN" \
+        SFM_BROWSER_OUTAGE_CONTAINER="$CONTAINER_A" \
             node tests/Browser/offline-pwa.playwright.cjs
 
         OFFLINE_RECORD="$(php -r '
