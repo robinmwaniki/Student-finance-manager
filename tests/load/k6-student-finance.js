@@ -32,23 +32,36 @@ function login() {
     const csrf = extract(/name="csrf-token" content="([^"]+)"/, page.body, 'CSRF token');
     const response = http.post(BASE_URL + '/login', { _token: csrf, email: EMAIL, password: PASSWORD }, { redirects: 5 });
     if (response.status < 200 || response.status >= 400) throw new Error('Test account login failed: HTTP ' + response.status);
-    const dashboard = http.get(BASE_URL + '/dashboard');
-    check(dashboard, { 'authenticated dashboard loads': result => result.status === 200 });
-    authenticated = dashboard.status === 200;
+    const dashboard = http.get(BASE_URL + '/dashboard', { redirects: 0 });
+    const authenticatedDashboard = dashboard.status === 200
+        && dashboard.url.endsWith('/dashboard')
+        && dashboard.body.includes('Financial overview');
+    check(dashboard, { 'authenticated dashboard loads without redirecting to login': () => authenticatedDashboard });
+    if (!authenticatedDashboard) {
+        throw new Error('Test account did not reach the authenticated dashboard; check credentials, account state and staging configuration.');
+    }
+    authenticated = true;
 }
 
 function readSyntheticFinancePage() {
     const paths = ['/reports', '/income', '/expenses', '/wallets', '/budgets'];
     const path = paths[Math.floor(Math.random() * paths.length)];
-    const response = http.get(BASE_URL + path);
-    check(response, { [path + ' read succeeds']: result => result.status === 200 });
-    if (response.status === 401 || response.status === 419) authenticated = false;
+    const response = http.get(BASE_URL + path, { redirects: 0 });
+    const pageLoaded = response.status === 200
+        && response.url.endsWith(path)
+        && response.body.includes('name="csrf-token"');
+    check(response, { [path + ' read succeeds for an authenticated session']: () => pageLoaded });
+    if (!pageLoaded && [302, 401, 403, 419].includes(response.status)) authenticated = false;
 }
 
 function writeSyntheticTransaction(kind) {
     const path = kind === 'income' ? '/income' : '/expenses';
-    const page = http.get(BASE_URL + path);
-    if (page.status !== 200) { authenticated = false; return; }
+    const page = http.get(BASE_URL + path, { redirects: 0 });
+    if (page.status !== 200 || !page.url.endsWith(path) || !page.body.includes('name="csrf-token"')) {
+        authenticated = false;
+        check(page, { [kind + ' form page requires an authenticated session']: () => false });
+        return;
+    }
     const csrf = extract(/name="csrf-token" content="([^"]+)"/, page.body, 'CSRF token');
     const token = extract(/name="submission_token" value="([^"]+)"/, page.body, 'idempotency token');
     const wallet = page.body.match(/name="wallet_id"[^>]*>[\s\S]*?<option value="(\d+)"/);
@@ -66,8 +79,12 @@ function writeSyntheticTransaction(kind) {
 
 export default function () {
     if (!authenticated) login();
-    const dashboard = http.get(BASE_URL + '/dashboard');
-    check(dashboard, { 'dashboard read succeeds': response => response.status === 200 });
+    const dashboard = http.get(BASE_URL + '/dashboard', { redirects: 0 });
+    const dashboardLoaded = dashboard.status === 200
+        && dashboard.url.endsWith('/dashboard')
+        && dashboard.body.includes('Financial overview');
+    check(dashboard, { 'dashboard read succeeds for an authenticated session': () => dashboardLoaded });
+    if (dashboard.status === 401 || dashboard.status === 419 || dashboard.status === 302) authenticated = false;
     if (MODE === 'mixed') {
         const scenario = Math.random();
 
