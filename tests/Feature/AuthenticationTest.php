@@ -100,6 +100,26 @@ class AuthenticationTest extends TestCase
         $this->assertGuest();
     }
 
+    public function test_authenticated_user_can_return_to_the_public_homepage_and_sees_navigation_actions(): void
+    {
+        $user = User::create([
+            'fullname' => 'Test Student',
+            'email' => 'home-navigation@example.test',
+            'password' => 'StrongPassword123',
+        ]);
+
+        $this->actingAs($user)->get(route('home'))
+            ->assertOk()
+            ->assertSee('Make your money')
+            ->assertSee('Open your dashboard')
+            ->assertSee('Log out');
+
+        $this->actingAs($user)->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee('Homepage')
+            ->assertSee('Log out');
+    }
+
     public function test_guests_are_redirected_away_from_the_dashboard(): void
     {
         $this->get(route('dashboard'))->assertRedirect(route('login'));
