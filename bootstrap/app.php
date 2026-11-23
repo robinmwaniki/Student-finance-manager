@@ -1,7 +1,7 @@
 <?php
 
-use App\Http\Middleware\RequestCorrelationId;
 use App\Http\Middleware\EnsureActiveAccount;
+use App\Http\Middleware\RequestCorrelationId;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
