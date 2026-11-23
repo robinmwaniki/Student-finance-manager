@@ -142,6 +142,20 @@ async function outboxCount(page) {
             'income submit control must be reachable using keyboard Tab navigation');
         console.log('PASS: mobile viewport layout and keyboard access to income submission.');
 
+        await page.setViewportSize({ width: 1365, height: 700 });
+        const sidebarScroll = await page.locator('.sidebar .nav-items').evaluate(element => ({
+            overflowY: getComputedStyle(element).overflowY,
+            clientHeight: element.clientHeight,
+            scrollHeight: element.scrollHeight,
+        }));
+        assert.equal(sidebarScroll.overflowY, 'auto',
+            `desktop sidebar navigation must scroll vertically: ${JSON.stringify(sidebarScroll)}`);
+        assert.ok(sidebarScroll.scrollHeight > sidebarScroll.clientHeight,
+            `desktop sidebar navigation must have independent overflow at a short viewport: ${JSON.stringify(sidebarScroll)}`);
+        await page.locator('.sidebar .nav-items').evaluate(element => { element.scrollTop = element.scrollHeight; });
+        assert.ok(await page.locator('.sidebar .nav-items').evaluate(element => element.scrollTop > 0),
+            'desktop sidebar navigation must be independently scrollable');
+        await page.locator('.sidebar .nav-items').evaluate(element => { element.scrollTop = 0; });
         await page.setViewportSize({ width: 1365, height: 900 });
         await page.evaluate(async () => { await navigator.serviceWorker.ready; return true; });
         await page.reload({ waitUntil: 'domcontentloaded' });
