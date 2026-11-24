@@ -110,11 +110,12 @@ body[data-theme="dark"] #offline-sync-panel{background:#142035!important;border-
 @yield('content')
 </main></div>
 @auth
-<div id="offline-sync-panel" role="status" aria-live="polite" style="position:fixed;right:18px;bottom:18px;z-index:20;max-width:min(360px,calc(100vw - 36px));background:#fff;border:1px solid #dce3ed;border-radius:12px;padding:12px 14px;box-shadow:0 8px 28px #17203318;font-size:12px;color:#334155">
-<div style="display:flex;align-items:center;justify-content:space-between;gap:10px"><strong id="offline-sync-state">Online</strong><button id="offline-sync-now" type="button" class="btn btn-small">Sync now</button></div>
-<div id="offline-sync-detail" class="muted" style="margin-top:5px">Offline transactions stay on this device until they sync. Do not use this feature on a shared device.</div>
-<div id="offline-sync-items" style="margin-top:8px;max-height:180px;overflow:auto"></div>
-</div>
+<section id="offline-sync-panel" role="region" aria-labelledby="offline-sync-heading" style="position:fixed;right:18px;bottom:18px;z-index:20;max-width:min(360px,calc(100vw - 36px));background:#fff;border:1px solid #dce3ed;border-radius:12px;padding:12px 14px;box-shadow:0 8px 28px #17203318;font-size:12px;color:#334155">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:10px"><strong id="offline-sync-heading">Offline transactions</strong><button id="offline-sync-now" type="button" class="btn btn-small" aria-label="Synchronise pending transactions">Sync now</button></div>
+<div id="offline-sync-state" role="status" aria-live="polite" aria-atomic="true" style="margin-top:5px">Online</div>
+<div id="offline-sync-detail" class="muted" role="status" aria-live="polite" aria-atomic="true" style="margin-top:5px">Offline transactions stay on this device until they sync. Do not use this feature on a shared device.</div>
+<div id="offline-sync-items" role="list" aria-label="Pending offline transactions" style="margin-top:8px;max-height:180px;overflow:auto"></div>
+</section>
 <script src="/offline-retry-policy.js" defer></script>
 <script src="/offline-transactions.js" defer></script>
 @endauth
