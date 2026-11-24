@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sfm-shell-v3';
+const CACHE_NAME = 'sfm-shell-v4';
 const SHELL_FILES = ['/offline.html', '/manifest.webmanifest', '/offline-transactions.js', '/offline-retry-policy.js', '/icons/icon.svg'];
 
 async function cachedShellResponse() {
