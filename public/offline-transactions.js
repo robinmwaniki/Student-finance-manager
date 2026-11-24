@@ -100,7 +100,9 @@
         detail.textContent = [queueDetail, storageNotice].filter(Boolean).join(' ');
         items.innerHTML = mine.map(entry => {
             const description = entry.kind === 'income' ? 'Income · ' + (entry.payload.source || 'New entry') : 'Expense · ' + (entry.payload.category || 'New entry');
-            return '<div style="display:flex;justify-content:space-between;gap:8px;padding:7px 0;border-top:1px solid #edf0f5"><span>' + escapeHtml(description) + '<small style="display:block;color:#8490a3">' + escapeHtml(entry.status || 'Pending') + '</small></span><span style="white-space:nowrap"><button type="button" data-edit="' + escapeHtml(entry.id) + '" style="border:0;background:transparent;color:#344a75;cursor:pointer">Edit</button><button type="button" data-discard="' + escapeHtml(entry.id) + '" style="border:0;background:transparent;color:#b42318;cursor:pointer">Discard</button></span></div>';
+            const accessibleDescription = escapeHtml(description);
+            const itemLabel = entry.kind === 'income' ? 'income' : 'expense';
+            return '<div role="listitem" style="display:flex;justify-content:space-between;gap:8px;padding:7px 0;border-top:1px solid #edf0f5"><span>' + accessibleDescription + '<small style="display:block;color:#8490a3">' + escapeHtml(entry.status || 'Pending') + '</small></span><span style="white-space:nowrap"><button type="button" data-edit="' + escapeHtml(entry.id) + '" aria-label="Edit pending ' + itemLabel + ': ' + accessibleDescription + '" style="border:0;background:transparent;color:#344a75;cursor:pointer">Edit</button><button type="button" data-discard="' + escapeHtml(entry.id) + '" aria-label="Discard pending ' + itemLabel + ': ' + accessibleDescription + '" style="border:0;background:transparent;color:#b42318;cursor:pointer">Discard</button></span></div>';
         }).join('');
         syncButton.disabled = !navigator.onLine || mine.length === 0 || syncInProgress;
         syncButton.style.opacity = syncButton.disabled ? '.55' : '1';
