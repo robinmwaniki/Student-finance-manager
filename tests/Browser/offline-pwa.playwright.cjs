@@ -272,22 +272,10 @@ async function outboxCount(page) {
         });
         assert.equal(queuedAction, '/income', 'offline queue must store a same-origin path, not an APP_URL-derived absolute URL');
 
-        // WebKit's CacheStorage install population is intermittently empty in
-        // Playwright. Prime and verify the exact absolute cache key immediately
-        // before the simulated outage so the navigation test exercises the
-        // service worker's real cached-response path, not an empty-cache race.
-        if (browserName === 'webkit') {
-            await page.evaluate(async () => {
-                const shellUrl = new URL('/offline.html', location.origin);
-                const response = await fetch(shellUrl.href, { cache: 'no-store' });
-                if (!response.ok) throw new Error(`offline shell fetch returned HTTP ${response.status}`);
-                const cache = await caches.open('sfm-shell-v3');
-                await cache.put(new Request(shellUrl.href), response.clone());
-                const cached = await cache.match(shellUrl.href);
-                if (!cached) throw new Error('WebKit did not retain the offline shell in sfm-shell-v3');
-            });
-        }
-
+        // Do not force CacheStorage writes in WebKit here. WebKit may resolve
+        // Cache.put() but immediately fail to return the entry from Cache.match().
+        // The service worker now has a self-contained HTML fallback for this
+        // exact empty-cache condition, so the outage test must exercise it.
         const offlineShell = await page.evaluate(async () => {
             const registrations = await navigator.serviceWorker.getRegistrations();
             const cacheNames = await caches.keys();
