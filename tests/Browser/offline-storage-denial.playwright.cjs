@@ -67,11 +67,13 @@ for (const [name, value] of Object.entries({
             state: document.querySelector('#offline-sync-state')?.textContent || '',
             detail: document.querySelector('#offline-sync-detail')?.textContent || '',
             syncDisabled: document.querySelector('#offline-sync-now')?.disabled ?? false,
-            liveRegion: document.querySelector('#offline-sync-panel')?.getAttribute('aria-live') || null,
+            liveRegion: document.querySelector('#offline-sync-detail')?.getAttribute('aria-live') || null,
+            liveRole: document.querySelector('#offline-sync-detail')?.getAttribute('role') || null,
         }));
         assert.match(storageState.detail, /could not open local storage/i,
             `the UI must explain that browser storage is unavailable: ${JSON.stringify(storageState)}`);
         assert.equal(storageState.syncDisabled, true, 'sync must remain disabled when the outbox cannot be opened');
+        assert.equal(storageState.liveRole, 'status', 'storage failure detail must use a status role');
         assert.equal(storageState.liveRegion, 'polite', 'storage failure must be announced through the status live region');
 
         const form = page.locator('form[action$="/income"]').first();
