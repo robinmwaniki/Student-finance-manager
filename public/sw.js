@@ -1,8 +1,18 @@
 const CACHE_NAME = 'sfm-shell-v3';
 const SHELL_FILES = ['/offline.html', '/manifest.webmanifest', '/offline-transactions.js', '/offline-retry-policy.js', '/icons/icon.svg'];
 
-function cachedShellResponse() {
-    return caches.open(CACHE_NAME).then(cache => cache.match(new URL('/offline.html', self.location.origin)));
+async function cachedShellResponse() {
+    const cache = await caches.open(CACHE_NAME);
+    const cached = await cache.match(new URL('/offline.html', self.location.origin));
+    if (cached) return cached;
+
+    // CacheStorage can be empty after eviction, interrupted installation, or
+    // browser-specific service-worker lifecycle behavior. Keep navigation
+    // fallback functional without depending on a successful cache read.
+    return new Response(
+        '<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>You are offline</title><main><h1>You are offline</h1><p>Your connection is unavailable. Your saved offline transactions will sync when you reconnect.</p></main>',
+        { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' } }
+    );
 }
 
 self.addEventListener('install', event => {
