@@ -165,7 +165,7 @@ async function outboxCount(page) {
         await page.reload({ waitUntil: 'domcontentloaded' });
         await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller), null, { timeout: 15000 });
         await page.waitForFunction(async () => {
-            const cache = await caches.open('sfm-shell-v3');
+            const cache = await caches.open('sfm-shell-v4');
             const shell = await cache.match(new URL('/offline.html', location.origin));
             return Boolean(shell);
         }, null, { timeout: 15000 });
