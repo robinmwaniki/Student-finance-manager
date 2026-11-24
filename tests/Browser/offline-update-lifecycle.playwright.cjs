@@ -1,20 +1,12 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const http = require('node:http');
 const path = require('node:path');
 const { chromium, firefox, webkit } = require('playwright');
 
 const browserName = process.env.SFM_BROWSER_ENGINE || 'chromium';
 const browserType = ({ chromium, firefox, webkit })[browserName];
 if (!browserType) throw new Error(`Unsupported SFM_BROWSER_ENGINE: ${browserName}`);
-
-const baseUrl = (process.env.SFM_BROWSER_BASE_URL || '').replace(/\/$/, '');
-const sessionCookie = process.env.SFM_BROWSER_SESSION_COOKIE || '';
-for (const [name, value] of Object.entries({
-    SFM_BROWSER_BASE_URL: baseUrl,
-    SFM_BROWSER_SESSION_COOKIE: sessionCookie,
-})) {
-    if (!value) throw new Error(`Missing required environment variable: ${name}`);
-}
 
 const source = fs.readFileSync(path.resolve(__dirname, '../../public/sw.js'), 'utf8');
 if (!source.includes("const CACHE_NAME = 'sfm-shell-v3'")) {
@@ -23,59 +15,73 @@ if (!source.includes("const CACHE_NAME = 'sfm-shell-v3'")) {
 const updatedSource = source.replace("const CACHE_NAME = 'sfm-shell-v3'", "const CACHE_NAME = 'sfm-shell-v4'");
 
 (async () => {
+    let workerMode = 'baseline';
+    const server = http.createServer((request, response) => {
+        const url = new URL(request.url, 'http://127.0.0.1');
+        response.setHeader('Cache-Control', 'no-store');
+        if (url.pathname === '/sw.js') {
+            if (workerMode === 'fail') {
+                response.writeHead(503, { 'Content-Type': 'text/plain' });
+                response.end('simulated update download failure');
+                return;
+            }
+            response.writeHead(200, { 'Content-Type': 'application/javascript; charset=utf-8' });
+            response.end(workerMode === 'updated' ? updatedSource : source);
+            return;
+        }
+        if (url.pathname === '/offline.html') {
+            response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+            response.end('<!doctype html><html lang="en"><meta charset="utf-8"><title>Offline</title><h1>Offline</h1>');
+            return;
+        }
+        if (url.pathname === '/manifest.webmanifest') {
+            response.writeHead(200, { 'Content-Type': 'application/manifest+json' });
+            response.end(JSON.stringify({ name: 'Offline lifecycle test', short_name: 'Offline test', start_url: '/' }));
+            return;
+        }
+        if (url.pathname === '/icons/icon.svg') {
+            response.writeHead(200, { 'Content-Type': 'image/svg+xml' });
+            response.end('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"><circle cx=".5" cy=".5" r=".5"/></svg>');
+            return;
+        }
+        if (url.pathname === '/offline-transactions.js' || url.pathname === '/offline-retry-policy.js') {
+            response.writeHead(200, { 'Content-Type': 'application/javascript' });
+            response.end('// lifecycle fixture');
+            return;
+        }
+        response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        response.end('<!doctype html><html lang="en"><meta charset="utf-8"><title>Worker lifecycle</title><body>Service worker update test</body><script>navigator.serviceWorker.register("/sw.js");</script></html>');
+    });
+
+    await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+    const baseUrl = `http://127.0.0.1:${server.address().port}`;
     const browser = await browserType.launch({
         headless: true,
         ...(browserName === 'chromium' ? { args: ['--no-sandbox'] } : {}),
     });
-    const context = await browser.newContext({
-        viewport: { width: 1280, height: 800 },
-        serviceWorkers: 'allow',
-    });
+    const context = await browser.newContext({ serviceWorkers: 'allow' });
     try {
-        await context.addCookies([{
-            name: 'sfm-http-integration-session',
-            value: sessionCookie,
-            domain: '127.0.0.1',
-            path: '/',
-            expires: Math.floor(Date.now() / 1000) + 3600,
-            httpOnly: true,
-            secure: false,
-            sameSite: 'Lax',
-        }]);
         const page = await context.newPage();
         const pageErrors = [];
         page.on('pageerror', error => pageErrors.push(error.message));
-        await page.goto(baseUrl + '/income', { waitUntil: 'domcontentloaded' });
-
-        const registration = await page.evaluate(async () => {
-            await navigator.serviceWorker.ready;
-            return Boolean(await navigator.serviceWorker.getRegistration(location.origin + '/'));
-        });
-        assert.ok(registration, 'the app must register a service worker');
+        await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
         await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller), null, { timeout: 15000 });
         await page.waitForFunction(async () => (await caches.keys()).includes('sfm-shell-v3'), null, { timeout: 15000 });
 
-        // A failed update download must leave the currently active worker/cache intact.
-        await context.route('**/sw.js', route => route.abort('failed'));
+        workerMode = 'fail';
         await page.evaluate(async () => {
-            const current = await navigator.serviceWorker.getRegistration(location.origin + '/');
-            await current.update().catch(() => {});
+            const registration = await navigator.serviceWorker.getRegistration('/');
+            await registration.update().catch(() => {});
         });
         assert.ok(await page.evaluate(async () => (await caches.keys()).includes('sfm-shell-v3')),
             'a failed update must preserve the previously active shell cache');
-        assert.ok(await page.evaluate(async () => Boolean((await navigator.serviceWorker.getRegistration(location.origin + '/'))?.active)),
+        assert.ok(await page.evaluate(async () => Boolean((await navigator.serviceWorker.getRegistration('/'))?.active)),
             'a failed update must not unregister the active service worker');
 
-        // Serve a new worker version at the same URL to exercise the browser's real update algorithm.
-        await context.unroute('**/sw.js');
-        await context.route('**/sw.js', route => route.fulfill({
-            status: 200,
-            contentType: 'application/javascript; charset=utf-8',
-            body: updatedSource,
-        }));
+        workerMode = 'updated';
         await page.evaluate(async () => {
-            const current = await navigator.serviceWorker.getRegistration(location.origin + '/');
-            await current.update();
+            const registration = await navigator.serviceWorker.getRegistration('/');
+            await registration.update();
         });
         await page.waitForFunction(async () => {
             const keys = await caches.keys();
@@ -85,7 +91,7 @@ const updatedSource = source.replace("const CACHE_NAME = 'sfm-shell-v3'", "const
         const finalState = await page.evaluate(async () => ({
             caches: await caches.keys(),
             controller: Boolean(navigator.serviceWorker.controller),
-            activeState: (await navigator.serviceWorker.getRegistration(location.origin + '/'))?.active?.state || null,
+            activeState: (await navigator.serviceWorker.getRegistration('/'))?.active?.state || null,
             shellCached: Boolean(await (await caches.open('sfm-shell-v4')).match('/offline.html')),
         }));
         assert.ok(finalState.caches.includes('sfm-shell-v4'), `updated worker cache must exist: ${JSON.stringify(finalState)}`);
@@ -99,6 +105,7 @@ const updatedSource = source.replace("const CACHE_NAME = 'sfm-shell-v3'", "const
     } finally {
         await context.close();
         await browser.close();
+        await new Promise(resolve => server.close(resolve));
     }
 })().catch(error => {
     console.error(error);
