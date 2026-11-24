@@ -204,6 +204,21 @@ const pendingIncome = (owner = 'user-a') => ({
 
 const waitForClientStartup = () => new Promise(resolve => setTimeout(resolve, 10));
 
+test('offline sync controls expose a named region and transaction-specific action labels', () => {
+    const layoutSource = fs.readFileSync(
+        path.resolve(__dirname, '../../resources/views/layouts/app.blade.php'),
+        'utf8',
+    );
+
+    assert.match(layoutSource, /id="offline-sync-panel" role="region" aria-labelledby="offline-sync-heading"/);
+    assert.match(layoutSource, /id="offline-sync-state" role="status" aria-live="polite" aria-atomic="true"/);
+    assert.match(layoutSource, /id="offline-sync-detail"[^>]*role="status" aria-live="polite" aria-atomic="true"/);
+    assert.match(layoutSource, /id="offline-sync-items" role="list" aria-label="Pending offline transactions"/);
+    assert.match(clientSource, /role="listitem"/);
+    assert.match(clientSource, /aria-label="Edit pending ' \+ itemLabel \+ ': ' \+ accessibleDescription/);
+    assert.match(clientSource, /aria-label="Discard pending ' \+ itemLabel \+ ': ' \+ accessibleDescription/);
+});
+
 test('offline outbox syncs once after verifying the same signed-in account', async () => {
     const harness = createClientHarness({ seedEntries: [pendingIncome()] });
 
