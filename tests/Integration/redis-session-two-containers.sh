@@ -412,6 +412,13 @@ if [[ "${SFM_RUN_BROWSER_E2E:-false}" == "true" ]]; then
         SFM_BROWSER_OUTAGE_CONTAINER="$CONTAINER_A" \
             node tests/Browser/offline-pwa.playwright.cjs
 
+        echo "Running ${BROWSER_ENGINE} IndexedDB storage-denial acceptance test..."
+        SFM_BROWSER_ENGINE="$BROWSER_ENGINE" \
+        SFM_BROWSER_BASE_URL="$BASE_A" \
+        SFM_BROWSER_SESSION_COOKIE="$BROWSER_SESSION_COOKIE" \
+        SFM_OFFLINE_E2E_TOKEN="$(cat /proc/sys/kernel/random/uuid)" \
+            node tests/Browser/offline-storage-denial.playwright.cjs
+
         OFFLINE_RECORD="$(php -r '
         require "vendor/autoload.php";
         $app = require "bootstrap/app.php";
