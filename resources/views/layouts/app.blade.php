@@ -73,6 +73,12 @@ body[data-theme="dark"] .btn{background:#496da8;color:#fff}
 body[data-theme="dark"] .btn-danger{background:#6d2935;color:#ffe2e5}
 body[data-theme="dark"] #offline-sync-panel{background:#142035!important;border-color:#293950!important;color:#e5eaf3!important}
 </style>
+<style>
+/* Reuse the public landing-page image on unauthenticated sign-in and registration screens. */
+.auth-page{background-color:#f5f7fb;background-image:linear-gradient(rgba(247,248,252,.82),rgba(247,248,252,.88)),url("/bg.jpg");background-position:center;background-repeat:no-repeat;background-size:cover;background-attachment:fixed}
+.auth-card{background:rgba(255,255,255,.94);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 20px 55px rgba(23,32,51,.14)}
+@media(max-width:700px){.auth-page{background-attachment:scroll}}
+</style>
 @stack('head')
 <link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#24385f">
 </head><body data-theme="{{ auth()->check() ? auth()->user()->theme : 'light' }}" @auth data-user-id="{{ auth()->id() }}" @endauth><div class="shell">
