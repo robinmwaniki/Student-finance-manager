@@ -375,7 +375,10 @@
             if (form.action.endsWith('/income') && form.method.toLowerCase() === 'post') form.dataset.offlineQueue = 'income';
             if (form.action.endsWith('/expenses') && form.method.toLowerCase() === 'post') form.dataset.offlineQueue = 'expense';
         });
-        await initializeStorageProtection();
+        // Storage persistence is best-effort and must not delay account
+        // verification or make the offline queue appear unavailable while the
+        // browser decides whether to grant it. Update the notice when ready.
+        initializeStorageProtection().then(render).catch(() => {});
         if (navigator.onLine) await verifyCurrentAccount();
         await render();
         if (navigator.onLine && accountVerified) await sync(false);
