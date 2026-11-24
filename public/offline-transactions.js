@@ -375,6 +375,7 @@
             if (form.action.endsWith('/income') && form.method.toLowerCase() === 'post') form.dataset.offlineQueue = 'income';
             if (form.action.endsWith('/expenses') && form.method.toLowerCase() === 'post') form.dataset.offlineQueue = 'expense';
         });
+        await initializeStorageProtection();
         if (navigator.onLine) await verifyCurrentAccount();
         await render();
         if (navigator.onLine && accountVerified) await sync(false);
