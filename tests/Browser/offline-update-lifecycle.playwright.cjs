@@ -49,7 +49,7 @@ const updatedSource = source.replace("const CACHE_NAME = 'sfm-shell-v3'", "const
 
         const registration = await page.evaluate(async () => {
             await navigator.serviceWorker.ready;
-            return navigator.serviceWorker.getRegistration('/');
+            return Boolean(await navigator.serviceWorker.getRegistration(location.origin + '/'));
         });
         assert.ok(registration, 'the app must register a service worker');
         await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller), null, { timeout: 15000 });
@@ -58,7 +58,7 @@ const updatedSource = source.replace("const CACHE_NAME = 'sfm-shell-v3'", "const
         // A failed update download must leave the currently active worker/cache intact.
         await context.route('**/sw.js', route => route.abort('failed'));
         await page.evaluate(async () => {
-            const current = await navigator.serviceWorker.getRegistration('/');
+            const current = await navigator.serviceWorker.getRegistration(location.origin + '/');
             await current.update().catch(() => {});
         });
         assert.ok(await page.evaluate(async () => (await caches.keys()).includes('sfm-shell-v3')),
