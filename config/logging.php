@@ -1,9 +1,9 @@
 <?php
 
-use App\\Logging\\RedactSensitiveContextProcessor;
-use Monolog\\Handler\\NullHandler;
-use Monolog\\Handler\\StreamHandler;
-use Monolog\\Processor\\PsrLogMessageProcessor;
+use App\Logging\RedactSensitiveContextProcessor;
+use Monolog\Handler\NullHandler;
+use Monolog\Handler\StreamHandler;
+use Monolog\Processor\PsrLogMessageProcessor;
 
 return [
     'default' => env('LOG_CHANNEL', 'stack'),
