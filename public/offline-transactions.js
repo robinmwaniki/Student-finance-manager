@@ -27,6 +27,35 @@
     let accountVerified = !navigator.onLine;
     let accountMismatch = false;
     let accountVerification = null;
+    let storageNotice = '';
+
+    // Ask the browser to protect the offline outbox from automatic
+    // storage-pressure eviction. This is best-effort: users and browsers
+    // can still clear site data, and some browsers deny persistence requests.
+    const initializeStorageProtection = async () => {
+        if (!navigator.storage || typeof navigator.storage.persisted !== 'function') {
+            storageNotice = 'Browser-managed storage persistence is unavailable. Pending offline entries may be removed by browser storage cleanup; sync when possible.';
+            return;
+        }
+        try {
+            let persistent = await navigator.storage.persisted();
+            if (!persistent && typeof navigator.storage.persist === 'function') {
+                persistent = await navigator.storage.persist();
+            }
+            storageNotice = persistent
+                ? 'This browser has granted persistent storage for offline entries. Clearing site data can still remove them.'
+                : 'This browser has not granted persistent storage. It may remove pending offline entries during storage cleanup; reconnect and sync regularly.';
+            if (typeof navigator.storage.estimate === 'function') {
+                const estimate = await navigator.storage.estimate();
+                if (Number.isFinite(estimate.quota) && estimate.quota > 0
+                    && Number(estimate.usage || 0) / estimate.quota >= 0.85) {
+                    storageNotice += ' Device storage is nearly full; sync pending entries and free device space.';
+                }
+            }
+        } catch (error) {
+            storageNotice = 'The browser could not confirm storage persistence. Pending offline entries may be removed by browser storage cleanup; sync when possible.';
+        }
+    };
 
     const openDatabase = () => new Promise((resolve, reject) => {
         const request = indexedDB.open('student-finance-offline', 1);
@@ -65,9 +94,10 @@
         }
         const mine = (await allEntries()).filter(entry => String(entry.owner) === String(userId));
         state.textContent = navigator.onLine ? 'Online' : 'Offline';
-        detail.textContent = mine.length
+        const queueDetail = mine.length
             ? mine.length + ' pending transaction(s). Server balances and reports may be stale until sync completes.'
             : 'Offline transactions stay on this device until they sync. Do not use this feature on a shared device.';
+        detail.textContent = [queueDetail, storageNotice].filter(Boolean).join(' ');
         items.innerHTML = mine.map(entry => {
             const description = entry.kind === 'income' ? 'Income · ' + (entry.payload.source || 'New entry') : 'Expense · ' + (entry.payload.category || 'New entry');
             return '<div style="display:flex;justify-content:space-between;gap:8px;padding:7px 0;border-top:1px solid #edf0f5"><span>' + escapeHtml(description) + '<small style="display:block;color:#8490a3">' + escapeHtml(entry.status || 'Pending') + '</small></span><span style="white-space:nowrap"><button type="button" data-edit="' + escapeHtml(entry.id) + '" style="border:0;background:transparent;color:#344a75;cursor:pointer">Edit</button><button type="button" data-discard="' + escapeHtml(entry.id) + '" style="border:0;background:transparent;color:#b42318;cursor:pointer">Discard</button></span></div>';
@@ -345,6 +375,10 @@
             if (form.action.endsWith('/income') && form.method.toLowerCase() === 'post') form.dataset.offlineQueue = 'income';
             if (form.action.endsWith('/expenses') && form.method.toLowerCase() === 'post') form.dataset.offlineQueue = 'expense';
         });
+        // Storage persistence is best-effort and must not delay account
+        // verification or make the offline queue appear unavailable while the
+        // browser decides whether to grant it. Update the notice when ready.
+        initializeStorageProtection().then(render).catch(() => {});
         if (navigator.onLine) await verifyCurrentAccount();
         await render();
         if (navigator.onLine && accountVerified) await sync(false);

@@ -22,6 +22,7 @@ function createClientHarness({ userId = 'user-a', sessionUserId = userId, seedEn
     const documentListeners = new Map();
     const itemListeners = new Map();
     const buttonListeners = new Map();
+    const storageCalls = [];
 
     const elements = {
         'offline-sync-panel': {},
@@ -148,10 +149,16 @@ function createClientHarness({ userId = 'user-a', sessionUserId = userId, seedEn
         querySelectorAll() { return []; },
     };
 
+    const storage = {
+        async persisted() { storageCalls.push('persisted'); return false; },
+        async persist() { storageCalls.push('persist'); return true; },
+        async estimate() { storageCalls.push('estimate'); return { usage: 20, quota: 100 }; },
+    };
+
     vm.runInNewContext(clientSource, {
         document,
         window,
-        navigator: { onLine: true },
+        navigator: { onLine: true, storage },
         indexedDB,
         fetch,
         URL,
@@ -175,6 +182,7 @@ function createClientHarness({ userId = 'user-a', sessionUserId = userId, seedEn
         documentListeners,
         itemListeners,
         buttonListeners,
+        storageCalls,
     };
 }
 
@@ -237,4 +245,14 @@ test('transient server failures persist the pending item and schedule bounded ba
     assert.ok(entry.nextAttemptAt > Date.now());
     assert.match(entry.status, /Automatic retry 1\/8 in 5s/);
     assert.ok(harness.timers.some(timer => timer.delay > 0 && timer.delay <= retryPolicy.BASE_DELAY_MS));
+});
+
+test('requests persistent browser storage and reports the granted protection', async () => {
+    const harness = createClientHarness();
+
+    await waitForClientStartup();
+
+    assert.deepEqual(harness.storageCalls, ['persisted', 'persist', 'estimate']);
+    assert.match(harness.elements['offline-sync-detail'].textContent, /granted persistent storage/);
+    assert.match(harness.elements['offline-sync-detail'].textContent, /Clearing site data can still remove them/);
 });

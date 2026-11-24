@@ -9,10 +9,10 @@ const browserType = ({ chromium, firefox, webkit })[browserName];
 if (!browserType) throw new Error(`Unsupported SFM_BROWSER_ENGINE: ${browserName}`);
 
 const source = fs.readFileSync(path.resolve(__dirname, '../../public/sw.js'), 'utf8');
-if (!source.includes("const CACHE_NAME = 'sfm-shell-v3'")) {
+if (!source.includes("const CACHE_NAME = 'sfm-shell-v4'")) {
     throw new Error('The baseline service-worker cache version changed; update this lifecycle test deliberately.');
 }
-const updatedSource = source.replace("const CACHE_NAME = 'sfm-shell-v3'", "const CACHE_NAME = 'sfm-shell-v4'");
+const updatedSource = source.replace("const CACHE_NAME = 'sfm-shell-v4'", "const CACHE_NAME = 'sfm-shell-v5'");
 
 (async () => {
     let workerMode = 'baseline';
@@ -66,14 +66,14 @@ const updatedSource = source.replace("const CACHE_NAME = 'sfm-shell-v3'", "const
         page.on('pageerror', error => pageErrors.push(error.message));
         await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
         await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller), null, { timeout: 15000 });
-        await page.waitForFunction(async () => (await caches.keys()).includes('sfm-shell-v3'), null, { timeout: 15000 });
+        await page.waitForFunction(async () => (await caches.keys()).includes('sfm-shell-v4'), null, { timeout: 15000 });
 
         workerMode = 'fail';
         await page.evaluate(async () => {
             const registration = await navigator.serviceWorker.getRegistration('/');
             await registration.update().catch(() => {});
         });
-        assert.ok(await page.evaluate(async () => (await caches.keys()).includes('sfm-shell-v3')),
+        assert.ok(await page.evaluate(async () => (await caches.keys()).includes('sfm-shell-v4')),
             'a failed update must preserve the previously active shell cache');
         assert.ok(await page.evaluate(async () => Boolean((await navigator.serviceWorker.getRegistration('/'))?.active)),
             'a failed update must not unregister the active service worker');
@@ -94,23 +94,23 @@ const updatedSource = source.replace("const CACHE_NAME = 'sfm-shell-v3'", "const
             const registration = await navigator.serviceWorker.getRegistration('/');
             const keys = await caches.keys();
             return registration?.active?.state === 'activated' &&
-                keys.includes('sfm-shell-v4') && !keys.includes('sfm-shell-v3');
+                keys.includes('sfm-shell-v5') && !keys.includes('sfm-shell-v4');
         }, null, { timeout: 20000 });
 
         const finalState = await page.evaluate(async () => ({
             caches: await caches.keys(),
             controller: Boolean(navigator.serviceWorker.controller),
             activeState: (await navigator.serviceWorker.getRegistration('/'))?.active?.state || null,
-            shellCached: Boolean(await (await caches.open('sfm-shell-v4')).match('/offline.html')),
+            shellCached: Boolean(await (await caches.open('sfm-shell-v5')).match('/offline.html')),
         }));
-        assert.ok(finalState.caches.includes('sfm-shell-v4'), `updated worker cache must exist: ${JSON.stringify(finalState)}`);
-        assert.equal(finalState.caches.includes('sfm-shell-v3'), false,
+        assert.ok(finalState.caches.includes('sfm-shell-v5'), `updated worker cache must exist: ${JSON.stringify(finalState)}`);
+        assert.equal(finalState.caches.includes('sfm-shell-v4'), false,
             `activation must remove the previous app-owned cache: ${JSON.stringify(finalState)}`);
         assert.equal(finalState.controller, true, 'the updated worker must control the page');
         assert.equal(finalState.activeState, 'activated', 'the updated worker must be activated');
         assert.equal(finalState.shellCached, true, 'the updated worker must precache its offline fallback');
         assert.deepEqual(pageErrors, [], 'service-worker update must not create uncaught page errors');
-        console.log(`PASS (${browserName}): failed update preserves the active worker; successful update activates v4 and removes the stale shell cache.`);
+        console.log(`PASS (${browserName}): failed update preserves the active worker; successful update activates v5 and removes the stale shell cache.`);
     } finally {
         await context.close();
         await browser.close();
