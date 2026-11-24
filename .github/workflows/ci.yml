@@ -115,10 +115,10 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Install Playwright and Chromium
+      - name: Install Playwright and browser engines
         run: |
           npm install --no-save --no-package-lock playwright@1.56.1
-          npx playwright install --with-deps chromium
+          npx playwright install --with-deps chromium firefox webkit
 
       - name: Run browser payload policy tests
         run: node --test tests/JavaScript/*.test.cjs

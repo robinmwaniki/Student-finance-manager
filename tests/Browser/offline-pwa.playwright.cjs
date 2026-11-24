@@ -2,7 +2,11 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { chromium } = require('playwright');
+const { execFileSync } = require('node:child_process');
+const { chromium, firefox, webkit } = require('playwright');
+const browserName = process.env.SFM_BROWSER_ENGINE || 'chromium';
+const browserType = ({ chromium, firefox, webkit })[browserName];
+if (!browserType) throw new Error(`Unsupported SFM_BROWSER_ENGINE: ${browserName}`);
 
 const baseUrl = (process.env.SFM_BROWSER_BASE_URL || '').replace(/\/$/, '');
 const sessionCookie = process.env.SFM_BROWSER_SESSION_COOKIE || '';
@@ -25,11 +29,11 @@ const cookie = {
 };
 
 async function openContext() {
-    const context = await chromium.launchPersistentContext(profileDir, {
+    const context = await browserType.launchPersistentContext(profileDir, {
         headless: true,
         viewport: { width: 1365, height: 900 },
         serviceWorkers: 'allow',
-        args: ['--no-sandbox'],
+        ...(browserName === 'chromium' ? { args: ['--no-sandbox'] } : {}),
     });
     // Rehydrate the synthetic Laravel session minted by the preceding curl login.
     // This keeps browser UI login concerns separate from the offline transaction flow.
@@ -140,7 +144,7 @@ async function outboxCount(page) {
         }
         assert.equal(submitReachedByKeyboard, true,
             'income submit control must be reachable using keyboard Tab navigation');
-        console.log('PASS: mobile viewport layout and keyboard access to income submission.');
+        console.log(`PASS (${browserName}): mobile viewport layout and keyboard access to income submission.`);
 
         await page.setViewportSize({ width: 1365, height: 700 });
         const sidebarScroll = await page.locator('.sidebar .nav-items').evaluate(element => ({
@@ -160,6 +164,11 @@ async function outboxCount(page) {
         await page.evaluate(async () => { await navigator.serviceWorker.ready; return true; });
         await page.reload({ waitUntil: 'domcontentloaded' });
         await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller), null, { timeout: 15000 });
+        await page.waitForFunction(async () => {
+            const cache = await caches.open('sfm-shell-v3');
+            const shell = await cache.match(new URL('/offline.html', location.origin));
+            return Boolean(shell);
+        }, null, { timeout: 15000 });
 
         const incomeForm = page.locator('form[action$="/income"]').first();
         const tokenInput = incomeForm.locator('input[name="submission_token"]');
@@ -195,8 +204,33 @@ async function outboxCount(page) {
         assert.equal(runtime.scriptLoaded, true, 'offline transaction runtime script must be included');
         assert.deepEqual(runtime.invalidControls, [], 'income form must be valid before submission');
 
-        await context.setOffline(true);
-        assert.equal(await page.evaluate(() => navigator.onLine), false, 'Chromium must report offline before submitting');
+        if (browserName === 'webkit') {
+            // WebKit's Playwright offline emulation can invalidate service-worker
+            // CacheStorage/navigation behavior. Keep transport available for the
+            // later real container outage, but expose the app's offline state.
+            await page.evaluate(() => {
+                Object.defineProperty(navigator, 'onLine', { configurable: true, get: () => false });
+            });
+        } else {
+            await context.setOffline(true);
+        }
+        assert.equal(await page.evaluate(() => navigator.onLine), false, `${browserName} must report offline before submitting`);
+        // Ensure the active worker has received this client's offline state.
+        await page.evaluate(() => new Promise((resolve, reject) => {
+            const worker = navigator.serviceWorker.controller;
+            if (!worker) return reject(new Error('service worker controller missing before offline navigation'));
+            const channel = new MessageChannel();
+            const timeout = setTimeout(() => reject(new Error('service worker did not acknowledge offline client state')), 5000);
+            channel.port1.onmessage = event => {
+                clearTimeout(timeout);
+                if (event.data?.type !== 'SFM_CLIENT_CONNECTIVITY_ACK' || event.data.online !== false) {
+                    reject(new Error('service worker acknowledged an unexpected connectivity state'));
+                    return;
+                }
+                resolve();
+            };
+            worker.postMessage({ type: 'SFM_CLIENT_CONNECTIVITY', online: false }, [channel.port2]);
+        }));
         // requestSubmit dispatches the browser's native submit event; the offline
         // runtime must intercept it and persist the transaction without navigation.
         await incomeForm.evaluate(form => {
@@ -238,6 +272,10 @@ async function outboxCount(page) {
         });
         assert.equal(queuedAction, '/income', 'offline queue must store a same-origin path, not an APP_URL-derived absolute URL');
 
+        // Do not force CacheStorage writes in WebKit here. WebKit may resolve
+        // Cache.put() but immediately fail to return the entry from Cache.match().
+        // The service worker now has a self-contained HTML fallback for this
+        // exact empty-cache condition, so the outage test must exercise it.
         const offlineShell = await page.evaluate(async () => {
             const registrations = await navigator.serviceWorker.getRegistrations();
             const cacheNames = await caches.keys();
@@ -258,11 +296,39 @@ async function outboxCount(page) {
             };
         });
         let offlineNavigationResponse = null;
+        let stoppedContainer = false;
+        const outageContainer = browserName === 'webkit' ? (process.env.SFM_BROWSER_OUTAGE_CONTAINER || '') : '';
         try {
+            if (outageContainer) {
+                // Playwright's WebKit offline emulation currently fails service-worker
+                // navigations even when the worker can return a cached/literal response.
+                // Stop only the isolated CI app container to simulate a real network outage.
+                await context.setOffline(false);
+                execFileSync('docker', ['stop', outageContainer], { stdio: 'pipe' });
+                stoppedContainer = true;
+            }
             const response = await page.goto(baseUrl + '/dashboard', { waitUntil: 'domcontentloaded', timeout: 15000 });
             offlineNavigationResponse = response ? { status: response.status(), url: response.url() } : null;
         } catch (error) {
             offlineNavigationResponse = { error: error.message };
+        } finally {
+            if (stoppedContainer) {
+                execFileSync('docker', ['start', outageContainer], { stdio: 'pipe' });
+                let restored = false;
+                for (let attempt = 0; attempt < 30; attempt += 1) {
+                    try {
+                        const response = await fetch(baseUrl + '/login', { signal: AbortSignal.timeout(2000) });
+                        if (response.ok) {
+                            restored = true;
+                            break;
+                        }
+                    } catch (error) {
+                        // The container may need a few seconds to restart PHP-FPM and Nginx.
+                    }
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+                assert.equal(restored, true, 'the isolated app container must recover after the WebKit outage simulation');
+            }
         }
         const offlineNavigationState = await page.evaluate(() => ({
             url: location.href,
@@ -273,7 +339,7 @@ async function outboxCount(page) {
         }));
         assert.match(offlineNavigationState.heading || '', /You are offline/i,
             `service worker must serve offline fallback; shell=${JSON.stringify(offlineShell)}; response=${JSON.stringify(offlineNavigationResponse)}; page=${JSON.stringify(offlineNavigationState)}; pageErrors=${JSON.stringify(pageErrors)}; console=${JSON.stringify(browserConsole)}`);
-        console.log('PASS: a controlled service worker served the offline navigation fallback.');
+        console.log(`PASS (${browserName}): a controlled service worker served the offline navigation fallback.`);
 
         await context.setOffline(false);
         await context.close();
@@ -372,7 +438,7 @@ async function outboxCount(page) {
             }));
             throw new Error(`outbox remained after reconnect acknowledgement wait: ${JSON.stringify(syncDiagnostics)}; requests=${JSON.stringify(reconnectRequests)}; pageErrors=${JSON.stringify(reconnectErrors)}`);
         }
-        console.log('PASS: pending transaction survived browser-context restart and reconnect sync.');
+        console.log(`PASS (${browserName}): pending transaction survived browser-context restart and reconnect sync.`);
     } finally {
         if (context) await context.close();
         fs.rmSync(profileDir, { recursive: true, force: true });

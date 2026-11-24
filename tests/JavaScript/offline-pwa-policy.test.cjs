@@ -68,7 +68,7 @@ function createServiceWorkerHarness(fetchImplementation = async () => 'network-r
     const cache = {
         async addAll(files) { addedShellFiles = files; },
         async match(request) {
-            const key = typeof request === 'string' ? request : new URL(request.url).pathname;
+            const key = typeof request === 'string' ? new URL(request, 'https://finance.example.test').pathname : request instanceof URL ? request.pathname : new URL(request.url).pathname;
             return cachedResponses.get(key);
         },
     };
@@ -81,7 +81,10 @@ function createServiceWorkerHarness(fetchImplementation = async () => 'network-r
     const self = {
         location: { origin: 'https://finance.example.test' },
         navigator: { onLine: isOnline },
-        clients: { async claim() { clientsClaimed = true; } },
+        clients: {
+            async claim() { clientsClaimed = true; },
+            async matchAll() { return []; },
+        },
         addEventListener(name, callback) { listeners.set(name, callback); },
         async skipWaiting() { skipWaitingCalled = true; },
     };
@@ -113,7 +116,7 @@ test('service worker installation precaches only the declared static shell and a
     harness.listeners.get('install')({ waitUntil(promise) { waits.push(promise); } });
     await Promise.all(waits);
 
-    assert.equal(harness.openedCache, 'sfm-shell-v2');
+    assert.equal(harness.openedCache, 'sfm-shell-v3');
     assert.deepEqual(Array.from(harness.addedShellFiles), [
         '/offline.html',
         '/manifest.webmanifest',
@@ -192,7 +195,7 @@ test('navigation bypasses the HTTP cache and falls back only when the network re
         respondWith(promise) { response = promise; },
     });
 
+    assert.equal(await response, 'offline-fallback');
     assert.equal(networkRequest.cache, 'no-store');
     assert.equal(networkRequest.url, 'https://finance.example.test/dashboard');
-    assert.equal(await response, 'offline-fallback');
 });

@@ -118,5 +118,25 @@ body[data-theme="dark"] #offline-sync-panel{background:#142035!important;border-
 <script src="/offline-retry-policy.js" defer></script>
 <script src="/offline-transactions.js" defer></script>
 @endauth
-<script>if ('serviceWorker' in navigator) { window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {})); }</script>
+<script>
+if ('serviceWorker' in navigator) {
+    const reportConnectivity = online => {
+        const worker = navigator.serviceWorker.controller;
+        if (worker) worker.postMessage({ type: 'SFM_CLIENT_CONNECTIVITY', online });
+    };
+    window.addEventListener('offline', () => reportConnectivity(false));
+    window.addEventListener('online', () => reportConnectivity(true));
+    window.addEventListener('load', async () => {
+        try {
+            await navigator.serviceWorker.register('/sw.js');
+            const registration = await navigator.serviceWorker.ready;
+            const worker = navigator.serviceWorker.controller || registration.active;
+            worker?.postMessage({ type: 'SFM_CLIENT_CONNECTIVITY', online: navigator.onLine });
+        } catch (_) {
+            // Keep the application usable online when service-worker registration is unavailable.
+        }
+    });
+    navigator.serviceWorker.addEventListener('controllerchange', () => reportConnectivity(navigator.onLine));
+}
+</script>
 @stack('scripts')</body></html>

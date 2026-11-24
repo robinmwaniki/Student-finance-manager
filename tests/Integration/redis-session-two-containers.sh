@@ -396,40 +396,44 @@ echo "PASS: conflicting replays did not overwrite the original income or expense
 
 
 if [[ "${SFM_RUN_BROWSER_E2E:-false}" == "true" ]]; then
-    OFFLINE_E2E_TOKEN="$(cat /proc/sys/kernel/random/uuid)"
     BROWSER_SESSION_COOKIE="$(awk '$6 == "sfm-http-integration-session" { print $7; exit }' "$COOKIE_JAR")"
     if [[ -z "$BROWSER_SESSION_COOKIE" ]]; then
-        echo "Could not extract the synthetic authenticated session cookie for Chromium." >&2
+        echo "Could not extract the synthetic authenticated session cookie for browser testing." >&2
         exit 1
     fi
 
-    echo "Running Chromium offline PWA lifecycle against the isolated CI container..."
-    SFM_BROWSER_BASE_URL="$BASE_A" \
-    SFM_BROWSER_SESSION_COOKIE="$BROWSER_SESSION_COOKIE" \
-    SFM_OFFLINE_E2E_TOKEN="$OFFLINE_E2E_TOKEN" \
-        node tests/Browser/offline-pwa.playwright.cjs
+    for BROWSER_ENGINE in chromium firefox webkit; do
+        OFFLINE_E2E_TOKEN="$(cat /proc/sys/kernel/random/uuid)"
+        echo "Running ${BROWSER_ENGINE} offline PWA lifecycle against the isolated CI container..."
+        SFM_BROWSER_ENGINE="$BROWSER_ENGINE" \
+        SFM_BROWSER_BASE_URL="$BASE_A" \
+        SFM_BROWSER_SESSION_COOKIE="$BROWSER_SESSION_COOKIE" \
+        SFM_OFFLINE_E2E_TOKEN="$OFFLINE_E2E_TOKEN" \
+        SFM_BROWSER_OUTAGE_CONTAINER="$CONTAINER_A" \
+            node tests/Browser/offline-pwa.playwright.cjs
 
-    OFFLINE_RECORD="$(php -r '
-    require "vendor/autoload.php";
-    $app = require "bootstrap/app.php";
-    $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
-    $record = Illuminate\Support\Facades\DB::table("income")
-        ->where("user_id", (int) $argv[1])
-        ->where("submission_token", $argv[2])
-        ->first();
-    echo json_encode([
-        "count" => Illuminate\Support\Facades\DB::table("income")->where("user_id", (int) $argv[1])->where("submission_token", $argv[2])->count(),
-        "amount" => $record?->amount,
-        "source" => $record?->source,
-    ], JSON_THROW_ON_ERROR);
-    ' "$USER_ID" "$OFFLINE_E2E_TOKEN")"
+        OFFLINE_RECORD="$(php -r '
+        require "vendor/autoload.php";
+        $app = require "bootstrap/app.php";
+        $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+        $record = Illuminate\Support\Facades\DB::table("income")
+            ->where("user_id", (int) $argv[1])
+            ->where("submission_token", $argv[2])
+            ->first();
+        echo json_encode([
+            "count" => Illuminate\Support\Facades\DB::table("income")->where("user_id", (int) $argv[1])->where("submission_token", $argv[2])->count(),
+            "amount" => $record?->amount,
+            "source" => $record?->source,
+        ], JSON_THROW_ON_ERROR);
+        ' "$USER_ID" "$OFFLINE_E2E_TOKEN")"
 
-    php -r '
-    $record = json_decode($argv[1], true, 512, JSON_THROW_ON_ERROR);
-    if ($record["count"] !== 1 || $record["amount"] !== "17.25" || $record["source"] !== "Playwright Offline Income") {
-        fwrite(STDERR, "Offline browser sync did not persist exactly one expected server-side income record: ".$argv[1].PHP_EOL);
-        exit(1);
-    }
-    echo "PASS: offline browser submission persisted exactly once in PostgreSQL after reconnect.".PHP_EOL;
-    ' "$OFFLINE_RECORD"
+        php -r '
+        $record = json_decode($argv[1], true, 512, JSON_THROW_ON_ERROR);
+        if ($record["count"] !== 1 || $record["amount"] !== "17.25" || $record["source"] !== "Playwright Offline Income") {
+            fwrite(STDERR, "Offline browser submission did not persist exactly once in PostgreSQL: ".$argv[1].PHP_EOL);
+            exit(1);
+        }
+        echo "PASS: offline browser submission persisted exactly once in PostgreSQL after reconnect.".PHP_EOL;
+        ' "$OFFLINE_RECORD"
+    done
 fi
