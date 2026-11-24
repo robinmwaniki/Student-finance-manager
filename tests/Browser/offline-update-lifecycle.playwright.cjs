@@ -78,14 +78,23 @@ const updatedSource = source.replace("const CACHE_NAME = 'sfm-shell-v3'", "const
         assert.ok(await page.evaluate(async () => Boolean((await navigator.serviceWorker.getRegistration('/'))?.active)),
             'a failed update must not unregister the active service worker');
 
+        // Observe the control hand-off: update() resolves when the browser finds a
+        // new script, not necessarily after activation has claimed this page.
+        const controllerChanged = page.evaluate(() => new Promise(resolve => {
+            navigator.serviceWorker.addEventListener('controllerchange', () => resolve(true), { once: true });
+        }));
         workerMode = 'updated';
         await page.evaluate(async () => {
             const registration = await navigator.serviceWorker.getRegistration('/');
             await registration.update();
         });
+        await controllerChanged;
+        await page.reload({ waitUntil: 'domcontentloaded' });
         await page.waitForFunction(async () => {
+            const registration = await navigator.serviceWorker.getRegistration('/');
             const keys = await caches.keys();
-            return keys.includes('sfm-shell-v4') && !keys.includes('sfm-shell-v3');
+            return registration?.active?.state === 'activated' &&
+                keys.includes('sfm-shell-v4') && !keys.includes('sfm-shell-v3');
         }, null, { timeout: 20000 });
 
         const finalState = await page.evaluate(async () => ({
