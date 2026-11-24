@@ -14,7 +14,9 @@ return [
     'channels' => [
         'stack' => [
             'driver' => 'stack',
-            'channels' => explode(',', (string) env('LOG_STACK', 'single')),
+            // Render and other container platforms collect stdout/stderr.
+            // Keep Laravel exceptions visible there unless explicitly overridden.
+            'channels' => explode(',', (string) env('LOG_STACK', 'stderr')),
             'ignore_exceptions' => false,
         ],
         'single' => [
