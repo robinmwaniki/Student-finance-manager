@@ -18,6 +18,8 @@ A full-stack personal finance management application built with **Laravel 13, PH
 
 See the feature documentation in [docs/](docs/) for behavior, configuration and limitations, including [CSV transaction import](docs/CSV_IMPORT.md). Optional integrations require server-side credentials and may be disabled when no provider is configured.
 
+For a guided project reference, start with the [project wiki](docs/wiki/README.md), which links the product overview, setup guide, feature guide, developer workflow, CI/testing and security documentation.
+
 ## Technology
 
 | Layer | Technology |
