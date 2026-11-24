@@ -63,7 +63,7 @@ const updatedSource = source.replace("const CACHE_NAME = 'sfm-shell-v3'", "const
         });
         assert.ok(await page.evaluate(async () => (await caches.keys()).includes('sfm-shell-v3')),
             'a failed update must preserve the previously active shell cache');
-        assert.ok(await page.evaluate(async () => Boolean((await navigator.serviceWorker.getRegistration('/'))?.active)),
+        assert.ok(await page.evaluate(async () => Boolean((await navigator.serviceWorker.getRegistration(location.origin + '/'))?.active)),
             'a failed update must not unregister the active service worker');
 
         // Serve a new worker version at the same URL to exercise the browser's real update algorithm.
@@ -74,7 +74,7 @@ const updatedSource = source.replace("const CACHE_NAME = 'sfm-shell-v3'", "const
             body: updatedSource,
         }));
         await page.evaluate(async () => {
-            const current = await navigator.serviceWorker.getRegistration('/');
+            const current = await navigator.serviceWorker.getRegistration(location.origin + '/');
             await current.update();
         });
         await page.waitForFunction(async () => {
@@ -85,7 +85,7 @@ const updatedSource = source.replace("const CACHE_NAME = 'sfm-shell-v3'", "const
         const finalState = await page.evaluate(async () => ({
             caches: await caches.keys(),
             controller: Boolean(navigator.serviceWorker.controller),
-            activeState: (await navigator.serviceWorker.getRegistration('/'))?.active?.state || null,
+            activeState: (await navigator.serviceWorker.getRegistration(location.origin + '/'))?.active?.state || null,
             shellCached: Boolean(await (await caches.open('sfm-shell-v4')).match('/offline.html')),
         }));
         assert.ok(finalState.caches.includes('sfm-shell-v4'), `updated worker cache must exist: ${JSON.stringify(finalState)}`);
