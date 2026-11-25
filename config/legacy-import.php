@@ -7,11 +7,11 @@ return [
     // Import is intentionally available only in a dedicated staging environment.
     'allowed_environment' => 'staging',
 
-    // Comma-separated exact database names. Never use a wildcard.
-    'allowed_target_databases' => array_values(array_filter(array_map(
-        'trim',
-        explode(',', (string) env('LEGACY_IMPORT_ALLOWED_TARGET_DATABASES', ''))
-    ))),
+    // Exact staging hosts and database names. Never use wildcards.
+    'allowed_source_hosts' => array_values(array_filter(array_map('trim', explode(',', (string) env('LEGACY_IMPORT_ALLOWED_SOURCE_HOSTS', ''))))),
+    'allowed_source_databases' => array_values(array_filter(array_map('trim', explode(',', (string) env('LEGACY_IMPORT_ALLOWED_SOURCE_DATABASES', ''))))),
+    'allowed_target_hosts' => array_values(array_filter(array_map('trim', explode(',', (string) env('LEGACY_IMPORT_ALLOWED_TARGET_HOSTS', ''))))),
+    'allowed_target_databases' => array_values(array_filter(array_map('trim', explode(',', (string) env('LEGACY_IMPORT_ALLOWED_TARGET_DATABASES', ''))))),
 
     'batch_size' => 500,
 ];
