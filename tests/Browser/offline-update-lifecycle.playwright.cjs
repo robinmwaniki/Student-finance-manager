@@ -97,6 +97,13 @@ const updatedSource = source.replace("const CACHE_NAME = 'sfm-shell-v4'", "const
                 keys.includes('sfm-shell-v5') && !keys.includes('sfm-shell-v4');
         }, null, { timeout: 20000 });
 
+        // WebKit may dispatch controllerchange while the installing worker is still
+        // transitioning through `activating`; wait for the lifecycle state itself.
+        await page.waitForFunction(async () => {
+            const registration = await navigator.serviceWorker.getRegistration('/');
+            return registration?.active?.state === 'activated';
+        }, null, { timeout: 20000 });
+
         const finalState = await page.evaluate(async () => ({
             caches: await caches.keys(),
             controller: Boolean(navigator.serviceWorker.controller),
