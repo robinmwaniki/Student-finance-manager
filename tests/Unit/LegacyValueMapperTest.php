@@ -48,6 +48,18 @@ class LegacyValueMapperTest extends TestCase
         $this->mapper->date('2026-02-30');
     }
 
+    public function test_legacy_timestamps_are_validated_and_normalized(): void
+    {
+        $this->assertSame('2026-11-25 10:30:45', $this->mapper->dateTime('2026-11-25 10:30:45'));
+        $this->assertNull($this->mapper->dateTime('0000-00-00 00:00:00', nullable: true));
+    }
+
+    public function test_invalid_timestamp_is_rejected(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->mapper->dateTime('2026-02-30 10:30:45');
+    }
+
     public function test_month_uses_valid_legacy_month_or_derives_it_from_date(): void
     {
         $this->assertSame('2026-11', $this->mapper->month('2026-11'));
