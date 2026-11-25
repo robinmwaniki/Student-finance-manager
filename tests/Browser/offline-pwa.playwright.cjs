@@ -240,7 +240,7 @@ async function outboxCount(page) {
         try {
             await page.waitForFunction(() => {
                 const detail = document.querySelector('#offline-sync-detail')?.textContent || '';
-                return detail.includes('Saved on this device') || detail.includes('unavailable') || detail.includes('could not') || detail.includes('missing') || detail.includes('changed');
+                return detail.includes('Saved on this device') || detail.includes('Local storage is unavailable. This transaction was not saved.') || detail.includes('could not open local storage') || detail.includes('missing its unique submission token') || detail.includes('could not be verified') || detail.includes('account changed');
             }, null, { timeout: 10000 });
         } catch (error) {
             const diagnostics = await page.evaluate(async () => {
