@@ -9,7 +9,7 @@ final class LegacyValueMapper
 {
     public function amount(mixed $value, bool $allowNegative = false): string
     {
-        if (! is_string($value) && ! is_int($value) && ! is_float($value)) {
+        if (! is_string($value) && ! is_int($value)) {
             throw new InvalidArgumentException('Amount must be a numeric scalar.');
         }
 
