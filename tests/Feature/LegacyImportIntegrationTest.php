@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Debt;
+use App\Models\User;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -49,6 +50,8 @@ class LegacyImportIntegrationTest extends TestCase
             'email' => 'legacy-import@example.test',
             'points' => 7,
         ]);
+        $importedUser = User::query()->findOrFail(42);
+        $this->assertTrue(password_verify('SyntheticPass-123', $importedUser->password));
         $this->assertDatabaseHas('income', [
             'id' => 100,
             'user_id' => 42,
@@ -58,6 +61,17 @@ class LegacyImportIntegrationTest extends TestCase
             'id' => 101,
             'user_id' => 42,
             'amount' => '100.10',
+        ]);
+        $this->assertDatabaseHas('budgets', [
+            'id' => 102,
+            'user_id' => 42,
+            'category' => 'Food',
+            'budget_month' => '2026-11',
+        ]);
+        $this->assertDatabaseHas('savings_goals', [
+            'id' => 103,
+            'user_id' => 42,
+            'title' => 'Emergency fund',
         ]);
         $this->assertDatabaseHas('savings', [
             'id' => 104,
@@ -70,6 +84,16 @@ class LegacyImportIntegrationTest extends TestCase
             'status' => 'paid',
         ]);
         $this->assertSame(0, Debt::query()->findOrFail(105)->outstandingBalanceCents());
+        $this->assertDatabaseHas('achievements', [
+            'id' => 106,
+            'user_id' => 42,
+            'title' => 'First entry',
+        ]);
+        $this->assertDatabaseHas('user_notifications', [
+            'id' => 107,
+            'user_id' => 42,
+            'status' => 'read',
+        ]);
         $this->assertDatabaseHas('recurring_transactions', [
             'id' => 108,
             'status' => 'paused',
@@ -95,6 +119,10 @@ class LegacyImportIntegrationTest extends TestCase
         $this->assertDatabaseCount('expenses', 1);
         $this->assertDatabaseCount('savings', 1);
         $this->assertDatabaseCount('debts', 1);
+        $this->assertDatabaseCount('budgets', 1);
+        $this->assertDatabaseCount('savings_goals', 1);
+        $this->assertDatabaseCount('achievements', 1);
+        $this->assertDatabaseCount('user_notifications', 1);
         $this->assertDatabaseCount('recurring_log', 1);
 
         $report = json_decode(File::get($this->reportPath), true, flags: JSON_THROW_ON_ERROR);
@@ -104,6 +132,19 @@ class LegacyImportIntegrationTest extends TestCase
         $this->assertEquals(0.0, (float) $report['debt_outstanding_by_user']['source']['42']);
         $this->assertEquals(0.0, (float) $report['debt_outstanding_by_user']['target']['42']);
         $this->assertSame(0, $report['target_integrity']['duplicate_recurring_period_groups']);
+        $this->assertSame(0, array_sum($report['target_integrity']['foreign_key_orphan_counts']));
+
+        $walletId = DB::table('wallets')->where('user_id', 42)->where('is_default', true)->value('id');
+        $nextIncomeId = DB::table('income')->insertGetId([
+            'user_id' => 42,
+            'wallet_id' => $walletId,
+            'amount' => '1.00',
+            'source' => 'Sequence verification',
+            'transaction_date' => '2026-11-25',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $this->assertGreaterThan(100, $nextIncomeId);
     }
 
     protected function tearDown(): void
