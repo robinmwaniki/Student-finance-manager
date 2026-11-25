@@ -85,7 +85,7 @@ Use a dedicated staging database and separate credentials. The following command
 ```bash
 mysqldump --host="$ORIGINAL_MYSQL_HOST" --port="$ORIGINAL_MYSQL_PORT" \
   --user="$ORIGINAL_MYSQL_USERNAME" --password --single-transaction --routines --triggers \
-  --hex-blob --databases "$ORIGINAL_MYSQL_DATABASE" > legacy-finance.sql
+  --hex-blob "$ORIGINAL_MYSQL_DATABASE" > legacy-finance.sql
 sha256sum legacy-finance.sql > legacy-finance.sql.sha256
 gpg --symmetric --cipher-algo AES256 --output legacy-finance.sql.gpg legacy-finance.sql
 ```
