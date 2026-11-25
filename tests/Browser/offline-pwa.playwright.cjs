@@ -240,7 +240,7 @@ async function outboxCount(page) {
         try {
             await page.waitForFunction(() => {
                 const detail = document.querySelector('#offline-sync-detail')?.textContent || '';
-                return detail.includes('Saved on this device') || detail.includes('unavailable') || detail.includes('could not') || detail.includes('missing') || detail.includes('changed');
+                return detail.includes('Saved on this device') || detail.includes('Local storage is unavailable. This transaction was not saved.') || detail.includes('could not open local storage') || detail.includes('missing its unique submission token') || detail.includes('could not be verified') || detail.includes('account changed');
             }, null, { timeout: 10000 });
         } catch (error) {
             const diagnostics = await page.evaluate(async () => {
@@ -271,6 +271,24 @@ async function outboxCount(page) {
             });
         });
         assert.equal(queuedAction, '/income', 'offline queue must store a same-origin path, not an APP_URL-derived absolute URL');
+
+        // Verify the rendered offline controls expose useful roles and names
+        // in the browser accessibility tree. This complements (but does not
+        // replace) a manual screen-reader check on physical devices.
+        const offlineRegion = page.getByRole('region', { name: 'Offline transactions' });
+        assert.equal(await offlineRegion.count(), 1, 'offline controls must be grouped in a named region');
+        assert.equal(await offlineRegion.getByRole('status').count(), 2,
+            'sync state and explanatory detail must be announced as status messages');
+        const pendingList = offlineRegion.getByRole('list', { name: 'Pending offline transactions' });
+        assert.equal(await pendingList.getByRole('listitem').count(), 1,
+            'queued transactions must be exposed as a list item');
+        assert.equal(await pendingList.getByRole('button', { name: 'Edit pending income: Income · Playwright Offline Income' }).count(), 1,
+            'edit action must have a transaction-specific accessible name');
+        assert.equal(await pendingList.getByRole('button', { name: 'Discard pending income: Income · Playwright Offline Income' }).count(), 1,
+            'discard action must have a transaction-specific accessible name');
+        assert.equal(await offlineRegion.getByRole('button', { name: 'Synchronise pending transactions' }).count(), 1,
+            'manual sync action must have an explicit accessible name');
+        console.log(`PASS (${browserName}): offline queue exposes named region, status messages, list and transaction-specific actions.`);
 
         // Do not force CacheStorage writes in WebKit here. WebKit may resolve
         // Cache.put() but immediately fail to return the entry from Cache.match().
