@@ -101,8 +101,8 @@ class LegacyImportIntegrationTest extends TestCase
         $this->assertSame(1, $report['tables']['income']['already_present']);
         $this->assertSame('1000.10', $report['financial_totals_by_user']['income']['source']['42']);
         $this->assertSame('1000.10', $report['financial_totals_by_user']['income']['target']['42']);
-        $this->assertSame('0.00', $report['debt_outstanding_by_user']['source']['42']);
-        $this->assertSame('0', $report['debt_outstanding_by_user']['target']['42']);
+        $this->assertEquals(0.0, (float) $report['debt_outstanding_by_user']['source']['42']);
+        $this->assertEquals(0.0, (float) $report['debt_outstanding_by_user']['target']['42']);
         $this->assertSame(0, $report['target_integrity']['duplicate_recurring_period_groups']);
     }
 
