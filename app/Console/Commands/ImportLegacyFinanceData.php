@@ -25,6 +25,7 @@ class ImportLegacyFinanceData extends Command
     private array $rejected = [];
     private array $knownUsers = [];
     private array $knownRecurring = [];
+    private array $knownGoals = [];
 
     private const TABLES = [
         'users' => 'users',
@@ -170,6 +171,10 @@ class ImportLegacyFinanceData extends Command
                     $this->counts[$sourceTable]['source']++;
                     $id = (int) $row->id;
 
+                    if ($execute) {
+                        $target->beginTransaction(); // Per-row savepoint keeps one bad row from poisoning the batch.
+                    }
+
                     try {
                         $record = $this->mapRecord($sourceTable, $row, $target, $mapper, $execute);
                         $this->assertReferences($sourceTable, $record, $target);
@@ -179,6 +184,9 @@ class ImportLegacyFinanceData extends Command
                             if ($this->sameBusinessRecord($existing, $record)) {
                                 $this->counts[$sourceTable]['already_present']++;
                                 $this->rememberImportedReference($sourceTable, $id, $record, $target, $execute);
+                                if ($execute) {
+                                    $target->commit();
+                                }
                                 continue;
                             }
 
@@ -191,7 +199,13 @@ class ImportLegacyFinanceData extends Command
 
                         $this->counts[$sourceTable]['imported']++;
                         $this->rememberImportedReference($sourceTable, $id, $record, $target, $execute);
+                        if ($execute) {
+                            $target->commit();
+                        }
                     } catch (Throwable $exception) {
+                        if ($execute && $target->transactionLevel() > 1) {
+                            $target->rollBack();
+                        }
                         $this->counts[$sourceTable]['rejected']++;
                         $this->rejected[] = [
                             'table' => $sourceTable,
@@ -395,6 +409,15 @@ class ImportLegacyFinanceData extends Command
 
     private function matchingGoalId(Connection $target, int $userId, string $title): ?int
     {
+        $key = $userId.'|'.$title;
+        if (isset($this->knownGoals[$key])) {
+            if (count($this->knownGoals[$key]) > 1) {
+                throw new InvalidArgumentException('Savings goal title matches multiple imported goals; manual mapping is required.');
+            }
+
+            return (int) $this->knownGoals[$key][0];
+        }
+
         $matches = $target->table('savings_goals')
             ->where('user_id', $userId)
             ->where('title', $title)
@@ -439,6 +462,10 @@ class ImportLegacyFinanceData extends Command
         }
         if ($sourceTable === 'recurring_transactions') {
             $this->knownRecurring[$id] = true;
+        }
+        if ($sourceTable === 'savings_goals') {
+            $key = (int) $record['user_id'].'|'.$record['title'];
+            $this->knownGoals[$key][] = $id;
         }
     }
 
