@@ -15,7 +15,7 @@ class LegacyImportSafetyTest extends TestCase
     }
     public function test_legacy_import_rejects_production_named_target_databases(): void
     {
-        Config::set('app.env', 'staging');
+        $this->app->detectEnvironment(fn (): string => 'staging');
         Config::set('legacy-import.allowed_target_databases', ['student_finance_prod']);
         Config::set('database.connections.legacy_mysql', [
             'driver' => 'mysql',
@@ -35,7 +35,7 @@ class LegacyImportSafetyTest extends TestCase
 
     public function test_target_database_url_cannot_override_the_staging_allowlist(): void
     {
-        Config::set('app.env', 'staging');
+        $this->app->detectEnvironment(fn (): string => 'staging');
         Config::set('legacy-import.allowed_target_databases', ['student_finance_staging']);
         Config::set('database.connections.legacy_mysql', [
             'driver' => 'mysql',
