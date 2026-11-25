@@ -242,7 +242,7 @@ class ImportLegacyFinanceData extends Command
 
         $source->table($sourceTable)->orderBy('id')->chunkById(
             (int) config('legacy-import.batch_size', 500),
-            function ($rows) use ($source, $target, $sourceTable, $targetTable, $mapper, $execute): void {
+            function ($rows) use ($target, $sourceTable, $targetTable, $mapper, $execute): void {
                 foreach ($rows as $row) {
                     $this->counts[$sourceTable]['source']++;
                     $id = (int) $row->id;
