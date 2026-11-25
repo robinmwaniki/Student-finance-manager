@@ -22,13 +22,21 @@ class ImportLegacyFinanceData extends Command
     protected $description = 'Validate and import legacy finance records into an explicitly allowlisted staging database';
 
     private array $counts = [];
+
     private array $rejected = [];
+
     private array $knownUsers = [];
+
     private array $knownRecurring = [];
+
     private array $knownGoals = [];
+
     private array $conflictedUsers = [];
+
     private array $conflictedGoals = [];
+
     private array $conflictedRecurring = [];
+
     private int $unsafeAvatarPathsOmitted = 0;
 
     private const TABLES = [
