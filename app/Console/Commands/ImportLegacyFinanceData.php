@@ -1,13 +1,13 @@
 <?php
 
-namespace App\\Console\\Commands;
+namespace App\Console\Commands;
 
-use App\\Services\\LegacyImport\\LegacyValueMapper;
-use Illuminate\\Console\\Command;
-use Illuminate\\Database\\Connection;
-use Illuminate\\Support\\Facades\\DB;
-use Illuminate\\Support\\Facades\\File;
-use Illuminate\\Support\\Facades\\Schema;
+use App\Services\LegacyImport\LegacyValueMapper;
+use Illuminate\Console\Command;
+use Illuminate\Database\Connection;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Schema;
 use InvalidArgumentException;
 use Throwable;
 
