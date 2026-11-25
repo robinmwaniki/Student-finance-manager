@@ -39,13 +39,13 @@ This document defines the controlled migration path from the original procedural
 - Legacy `date` fields become `transaction_date` in income, expenses and savings. Month strings remain where they represent a budget or recurring-application period.
 - Legacy MySQL enums become strings. Application validation and database constraints will enforce allowed values.
 - The old dump has foreign keys for only some tables. The new schema adds owner foreign keys consistently. Orphaned owner references must be reported and resolved before import; never silently discard them.
-- Retain the recurring-log unique key on recurring_id + applied_month to prevent duplicate monthly processing.
+- Retain the recurring-log unique key on recurring_id + period_key to prevent duplicate monthly processing; the imported monthly key is normalized to M:YYYY-MM.
 - Old reset tokens are not carried forward. Laravel password-reset tokens use the dedicated password_reset_tokens table. Existing sessions are intentionally not migrated; users sign in again after cutover.
 - Avatar files must be copied to controlled storage and their paths checked. Do not trust legacy filenames as safe paths.
 
 ## Guarded importer
 
-The `finance:import-legacy` Artisan command is dry-run by default. It reads from the named MySQL/MariaDB connection in a read-only transaction and writes only to a PostgreSQL connection when `--execute` is explicitly supplied. It refuses to run unless `APP_ENV=staging`, the target database name exactly matches `LEGACY_IMPORT_ALLOWED_TARGET_DATABASES`, the source driver is MySQL/MariaDB, and the target driver is PostgreSQL. Production-looking target database names are rejected. The original source is never updated.
+The `finance:import-legacy` Artisan command is dry-run by default. It reads from the named MySQL/MariaDB connection in a read-only transaction and writes only to a PostgreSQL connection when `--execute` is explicitly supplied. It refuses to run unless `APP_ENV=staging`, the resolved source host:port and database exactly match `LEGACY_IMPORT_ALLOWED_SOURCE_HOSTS` and `LEGACY_IMPORT_ALLOWED_SOURCE_DATABASES`, and the resolved target host:port and database exactly match `LEGACY_IMPORT_ALLOWED_TARGET_HOSTS` and `LEGACY_IMPORT_ALLOWED_TARGET_DATABASES`. It also verifies the source and target drivers, parses connection URLs before validation, and rejects production-looking database names. The original source is never updated.
 
 Configure `LEGACY_DB_HOST`, `LEGACY_DB_PORT`, `LEGACY_DB_DATABASE`, `LEGACY_DB_USERNAME` and `LEGACY_DB_PASSWORD` in the staging secret store. Configure the four `LEGACY_IMPORT_ALLOWED_*` variables with exact host:port endpoints and database names for the restored MySQL/MariaDB source and isolated PostgreSQL target. Keep the allowlists narrow and do not use wildcards. Do not place real credentials in `.env.example`, source control or chat logs.
 
@@ -69,12 +69,42 @@ The execute mode is transactional on PostgreSQL, preserves IDs, treats identical
 2. Export schema and data using a consistent transaction/snapshot.
 3. Encrypt and checksum the export; record row counts for every table.
 4. Restore the export into an isolated MySQL staging database.
-5. Restore the fresh export to the isolated MySQL staging connection and run the guarded importer above in dry-run mode; reconcile and resolve rejected rows before explicitly enabling execute mode.
-6. Convert MySQL date/month fields and booleans explicitly. Reject invalid dates, unsupported enum values, negative amounts where disallowed, and orphan references into an exception report.
-7. Set PostgreSQL identity sequences to at least the maximum imported ID after explicit-ID inserts.
+5. Run the guarded importer above in dry-run mode; reconcile and resolve rejected rows before explicitly enabling execute mode.
+6. Review explicit date/month, boolean, enum and amount conversions; resolve invalid values and orphan references from the private exception report.
+7. Verify PostgreSQL identity sequences are set to the maximum imported ID after explicit-ID inserts.
 8. Compare per-table row counts, per-user totals, monthly income/expense/savings totals, debt balances, budget totals, recurring-log uniqueness and foreign-key integrity.
 9. Test sign-in with representative existing bcrypt hashes in staging.
 10. Obtain approval before production cutover. Keep the encrypted backup and original database untouched until the rollback window has expired.
+
+## Backup, restore and rollback runbook
+
+Use a dedicated staging database and separate credentials. The following commands are operator examples; confirm host, port and database names before running them. Passwords must be entered at the prompt or supplied through the deployment secret manager, never embedded in command arguments or committed.
+
+### Capture and verify the legacy source backup
+
+```bash
+mysqldump --host="$LEGACY_DB_HOST" --port="$LEGACY_DB_PORT" \
+  --user="$LEGACY_DB_USERNAME" --single-transaction --routines --triggers \
+  --hex-blob --databases "$LEGACY_DB_DATABASE" > legacy-finance.sql
+sha256sum legacy-finance.sql > legacy-finance.sql.sha256
+gpg --symmetric --cipher-algo AES256 --output legacy-finance.sql.gpg legacy-finance.sql
+```
+
+Restore only into a newly created isolated MySQL/MariaDB staging database, then verify the checksum and compare source table counts with the export manifest. Keep the original database read-only during the final snapshot and do not restore over it.
+
+### Back up and restore PostgreSQL staging
+
+```bash
+pg_dump --format=custom --no-owner --file=student-finance-staging.dump "$STAGING_DATABASE_URL"
+sha256sum student-finance-staging.dump > student-finance-staging.dump.sha256
+pg_restore --list student-finance-staging.dump
+```
+
+For a staging restore drill, create a fresh empty staging database and restore the dump with `pg_restore --no-owner --dbname="$STAGING_DATABASE_URL" student-finance-staging.dump`. Run migrations and the synthetic/integration test suite after restore.
+
+### Rollback
+
+If a staging import or reconciliation fails, stop the importer, retain its private report, drop and recreate only the isolated PostgreSQL staging database, and restore the last verified staging backup. Restore the isolated MySQL staging copy from its encrypted source backup if its schema/data needs to be reset. The importer does not write to the original MySQL source, and no production database is part of this rollback procedure. Production cutover and its rollback plan require a separate approved change.
 
 ## Reconciliation checklist
 
