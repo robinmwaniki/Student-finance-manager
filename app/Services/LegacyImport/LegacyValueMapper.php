@@ -23,7 +23,14 @@ final class LegacyValueMapper
             throw new InvalidArgumentException('Negative amounts are not supported for this record.');
         }
 
-        return number_format((float) $amount, 2, '.', '');
+        $negative = str_starts_with($amount, '-');
+        $unsigned = ltrim($amount, '-');
+        [$whole, $fraction] = array_pad(explode('.', $unsigned, 2), 2, '');
+        $normalized = ltrim($whole, '0');
+        $normalized = $normalized === '' ? '0' : $normalized;
+        $normalized .= '.'.str_pad($fraction, 2, '0');
+
+        return ($negative && $normalized !== '0.00' ? '-' : '').$normalized;
     }
 
     public function date(mixed $value, bool $nullable = false): ?string
