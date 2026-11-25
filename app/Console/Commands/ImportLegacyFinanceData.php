@@ -123,20 +123,34 @@ class ImportLegacyFinanceData extends Command
             throw new InvalidArgumentException('The source must resolve to MySQL/MariaDB and the target to PostgreSQL.');
         }
 
-        $targetDatabase = $targetDetails['database'];
-        $allowed = config('legacy-import.allowed_target_databases', []);
+        $allowedSourceHosts = array_map('strtolower', config('legacy-import.allowed_source_hosts', []));
+        $allowedSourceDatabases = config('legacy-import.allowed_source_databases', []);
+        $allowedTargetHosts = array_map('strtolower', config('legacy-import.allowed_target_hosts', []));
+        $allowedTargetDatabases = config('legacy-import.allowed_target_databases', []);
 
-        if ($targetDatabase === '' || ! in_array($targetDatabase, $allowed, true)) {
+        if ($sourceDetails['host'] === '' || ! in_array($sourceDetails['host'], $allowedSourceHosts, true)) {
+            throw new InvalidArgumentException('Resolved source host is not on LEGACY_IMPORT_ALLOWED_SOURCE_HOSTS.');
+        }
+        if ($sourceDetails['database'] === '' || ! in_array($sourceDetails['database'], $allowedSourceDatabases, true)) {
+            throw new InvalidArgumentException('Resolved source database is not on LEGACY_IMPORT_ALLOWED_SOURCE_DATABASES.');
+        }
+        if ($targetDetails['host'] === '' || ! in_array($targetDetails['host'], $allowedTargetHosts, true)) {
+            throw new InvalidArgumentException('Resolved target host is not on LEGACY_IMPORT_ALLOWED_TARGET_HOSTS.');
+        }
+        $targetDatabase = $targetDetails['database'];
+        if ($targetDatabase === '' || ! in_array($targetDatabase, $allowedTargetDatabases, true)) {
             throw new InvalidArgumentException('Resolved target database is not on LEGACY_IMPORT_ALLOWED_TARGET_DATABASES.');
         }
 
+        if (preg_match('/(^|[_-])(prod|production)([_-]|$)/i', $sourceDetails['database'])) {
+            throw new InvalidArgumentException('Production-looking source database names are forbidden.');
+        }
         if (preg_match('/(^|[_-])(prod|production)([_-]|$)/i', $targetDatabase)) {
             throw new InvalidArgumentException('Production-looking target database names are forbidden.');
         }
 
         $sourceIdentity = strtolower($sourceDetails['host'].'/'.$sourceDetails['database']);
         $targetIdentity = strtolower($targetDetails['host'].'/'.$targetDatabase);
-
         if ($sourceIdentity === $targetIdentity) {
             throw new InvalidArgumentException('Source and target database identities must differ.');
         }
@@ -161,14 +175,14 @@ class ImportLegacyFinanceData extends Command
                 'pgsql', 'postgres', 'postgresql' => 'pgsql',
                 default => $driver,
             };
-            $host = (string) ($parts['host'] ?? $host);
+            $host = strtolower((string) ($parts['host'] ?? $host));
             $urlDatabase = rawurldecode(trim((string) ($parts['path'] ?? ''), '/'));
             if ($urlDatabase !== '') {
                 $database = $urlDatabase;
             }
         }
 
-        return ['driver' => $driver, 'host' => $host, 'database' => $database];
+        return ['driver' => $driver, 'host' => strtolower($host), 'database' => $database];
     }
 
     private function assertSchemasExist(string $sourceName, string $targetName): void
