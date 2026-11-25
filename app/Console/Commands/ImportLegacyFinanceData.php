@@ -178,7 +178,7 @@ class ImportLegacyFinanceData extends Command
                         if ($existing) {
                             if ($this->sameBusinessRecord($existing, $record)) {
                                 $this->counts[$sourceTable]['already_present']++;
-                                $this->rememberImportedReference($sourceTable, $id, $record);
+                                $this->rememberImportedReference($sourceTable, $id, $record, $target, $execute);
                                 continue;
                             }
 
@@ -190,7 +190,7 @@ class ImportLegacyFinanceData extends Command
                         }
 
                         $this->counts[$sourceTable]['imported']++;
-                        $this->rememberImportedReference($sourceTable, $id, $record);
+                        $this->rememberImportedReference($sourceTable, $id, $record, $target, $execute);
                     } catch (Throwable $exception) {
                         $this->counts[$sourceTable]['rejected']++;
                         $this->rejected[] = [
@@ -395,13 +395,17 @@ class ImportLegacyFinanceData extends Command
 
     private function matchingGoalId(Connection $target, int $userId, string $title): ?int
     {
-        $goal = $target->table('savings_goals')
+        $matches = $target->table('savings_goals')
             ->where('user_id', $userId)
             ->where('title', $title)
-            ->orderBy('id')
-            ->first();
+            ->limit(2)
+            ->get();
 
-        return $goal ? (int) $goal->id : null;
+        if ($matches->count() > 1) {
+            throw new InvalidArgumentException('Savings goal title matches multiple target goals; manual mapping is required.');
+        }
+
+        return $matches->first() ? (int) $matches->first()->id : null;
     }
 
     private function sameBusinessRecord(object $existing, array $record): bool
@@ -423,10 +427,15 @@ class ImportLegacyFinanceData extends Command
         return true;
     }
 
-    private function rememberImportedReference(string $sourceTable, int $id, array $record): void
+    private function rememberImportedReference(string $sourceTable, int $id, array $record, Connection $target, bool $execute): void
     {
         if ($sourceTable === 'users') {
             $this->knownUsers[$id] = true;
+            // User model events create this wallet for newly registered accounts.
+            // Direct, ID-preserving imports bypass Eloquent events, so reproduce it explicitly.
+            if ($execute) {
+                $this->defaultWalletId($target, $id, true);
+            }
         }
         if ($sourceTable === 'recurring_transactions') {
             $this->knownRecurring[$id] = true;
