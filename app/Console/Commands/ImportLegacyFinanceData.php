@@ -356,7 +356,7 @@ class ImportLegacyFinanceData extends Command
                 'code' => null,
                 'title' => $row->title ?? null,
                 'description' => $row->description ?? null,
-                'points' => max(0, (int) ($row->points ?? 0)),
+                'points' => $this->nonNegativeInteger($row->points ?? 0, 'points'),
                 'unlocked_at' => $row->unlocked_at ?? null,
             ] + $timestamps,
             'notifications' => [
@@ -575,6 +575,8 @@ class ImportLegacyFinanceData extends Command
             'rejected_rows' => $this->rejected,
             'unsafe_avatar_paths_omitted' => $this->unsafeAvatarPathsOmitted,
             'financial_totals_by_user' => $this->financialTotalsByUser($source, $target),
+            'monthly_category_totals' => $this->monthlyCategoryTotals($source, $target),
+            'target_integrity' => $this->targetIntegritySummary($target),
             'note' => 'Contains row IDs and financial reconciliation metadata. Keep this report private; it contains no names, emails, passwords or raw row payloads.',
         ];
 
@@ -615,6 +617,75 @@ class ImportLegacyFinanceData extends Command
         }
 
         return $totals;
+    }
+
+    private function monthlyCategoryTotals(Connection $source, Connection $target): array
+    {
+        $specifications = [
+            'income' => ['source' => 'income', 'target' => 'income', 'source_period' => "DATE_FORMAT(date, '%Y-%m')", 'target_period' => "TO_CHAR(transaction_date, 'YYYY-MM')", 'source_category' => 'source', 'target_category' => 'source'],
+            'expenses' => ['source' => 'expenses', 'target' => 'expenses', 'source_period' => "DATE_FORMAT(date, '%Y-%m')", 'target_period' => "TO_CHAR(transaction_date, 'YYYY-MM')", 'source_category' => 'category', 'target_category' => 'category'],
+            'savings' => ['source' => 'savings', 'target' => 'savings', 'source_period' => 'savings_month', 'target_period' => 'savings_month', 'source_category' => 'goal', 'target_category' => 'goal'],
+            'budgets' => ['source' => 'budget', 'target' => 'budgets', 'source_period' => 'budget_month', 'target_period' => 'budget_month', 'source_category' => 'category', 'target_category' => 'category'],
+        ];
+
+        $result = [];
+        foreach ($specifications as $name => $specification) {
+            $sourceRows = $source->table($specification['source'])
+                ->select('user_id')
+                ->selectRaw($specification['source_period'].' AS period_key')
+                ->addSelect($specification['source_category'])
+                ->selectRaw('CAST(SUM(amount) AS CHAR) AS total')
+                ->groupBy('user_id')
+                ->groupByRaw($specification['source_period'])
+                ->groupBy($specification['source_category'])
+                ->get();
+
+            $targetRows = $target->table($specification['target'])
+                ->select('user_id')
+                ->selectRaw($specification['target_period'].' AS period_key')
+                ->addSelect($specification['target_category'])
+                ->selectRaw('CAST(SUM(amount) AS TEXT) AS total')
+                ->groupBy('user_id')
+                ->groupByRaw($specification['target_period'])
+                ->groupBy($specification['target_category'])
+                ->get();
+
+            $toMap = fn ($rows, string $category): array => $rows->mapWithKeys(
+                fn (object $row): array => [
+                    (string) $row->user_id.'|'.(string) $row->period_key.'|'.(string) ($row->{$category} ?? '') => (string) $row->total,
+                ]
+            )->all();
+
+            $result[$name] = [
+                'source' => $toMap($sourceRows, $specification['source_category']),
+                'target' => $toMap($targetRows, $specification['target_category']),
+            ];
+        }
+
+        return $result;
+    }
+
+    private function targetIntegritySummary(Connection $target): array
+    {
+        $orphans = [
+            'income_user' => $target->table('income as records')->leftJoin('users', 'users.id', '=', 'records.user_id')->whereNull('users.id')->count(),
+            'expenses_user' => $target->table('expenses as records')->leftJoin('users', 'users.id', '=', 'records.user_id')->whereNull('users.id')->count(),
+            'savings_user' => $target->table('savings as records')->leftJoin('users', 'users.id', '=', 'records.user_id')->whereNull('users.id')->count(),
+            'debts_user' => $target->table('debts as records')->leftJoin('users', 'users.id', '=', 'records.user_id')->whereNull('users.id')->count(),
+            'recurring_log_user' => $target->table('recurring_log as records')->leftJoin('users', 'users.id', '=', 'records.user_id')->whereNull('users.id')->count(),
+            'recurring_log_schedule' => $target->table('recurring_log as records')->leftJoin('recurring_transactions', 'recurring_transactions.id', '=', 'records.recurring_id')->whereNull('recurring_transactions.id')->count(),
+        ];
+
+        $duplicateRecurringPeriods = $target->table('recurring_log')
+            ->select('recurring_id', 'period_key')
+            ->groupBy('recurring_id', 'period_key')
+            ->havingRaw('COUNT(*) > 1')
+            ->count();
+
+        return [
+            'foreign_key_orphan_counts' => $orphans,
+            'duplicate_recurring_period_groups' => $duplicateRecurringPeriods,
+        ];
     }
 
     private function tableSummary(): void
