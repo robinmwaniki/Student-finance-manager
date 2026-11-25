@@ -26,6 +26,7 @@ class ImportLegacyFinanceData extends Command
     private array $knownUsers = [];
     private array $knownRecurring = [];
     private array $knownGoals = [];
+    private int $unsafeAvatarPathsOmitted = 0;
 
     private const TABLES = [
         'users' => 'users',
@@ -268,12 +269,11 @@ class ImportLegacyFinanceData extends Command
                 'fullname' => $this->requiredString($row->fullname ?? null, 'fullname'),
                 'email' => $this->requiredString($row->email ?? null, 'email'),
                 'password' => $mapper->bcryptHash($row->password ?? null),
-                'points' => max(0, (int) ($row->points ?? 0)),
-                'avatar' => $row->avatar ?? null,
+                'points' => $this->nonNegativeInteger($row->points ?? 0, 'points'),
+                'avatar' => $this->safeAvatarPath($row->avatar ?? null),
                 'email_verified_at' => null,
                 'remember_token' => null,
                 'is_active' => true,
-                'theme' => null,
                 'dashboard_preferences' => null,
             ] + $timestamps,
             'income' => [
@@ -383,7 +383,7 @@ class ImportLegacyFinanceData extends Command
                 'next_due' => $mapper->date($row->next_due ?? null, true),
                 'status' => $mapper->recurringStatus($row->status ?? 'active')['status'],
                 'label' => $row->label ?? null,
-                'day_of_month' => min(31, max(1, (int) ($row->day_of_month ?? 1))),
+                'day_of_month' => $this->dayOfMonth($row->day_of_month ?? 1),
                 'active' => $mapper->recurringStatus($row->status ?? 'active')['active'] && $mapper->boolean($row->active ?? 1),
             ] + $timestamps,
             'recurring_log' => [
@@ -501,6 +501,41 @@ class ImportLegacyFinanceData extends Command
         }
     }
 
+    private function safeAvatarPath(mixed $value): ?string
+    {
+        if (! is_string($value) || trim($value) === '') {
+            return null;
+        }
+
+        $path = trim($value);
+        if (str_starts_with($path, '/') || str_contains($path, '\\\\') || preg_match('/(^|\\/)\\.\\.(\\/|$)/', $path) || preg_match('/^[a-z][a-z0-9+.-]*:/i', $path)) {
+            $this->unsafeAvatarPathsOmitted++;
+
+            return null;
+        }
+
+        return $path;
+    }
+
+    private function nonNegativeInteger(mixed $value, string $field): int
+    {
+        if (! is_numeric($value) || (string) (int) $value !== (string) $value || (int) $value < 0) {
+            throw new InvalidArgumentException("{$field} must be a non-negative integer.");
+        }
+
+        return (int) $value;
+    }
+
+    private function dayOfMonth(mixed $value): int
+    {
+        $day = $this->nonNegativeInteger($value, 'day_of_month');
+        if ($day < 1 || $day > 31) {
+            throw new InvalidArgumentException('Recurring day_of_month must be between 1 and 31.');
+        }
+
+        return $day;
+    }
+
     private function requiredString(mixed $value, string $field): string
     {
         if (! is_string($value) || trim($value) === '') {
@@ -538,6 +573,7 @@ class ImportLegacyFinanceData extends Command
             'target_connection' => $targetName,
             'tables' => $this->counts,
             'rejected_rows' => $this->rejected,
+            'unsafe_avatar_paths_omitted' => $this->unsafeAvatarPathsOmitted,
             'financial_totals_by_user' => $this->financialTotalsByUser($source, $target),
             'note' => 'Contains row IDs and financial reconciliation metadata. Keep this report private; it contains no names, emails, passwords or raw row payloads.',
         ];
