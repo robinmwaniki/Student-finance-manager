@@ -52,7 +52,7 @@ class LegacyImportSafetyTest extends TestCase
             'driver' => 'pgsql',
             'host' => 'postgres-staging-host',
             'database' => 'student_finance_staging',
-            'url' => 'postgresql://user:password@postgres.example.test/student_finance_prod',
+            'url' => 'postgresql://user:password@postgres-staging-host/student_finance_prod',
         ]);
 
         $this->artisan('finance:import-legacy')
