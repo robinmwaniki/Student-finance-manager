@@ -53,6 +53,27 @@ final class LegacyValueMapper
         return $value;
     }
 
+    public function dateTime(mixed $value, bool $nullable = false): ?string
+    {
+        if ($value === null || trim((string) $value) === '' || str_starts_with((string) $value, '0000-00-00')) {
+            if ($nullable) {
+                return null;
+            }
+
+            throw new InvalidArgumentException('A valid timestamp is required.');
+        }
+
+        $value = (string) $value;
+        foreach (['!Y-m-d H:i:s', '!Y-m-d H:i:s.u'] as $format) {
+            $dateTime = DateTimeImmutable::createFromFormat($format, $value);
+            if ($dateTime && $dateTime->format(str_contains($format, '.u') ? 'Y-m-d H:i:s.u' : 'Y-m-d H:i:s') === $value) {
+                return $dateTime->format('Y-m-d H:i:s');
+            }
+        }
+
+        throw new InvalidArgumentException('Timestamp must use a valid YYYY-MM-DD HH:MM:SS value.');
+    }
+
     public function month(mixed $value, ?string $fallbackDate = null): string
     {
         if (is_string($value) && preg_match('/^\\d{4}-(0[1-9]|1[0-2])$/', $value)) {
