@@ -14,7 +14,7 @@ class LegacyValueMapperTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->mapper = new LegacyValueMapper();
+        $this->mapper = new LegacyValueMapper;
     }
 
     public function test_amounts_are_normalized_without_float_precision_loss_in_output(): void
