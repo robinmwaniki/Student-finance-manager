@@ -166,6 +166,52 @@ class LegacyImportIntegrationTest extends TestCase
         $this->assertSame(101, $nextIncomeId);
     }
 
+
+    public function test_rejected_unique_conflict_is_reported_without_poisoning_the_import_transaction(): void
+    {
+        if (! extension_loaded('pdo_mysql') || ! config('database.connections.legacy_mysql.database')) {
+            $this->markTestSkipped('A dedicated MariaDB test connection is not configured.');
+        }
+
+        $this->app->detectEnvironment(fn (): string => 'staging');
+        $this->configureStagingAllowlist();
+        $this->reportPath = storage_path('app/private/legacy-import/integration-rejected-row.json');
+        $this->createLegacySchema();
+        $this->seedSyntheticLegacyRows();
+
+        DB::connection('legacy_mysql')->table('budget')->insert([
+            'id' => 110,
+            'user_id' => 42,
+            'category' => 'Food',
+            'amount' => '250.00',
+            'limit_amount' => '400.00',
+            'budget_month' => '2026-11',
+            'date' => '2026-11-01',
+        ]);
+
+        // The duplicate budget key is rejected, but later tables must still import.
+        $this->artisan('finance:import-legacy --execute --report=integration-rejected-row.json')
+            ->assertExitCode(1);
+
+        $report = json_decode(File::get($this->reportPath), true, flags: JSON_THROW_ON_ERROR);
+        $this->assertSame(1, $report['tables']['budget']['rejected']);
+        $this->assertSame(1, $report['tables']['budget']['imported']);
+        $this->assertDatabaseHas('recurring_log', ['id' => 109, 'period_key' => 'M:2026-11']);
+        $this->assertDatabaseCount('budgets', 1);
+
+        DB::connection('legacy_mysql')->table('budget')->where('id', 110)->delete();
+
+        // Removing the bad source row and retrying must resume without duplicates.
+        $this->artisan('finance:import-legacy --execute --report=integration-rejected-row.json')
+            ->assertExitCode(0);
+
+        $report = json_decode(File::get($this->reportPath), true, flags: JSON_THROW_ON_ERROR);
+        $this->assertSame(1, $report['tables']['budget']['already_present']);
+        $this->assertSame(1, $report['tables']['recurring_log']['already_present']);
+        $this->assertDatabaseCount('budgets', 1);
+        $this->assertDatabaseCount('recurring_log', 1);
+    }
+
     protected function tearDown(): void
     {
         if (extension_loaded('pdo_mysql') && config('database.connections.legacy_mysql.database')) {
