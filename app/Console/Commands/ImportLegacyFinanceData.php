@@ -85,7 +85,7 @@ class ImportLegacyFinanceData extends Command
                 throw $exception;
             }
 
-            $reportPath = $this->writePrivateReport($sourceName, $targetName, $execute);
+            $reportPath = $this->writePrivateReport($sourceName, $targetName, $execute, $source, $target);
             $this->tableSummary();
             $this->info(($execute ? 'Import transaction committed.' : 'Dry run completed; no target rows were written.'));
             $this->line('Private reconciliation report: '.$reportPath);
@@ -460,7 +460,7 @@ class ImportLegacyFinanceData extends Command
         }
     }
 
-    private function writePrivateReport(string $sourceName, string $targetName, bool $execute): string
+    private function writePrivateReport(string $sourceName, string $targetName, bool $execute, Connection $source, Connection $target): string
     {
         $directory = storage_path('app/private/legacy-import');
         File::ensureDirectoryExists($directory);
@@ -479,12 +479,47 @@ class ImportLegacyFinanceData extends Command
             'target_connection' => $targetName,
             'tables' => $this->counts,
             'rejected_rows' => $this->rejected,
+            'financial_totals_by_user' => $this->financialTotalsByUser($source, $target),
             'note' => 'Contains row IDs and financial reconciliation metadata. Keep this report private; it contains no names, emails, passwords or raw row payloads.',
         ];
 
         File::put($path, json_encode($payload, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR));
 
         return $path;
+    }
+
+    private function financialTotalsByUser(Connection $source, Connection $target): array
+    {
+        $totals = [];
+
+        foreach ([
+            'income' => 'income',
+            'expenses' => 'expenses',
+            'savings' => 'savings',
+            'debts' => 'debts',
+            'budget' => 'budgets',
+        ] as $sourceTable => $targetTable) {
+            $sourceRows = $source->table($sourceTable)
+                ->select('user_id')
+                ->selectRaw('CAST(SUM(amount) AS CHAR) AS total')
+                ->groupBy('user_id')
+                ->orderBy('user_id')
+                ->get();
+
+            $targetRows = $target->table($targetTable)
+                ->select('user_id')
+                ->selectRaw('CAST(SUM(amount) AS TEXT) AS total')
+                ->groupBy('user_id')
+                ->orderBy('user_id')
+                ->get();
+
+            $totals[$sourceTable] = [
+                'source' => $sourceRows->mapWithKeys(fn (object $row): array => [(string) $row->user_id => (string) $row->total])->all(),
+                'target' => $targetRows->mapWithKeys(fn (object $row): array => [(string) $row->user_id => (string) $row->total])->all(),
+            ];
+        }
+
+        return $totals;
     }
 
     private function tableSummary(): void
