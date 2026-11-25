@@ -109,31 +109,63 @@ class ImportLegacyFinanceData extends Command
             throw new InvalidArgumentException('Imports are permitted only when APP_ENV is staging.');
         }
 
-        if (($source['driver'] ?? null) !== 'mysql' || ($target['driver'] ?? null) !== 'pgsql') {
-            throw new InvalidArgumentException('The source must be MySQL/MariaDB and the target must be PostgreSQL.');
-        }
-
         if ($sourceName === $targetName) {
             throw new InvalidArgumentException('Source and target connection names must differ.');
         }
 
-        $targetDatabase = (string) ($target['database'] ?? '');
+        $sourceDetails = $this->connectionDetails($source);
+        $targetDetails = $this->connectionDetails($target);
+
+        if ($sourceDetails['driver'] !== 'mysql' || $targetDetails['driver'] !== 'pgsql') {
+            throw new InvalidArgumentException('The source must resolve to MySQL/MariaDB and the target to PostgreSQL.');
+        }
+
+        $targetDatabase = $targetDetails['database'];
         $allowed = config('legacy-import.allowed_target_databases', []);
 
         if ($targetDatabase === '' || ! in_array($targetDatabase, $allowed, true)) {
-            throw new InvalidArgumentException('Target database is not on LEGACY_IMPORT_ALLOWED_TARGET_DATABASES.');
+            throw new InvalidArgumentException('Resolved target database is not on LEGACY_IMPORT_ALLOWED_TARGET_DATABASES.');
         }
 
         if (preg_match('/(^|[_-])(prod|production)([_-]|$)/i', $targetDatabase)) {
             throw new InvalidArgumentException('Production-looking target database names are forbidden.');
         }
 
-        $sourceIdentity = strtolower(($source['host'] ?? '').'/'.($source['database'] ?? ''));
-        $targetIdentity = strtolower(($target['host'] ?? '').'/'.$targetDatabase);
+        $sourceIdentity = strtolower($sourceDetails['host'].'/'.$sourceDetails['database']);
+        $targetIdentity = strtolower($targetDetails['host'].'/'.$targetDatabase);
 
         if ($sourceIdentity === $targetIdentity) {
             throw new InvalidArgumentException('Source and target database identities must differ.');
         }
+    }
+
+    private function connectionDetails(array $config): array
+    {
+        $driver = (string) ($config['driver'] ?? '');
+        $host = (string) ($config['host'] ?? '');
+        $database = (string) ($config['database'] ?? '');
+        $url = $config['url'] ?? null;
+
+        if (is_string($url) && $url !== '') {
+            $parts = parse_url($url);
+            if ($parts === false) {
+                throw new InvalidArgumentException('A configured database URL could not be parsed safely.');
+            }
+
+            $scheme = strtolower((string) ($parts['scheme'] ?? ''));
+            $driver = match ($scheme) {
+                'mysql', 'mariadb' => 'mysql',
+                'pgsql', 'postgres', 'postgresql' => 'pgsql',
+                default => $driver,
+            };
+            $host = (string) ($parts['host'] ?? $host);
+            $urlDatabase = rawurldecode(trim((string) ($parts['path'] ?? ''), '/'));
+            if ($urlDatabase !== '') {
+                $database = $urlDatabase;
+            }
+        }
+
+        return ['driver' => $driver, 'host' => $host, 'database' => $database];
     }
 
     private function assertSchemasExist(string $sourceName, string $targetName): void
