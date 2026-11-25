@@ -1,11 +1,11 @@
 <?php
 
-namespace Tests\\Unit;
+namespace Tests\Unit;
 
-use App\\Services\\LegacyImport\\LegacyValueMapper;
+use App\Services\LegacyImport\LegacyValueMapper;
 use InvalidArgumentException;
-use PHPUnit\\Framework\\Attributes\\DataProvider;
-use PHPUnit\\Framework\\TestCase;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\TestCase;
 
 class LegacyValueMapperTest extends TestCase
 {
