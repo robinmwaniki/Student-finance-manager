@@ -13,6 +13,7 @@ class LegacyImportSafetyTest extends TestCase
             ->expectsOutputToContain('Imports are permitted only when APP_ENV is staging.')
             ->assertExitCode(1);
     }
+
     public function test_legacy_import_rejects_production_named_target_databases(): void
     {
         $this->app->detectEnvironment(fn (): string => 'staging');
