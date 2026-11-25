@@ -13,7 +13,6 @@ use Tests\TestCase;
 
 class LegacyImportIntegrationTest extends TestCase
 {
-
     use RefreshDatabase;
 
     private array $legacyTables = [
