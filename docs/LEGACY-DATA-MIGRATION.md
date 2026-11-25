@@ -94,6 +94,7 @@ Restore only into a newly created isolated MySQL/MariaDB staging database:
 
 ```bash
 gpg --decrypt --output legacy-finance.sql legacy-finance.sql.gpg
+sha256sum --check legacy-finance.sql.sha256
 mysql --host="$LEGACY_DB_HOST" --port="$LEGACY_DB_PORT" \
   --user="$LEGACY_DB_USERNAME" --password "$LEGACY_DB_DATABASE" < legacy-finance.sql
 ```
@@ -103,12 +104,16 @@ Then verify the checksum and compare source table counts with the export manifes
 ### Back up and restore PostgreSQL staging
 
 ```bash
-pg_dump --format=custom --no-owner --file=student-finance-staging.dump "$STAGING_DATABASE_URL"
+export PGHOST="$STAGING_PGHOST"
+export PGPORT="$STAGING_PGPORT"
+export PGUSER="$STAGING_PGUSER"
+export PGDATABASE="$STAGING_PGDATABASE"
+pg_dump --format=custom --no-owner --file=student-finance-staging.dump
 sha256sum student-finance-staging.dump > student-finance-staging.dump.sha256
 pg_restore --list student-finance-staging.dump
 ```
 
-For a staging restore drill, create a fresh empty staging database and restore the dump with `pg_restore --no-owner --dbname="$STAGING_DATABASE_URL" student-finance-staging.dump`. Run migrations and the synthetic/integration test suite after restore.
+For a staging restore drill, create a fresh empty staging database, set the PostgreSQL connection variables above to that isolated target, and run `pg_restore --no-owner --dbname="$PGDATABASE" student-finance-staging.dump`. Let PostgreSQL prompt for the password or use a permission-restricted `.pgpass` file; do not put a connection URL or password in command arguments. Run migrations and the synthetic/integration test suite after restore.
 
 ### Rollback
 
