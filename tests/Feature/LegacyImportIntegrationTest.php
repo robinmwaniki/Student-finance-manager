@@ -168,9 +168,9 @@ class LegacyImportIntegrationTest extends TestCase
         $target = config('database.connections.pgsql');
 
         config([
-            'legacy-import.allowed_source_hosts' => [strtolower($source['host'])],
+            'legacy-import.allowed_source_hosts' => [strtolower($source['host'].':'.$source['port'])],
             'legacy-import.allowed_source_databases' => [$source['database']],
-            'legacy-import.allowed_target_hosts' => [strtolower($target['host'])],
+            'legacy-import.allowed_target_hosts' => [strtolower($target['host'].':'.$target['port'])],
             'legacy-import.allowed_target_databases' => [$target['database']],
         ]);
 
