@@ -228,7 +228,7 @@ class ImportLegacyFinanceData extends Command
         LegacyValueMapper $mapper,
         bool $execute
     ): void {
-        $this->counts[$sourceTable] = ['source' => 0, 'imported' => 0, 'already_present' => 0, 'rejected' => 0];
+        $this->counts[$sourceTable] = ['source' => 0, 'imported' => 0, 'would_import' => 0, 'already_present' => 0, 'rejected' => 0];
 
         $source->table($sourceTable)->orderBy('id')->chunkById(
             (int) config('legacy-import.batch_size', 500),
@@ -261,9 +261,10 @@ class ImportLegacyFinanceData extends Command
 
                         if ($execute) {
                             $target->table($targetTable)->insert($record);
+                            $this->counts[$sourceTable]['imported']++;
+                        } else {
+                            $this->counts[$sourceTable]['would_import']++;
                         }
-
-                        $this->counts[$sourceTable]['imported']++;
                         $this->rememberImportedReference($sourceTable, $id, $record, $target, $execute);
                         if ($execute) {
                             $target->commit();
@@ -774,8 +775,8 @@ class ImportLegacyFinanceData extends Command
 
     private function tableSummary(): void
     {
-        $this->table(['Legacy table', 'Source', 'Imported', 'Existing', 'Rejected'], collect($this->counts)->map(
-            fn (array $count, string $table): array => [$table, $count['source'], $count['imported'], $count['already_present'], $count['rejected']]
+        $this->table(['Legacy table', 'Source', 'Imported', 'Would import', 'Existing', 'Rejected'], collect($this->counts)->map(
+            fn (array $count, string $table): array => [$table, $count['source'], $count['imported'], $count['would_import'], $count['already_present'], $count['rejected']]
         )->values()->all());
     }
 }
