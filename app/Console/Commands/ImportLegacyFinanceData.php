@@ -744,8 +744,11 @@ class ImportLegacyFinanceData extends Command
     {
         $orphans = [
             'income_user' => $target->table('income as records')->leftJoin('users', 'users.id', '=', 'records.user_id')->whereNull('users.id')->count(),
+            'income_wallet' => $target->table('income as records')->leftJoin('wallets', 'wallets.id', '=', 'records.wallet_id')->whereNotNull('records.wallet_id')->whereNull('wallets.id')->count(),
             'expenses_user' => $target->table('expenses as records')->leftJoin('users', 'users.id', '=', 'records.user_id')->whereNull('users.id')->count(),
+            'expenses_wallet' => $target->table('expenses as records')->leftJoin('wallets', 'wallets.id', '=', 'records.wallet_id')->whereNotNull('records.wallet_id')->whereNull('wallets.id')->count(),
             'savings_user' => $target->table('savings as records')->leftJoin('users', 'users.id', '=', 'records.user_id')->whereNull('users.id')->count(),
+            'savings_goal' => $target->table('savings as records')->leftJoin('savings_goals', 'savings_goals.id', '=', 'records.goal_id')->whereNotNull('records.goal_id')->whereNull('savings_goals.id')->count(),
             'debts_user' => $target->table('debts as records')->leftJoin('users', 'users.id', '=', 'records.user_id')->whereNull('users.id')->count(),
             'budgets_user' => $target->table('budgets as records')->leftJoin('users', 'users.id', '=', 'records.user_id')->whereNull('users.id')->count(),
             'savings_goals_user' => $target->table('savings_goals as records')->leftJoin('users', 'users.id', '=', 'records.user_id')->whereNull('users.id')->count(),
