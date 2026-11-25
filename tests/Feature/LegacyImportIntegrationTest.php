@@ -31,6 +31,8 @@ class LegacyImportIntegrationTest extends TestCase
 
     private string $reportPath;
 
+    private ?string $dryRunReportPath = null;
+
     public function test_synthetic_mariadb_rows_import_idempotently_into_postgresql_staging(): void
     {
         if (! extension_loaded('pdo_mysql') || ! config('database.connections.legacy_mysql.database')) {
@@ -41,6 +43,15 @@ class LegacyImportIntegrationTest extends TestCase
         $this->configureStagingAllowlist();
         $this->createLegacySchema();
         $this->seedSyntheticLegacyRows();
+
+        $this->dryRunReportPath = storage_path('app/private/legacy-import/integration-legacy-dry-run.json');
+        $this->artisan('finance:import-legacy --report=integration-legacy-dry-run.json')->assertExitCode(0);
+        $dryRunReport = json_decode(File::get($this->dryRunReportPath), true, flags: JSON_THROW_ON_ERROR);
+        $this->assertSame(1, $dryRunReport['tables']['users']['would_import']);
+        $this->assertSame(0, $dryRunReport['tables']['users']['imported']);
+        $this->assertDatabaseMissing('users', ['id' => 42]);
+        $this->assertDatabaseMissing('wallets', ['user_id' => 42]);
+        File::delete($this->dryRunReportPath);
 
         $this->artisan('finance:import-legacy --execute --report=integration-legacy-import.json')
             ->assertExitCode(0);
@@ -161,6 +172,9 @@ class LegacyImportIntegrationTest extends TestCase
 
         if (isset($this->reportPath)) {
             File::delete($this->reportPath);
+        }
+        if ($this->dryRunReportPath !== null) {
+            File::delete($this->dryRunReportPath);
         }
 
         parent::tearDown();
