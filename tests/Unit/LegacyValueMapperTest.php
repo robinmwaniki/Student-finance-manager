@@ -115,8 +115,18 @@ class LegacyValueMapperTest extends TestCase
         $this->assertSame(['status' => 'paused', 'active' => false], $this->mapper->recurringStatus('inactive'));
     }
 
-    public function test_monthly_recurring_log_key_is_frequency_neutral(): void
+    public function test_recurring_log_keys_preserve_daily_weekly_and_monthly_periods(): void
     {
-        $this->assertSame('M:2026-11', $this->mapper->recurringPeriodKey('2026-11'));
+        $appliedAt = '2026-11-25 10:30:45';
+
+        $this->assertSame('D:2026-11-25', $this->mapper->recurringPeriodKey('daily', $appliedAt, '2026-11'));
+        $this->assertSame('W:2026-W48', $this->mapper->recurringPeriodKey('weekly', $appliedAt, '2026-11'));
+        $this->assertSame('M:2026-11', $this->mapper->recurringPeriodKey('monthly', $appliedAt, '2026-11'));
+    }
+
+    public function test_unknown_recurring_frequency_is_rejected(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->mapper->recurringPeriodKey('yearly', '2026-11-25 10:30:45', '2026-11');
     }
 }
