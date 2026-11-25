@@ -107,5 +107,4 @@ class LegacyImportSafetyTest extends TestCase
             ->expectsOutputToContain('Resolved target host is not on LEGACY_IMPORT_ALLOWED_TARGET_HOSTS.')
             ->assertExitCode(1);
     }
-
 }
