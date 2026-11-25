@@ -449,10 +449,20 @@ class ImportLegacyFinanceData extends Command
 
     private function defaultWalletId(Connection $target, int $userId, bool $execute): ?int
     {
-        $wallet = $target->table('wallets')->where('user_id', $userId)->where('name', 'Main wallet')->first();
+        $wallet = $target->table('wallets')->where('user_id', $userId)->where('is_default', true)->orderBy('id')->first();
         if ($wallet) {
             return (int) $wallet->id;
         }
+
+        $mainWallet = $target->table('wallets')->where('user_id', $userId)->where('name', 'Main wallet')->first();
+        if ($mainWallet) {
+            if ($execute) {
+                $target->table('wallets')->where('id', $mainWallet->id)->update(['is_default' => true, 'updated_at' => now()]);
+            }
+
+            return (int) $mainWallet->id;
+        }
+
         if (! $execute) {
             return null;
         }
