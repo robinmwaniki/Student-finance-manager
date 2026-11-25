@@ -144,7 +144,7 @@ class LegacyImportIntegrationTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-        $this->assertGreaterThan(100, $nextIncomeId);
+        $this->assertSame(101, $nextIncomeId);
     }
 
     protected function tearDown(): void
