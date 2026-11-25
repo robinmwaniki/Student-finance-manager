@@ -133,6 +133,10 @@ class LegacyImportIntegrationTest extends TestCase
         $this->assertEquals(0.0, (float) $report['debt_outstanding_by_user']['target']['42']);
         $this->assertSame(0, $report['target_integrity']['duplicate_recurring_period_groups']);
         $this->assertSame(0, array_sum($report['target_integrity']['foreign_key_orphan_counts']));
+        $this->assertSame('100.10', $report['monthly_category_totals']['expenses']['source']['42|2026-11|Food']);
+        $this->assertSame('100.10', $report['monthly_category_totals']['expenses']['target']['42|2026-11|Food']);
+        $this->assertSame('1000.10', $report['monthly_category_totals']['income']['source']['42|2026-11|Salary']);
+        $this->assertSame('1000.10', $report['monthly_category_totals']['income']['target']['42|2026-11|Salary']);
 
         $walletId = DB::table('wallets')->where('user_id', 42)->where('is_default', true)->value('id');
         $nextIncomeId = DB::table('income')->insertGetId([
