@@ -384,7 +384,7 @@ class ImportLegacyFinanceData extends Command
                 'title' => $row->title ?? null,
                 'description' => $row->description ?? null,
                 'points' => $this->nonNegativeInteger($row->points ?? 0, 'points'),
-                'unlocked_at' => $row->unlocked_at ?? null,
+                'unlocked_at' => $mapper->dateTime($row->unlocked_at ?? null, true),
             ] + $timestamps,
             'notifications' => [
                 'id' => (int) $row->id,
@@ -393,10 +393,10 @@ class ImportLegacyFinanceData extends Command
                 'status' => in_array($row->status ?? 'unread', ['unread', 'read'], true)
                     ? ($row->status ?? 'unread') : throw new InvalidArgumentException('Notification status is not supported.'),
                 'type' => $row->type ?? 'general',
-                'created_at' => $row->created_at ?? $now,
+                'created_at' => $mapper->dateTime($row->created_at ?? null) ?? $now,
                 'updated_at' => null,
                 'deduplication_key' => null,
-                'read_at' => $row->read_at ?? null,
+                'read_at' => $mapper->dateTime($row->read_at ?? null, true),
             ],
             'recurring_transactions' => [
                 'id' => (int) $row->id,
@@ -419,7 +419,7 @@ class ImportLegacyFinanceData extends Command
                 'user_id' => (int) $row->user_id,
                 'applied_month' => $mapper->month($row->applied_month ?? null),
                 'period_key' => $mapper->recurringPeriodKey((string) $row->applied_month),
-                'applied_at' => $row->applied_at ?? $now,
+                'applied_at' => $mapper->dateTime($row->applied_at ?? null) ?? $now,
                 'income_id' => null,
                 'expense_id' => null,
             ],
