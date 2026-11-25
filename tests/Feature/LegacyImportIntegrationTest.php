@@ -217,7 +217,7 @@ class LegacyImportIntegrationTest extends TestCase
         $this->assertSame(1, $report['tables']['budget']['already_present']);
         $this->assertSame(3, $report['tables']['recurring_log']['already_present']);
         $this->assertDatabaseCount('budgets', 1);
-        $this->assertDatabaseCount('recurring_log', 1);
+        $this->assertDatabaseCount('recurring_log', 3);
     }
 
     protected function tearDown(): void
