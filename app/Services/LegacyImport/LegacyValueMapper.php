@@ -123,8 +123,25 @@ final class LegacyValueMapper
         };
     }
 
-    public function recurringPeriodKey(string $month): string
+    public function recurringPeriodKey(string $frequency, mixed $appliedAt, mixed $month): string
     {
-        return 'M:'.$this->month($month);
+        return match ($frequency) {
+            'daily' => 'D:'.substr($this->dateTime($appliedAt), 0, 10),
+            'weekly' => 'W:'.$this->isoWeek($appliedAt),
+            'monthly' => 'M:'.$this->month($month),
+            default => throw new InvalidArgumentException('Recurring frequency cannot be converted to a period key.'),
+        };
+    }
+
+    private function isoWeek(mixed $appliedAt): string
+    {
+        $timestamp = $this->dateTime($appliedAt);
+        $date = DateTimeImmutable::createFromFormat('!Y-m-d H:i:s', $timestamp);
+
+        if (! $date) {
+            throw new InvalidArgumentException('A valid applied_at timestamp is required for weekly recurring history.');
+        }
+
+        return $date->format('o-\\WW');
     }
 }
