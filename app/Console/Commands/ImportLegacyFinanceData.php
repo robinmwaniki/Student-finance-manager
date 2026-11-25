@@ -170,6 +170,11 @@ class ImportLegacyFinanceData extends Command
         $driver = (string) ($config['driver'] ?? '');
         $host = (string) ($config['host'] ?? '');
         $database = (string) ($config['database'] ?? '');
+        $port = (string) ($config['port'] ?? match ($driver) {
+            'mysql' => '3306',
+            'pgsql' => '5432',
+            default => '',
+        });
         $url = $config['url'] ?? null;
 
         if (is_string($url) && $url !== '') {
@@ -185,13 +190,16 @@ class ImportLegacyFinanceData extends Command
                 default => $driver,
             };
             $host = strtolower((string) ($parts['host'] ?? $host));
+            $port = (string) ($parts['port'] ?? $port);
             $urlDatabase = rawurldecode(trim((string) ($parts['path'] ?? ''), '/'));
             if ($urlDatabase !== '') {
                 $database = $urlDatabase;
             }
         }
 
-        return ['driver' => $driver, 'host' => strtolower($host), 'database' => $database];
+        $endpoint = strtolower($host.($port !== '' ? ':'.$port : ''));
+
+        return ['driver' => $driver, 'host' => $endpoint, 'database' => $database];
     }
 
     private function assertSchemasExist(string $sourceName, string $targetName): void
