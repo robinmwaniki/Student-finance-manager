@@ -16,9 +16,9 @@ class LegacyImportSafetyTest extends TestCase
     public function test_legacy_import_rejects_production_named_target_databases(): void
     {
         $this->app->detectEnvironment(fn (): string => 'staging');
-        Config::set('legacy-import.allowed_source_hosts', ['legacy-staging-host']);
+        Config::set('legacy-import.allowed_source_hosts', ['legacy-staging-host:3306']);
         Config::set('legacy-import.allowed_source_databases', ['legacy_finance']);
-        Config::set('legacy-import.allowed_target_hosts', ['postgres-staging-host']);
+        Config::set('legacy-import.allowed_target_hosts', ['postgres-staging-host:5432']);
         Config::set('legacy-import.allowed_target_databases', ['student_finance_prod']);
         Config::set('database.connections.legacy_mysql', [
             'driver' => 'mysql',
@@ -39,9 +39,9 @@ class LegacyImportSafetyTest extends TestCase
     public function test_target_database_url_cannot_override_the_staging_allowlist(): void
     {
         $this->app->detectEnvironment(fn (): string => 'staging');
-        Config::set('legacy-import.allowed_source_hosts', ['legacy-staging-host']);
+        Config::set('legacy-import.allowed_source_hosts', ['legacy-staging-host:3306']);
         Config::set('legacy-import.allowed_source_databases', ['legacy_finance']);
-        Config::set('legacy-import.allowed_target_hosts', ['postgres-staging-host']);
+        Config::set('legacy-import.allowed_target_hosts', ['postgres-staging-host:5432']);
         Config::set('legacy-import.allowed_target_databases', ['student_finance_staging']);
         Config::set('database.connections.legacy_mysql', [
             'driver' => 'mysql',
@@ -63,9 +63,9 @@ class LegacyImportSafetyTest extends TestCase
     public function test_legacy_import_rejects_a_source_host_outside_the_staging_allowlist(): void
     {
         $this->app->detectEnvironment(fn (): string => 'staging');
-        Config::set('legacy-import.allowed_source_hosts', ['legacy-staging-host']);
+        Config::set('legacy-import.allowed_source_hosts', ['legacy-staging-host:3306']);
         Config::set('legacy-import.allowed_source_databases', ['legacy_finance']);
-        Config::set('legacy-import.allowed_target_hosts', ['postgres-staging-host']);
+        Config::set('legacy-import.allowed_target_hosts', ['postgres-staging-host:5432']);
         Config::set('legacy-import.allowed_target_databases', ['student_finance_staging']);
         Config::set('database.connections.legacy_mysql', [
             'driver' => 'mysql',
@@ -86,9 +86,9 @@ class LegacyImportSafetyTest extends TestCase
     public function test_target_database_url_cannot_override_the_allowlisted_staging_host(): void
     {
         $this->app->detectEnvironment(fn (): string => 'staging');
-        Config::set('legacy-import.allowed_source_hosts', ['legacy-staging-host']);
+        Config::set('legacy-import.allowed_source_hosts', ['legacy-staging-host:3306']);
         Config::set('legacy-import.allowed_source_databases', ['legacy_finance']);
-        Config::set('legacy-import.allowed_target_hosts', ['postgres-staging-host']);
+        Config::set('legacy-import.allowed_target_hosts', ['postgres-staging-host:5432']);
         Config::set('legacy-import.allowed_target_databases', ['student_finance_staging']);
         Config::set('database.connections.legacy_mysql', [
             'driver' => 'mysql',
