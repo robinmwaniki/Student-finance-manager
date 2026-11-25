@@ -26,6 +26,8 @@ class ImportLegacyFinanceData extends Command
     private array $knownUsers = [];
     private array $knownRecurring = [];
     private array $knownGoals = [];
+    private array $conflictedUsers = [];
+    private array $conflictedGoals = [];
     private int $unsafeAvatarPathsOmitted = 0;
 
     private const TABLES = [
@@ -236,6 +238,12 @@ class ImportLegacyFinanceData extends Command
                             $target->commit();
                         }
                     } catch (Throwable $exception) {
+                        if ($sourceTable === 'users') {
+                            $this->conflictedUsers[$id] = true;
+                        }
+                        if ($sourceTable === 'savings_goals' && isset($row->user_id, $row->title)) {
+                            $this->conflictedGoals[(int) $row->user_id.'|'.(string) $row->title] = true;
+                        }
                         if ($execute && $target->transactionLevel() > 1) {
                             $target->rollBack();
                         }
@@ -404,6 +412,9 @@ class ImportLegacyFinanceData extends Command
     {
         if (isset($record['user_id'])) {
             $userId = (int) $record['user_id'];
+            if (isset($this->conflictedUsers[$userId])) {
+                throw new InvalidArgumentException('Owner row was rejected; dependent records cannot be attached to an unverified account.');
+            }
             if (! isset($this->knownUsers[$userId]) && ! $target->table('users')->where('id', $userId)->exists()) {
                 throw new InvalidArgumentException('Owner reference does not exist in the target or imported users.');
             }
@@ -442,6 +453,9 @@ class ImportLegacyFinanceData extends Command
     private function matchingGoalId(Connection $target, int $userId, string $title): ?int
     {
         $key = $userId.'|'.$title;
+        if (isset($this->conflictedGoals[$key])) {
+            throw new InvalidArgumentException('Matching savings goal was rejected; contribution cannot be linked safely.');
+        }
         if (isset($this->knownGoals[$key])) {
             if (count($this->knownGoals[$key]) > 1) {
                 throw new InvalidArgumentException('Savings goal title matches multiple imported goals; manual mapping is required.');
