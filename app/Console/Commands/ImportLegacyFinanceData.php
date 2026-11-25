@@ -608,6 +608,7 @@ class ImportLegacyFinanceData extends Command
             'rejected_rows' => $this->rejected,
             'unsafe_avatar_paths_omitted' => $this->unsafeAvatarPathsOmitted,
             'financial_totals_by_user' => $this->financialTotalsByUser($source, $target),
+            'debt_outstanding_by_user' => $this->debtOutstandingByUser($source, $target),
             'monthly_category_totals' => $this->monthlyCategoryTotals($source, $target),
             'target_integrity' => $this->targetIntegritySummary($target),
             'note' => 'Contains row IDs and financial reconciliation metadata. Keep this report private; it contains no names, emails, passwords or raw row payloads.',
@@ -651,6 +652,28 @@ class ImportLegacyFinanceData extends Command
         }
 
         return $totals;
+    }
+
+    private function debtOutstandingByUser(Connection $source, Connection $target): array
+    {
+        $sourceRows = $source->table('debts')
+            ->select('user_id')
+            ->selectRaw("CAST(SUM(CASE WHEN status = 'paid' THEN 0 ELSE amount END) AS CHAR) AS outstanding")
+            ->groupBy('user_id')
+            ->orderBy('user_id')
+            ->get();
+
+        $targetRows = $target->table('debts')
+            ->select('debts.user_id')
+            ->selectRaw("CAST(SUM(CASE WHEN debts.status = 'paid' THEN 0 ELSE GREATEST(debts.amount - COALESCE((SELECT SUM(repayments.amount) FROM debt_repayments AS repayments WHERE repayments.debt_id = debts.id), 0), 0) END) AS TEXT) AS outstanding")
+            ->groupBy('debts.user_id')
+            ->orderBy('debts.user_id')
+            ->get();
+
+        return [
+            'source' => $sourceRows->mapWithKeys(fn (object $row): array => [(string) $row->user_id => (string) $row->outstanding])->all(),
+            'target' => $targetRows->mapWithKeys(fn (object $row): array => [(string) $row->user_id => (string) $row->outstanding])->all(),
+        ];
     }
 
     private function monthlyCategoryTotals(Connection $source, Connection $target): array
