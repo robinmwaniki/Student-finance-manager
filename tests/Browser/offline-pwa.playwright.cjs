@@ -282,9 +282,9 @@ async function outboxCount(page) {
         const pendingList = offlineRegion.getByRole('list', { name: 'Pending offline transactions' });
         assert.equal(await pendingList.getByRole('listitem').count(), 1,
             'queued transactions must be exposed as a list item');
-        assert.equal(await pendingList.getByRole('button', { name: 'Edit pending income: Playwright Offline Income' }).count(), 1,
+        assert.equal(await pendingList.getByRole('button', { name: 'Edit pending income: Income · Playwright Offline Income' }).count(), 1,
             'edit action must have a transaction-specific accessible name');
-        assert.equal(await pendingList.getByRole('button', { name: 'Discard pending income: Playwright Offline Income' }).count(), 1,
+        assert.equal(await pendingList.getByRole('button', { name: 'Discard pending income: Income · Playwright Offline Income' }).count(), 1,
             'discard action must have a transaction-specific accessible name');
         assert.equal(await offlineRegion.getByRole('button', { name: 'Synchronise pending transactions' }).count(), 1,
             'manual sync action must have an explicit accessible name');
