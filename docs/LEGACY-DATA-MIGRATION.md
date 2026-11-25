@@ -31,7 +31,7 @@ This document defines the controlled migration path from the original procedural
 ## Compatibility decisions
 
 - Legacy debt type `owed` maps to target `lent`; `borrowed` remains `borrowed`. Legacy recurring status `inactive` maps to target `paused` plus `active=false`.
-- Legacy monthly recurring-log rows receive the frequency-neutral target key `M:YYYY-MM`; the target unique constraint prevents duplicate periods.
+- Legacy recurring-log rows receive frequency-specific target keys: `D:YYYY-MM-DD` for daily schedules and `W:YYYY-Www` (ISO week) for weekly schedules, both derived from `applied_at`; monthly schedules use `M:YYYY-MM` from `applied_month`. The target unique constraint prevents duplicate periods.
 - Income and expense rows are assigned to each imported user's default KES `Main wallet`, matching the wallet provisioned for newly registered accounts.
 - Legacy `bill_reminders`, `financial_notes`, quiz history and reset tokens are not part of issue #66's import scope. They remain in the untouched source and require a separately reviewed mapping before any later migration.
 
