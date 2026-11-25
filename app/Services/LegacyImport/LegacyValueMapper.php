@@ -1,6 +1,6 @@
 <?php
 
-namespace App\\Services\\LegacyImport;
+namespace App\Services\LegacyImport;
 
 use DateTimeImmutable;
 use InvalidArgumentException;
