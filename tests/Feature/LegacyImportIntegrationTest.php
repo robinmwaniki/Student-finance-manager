@@ -114,6 +114,14 @@ class LegacyImportIntegrationTest extends TestCase
             'id' => 109,
             'period_key' => 'M:2026-11',
         ]);
+        $this->assertDatabaseHas('recurring_log', [
+            'id' => 112,
+            'period_key' => 'D:2026-11-25',
+        ]);
+        $this->assertDatabaseHas('recurring_log', [
+            'id' => 114,
+            'period_key' => 'W:2026-W48',
+        ]);
         $this->assertDatabaseHas('wallets', [
             'user_id' => 42,
             'name' => 'Main wallet',
@@ -134,7 +142,7 @@ class LegacyImportIntegrationTest extends TestCase
         $this->assertDatabaseCount('savings_goals', 1);
         $this->assertDatabaseCount('achievements', 1);
         $this->assertDatabaseCount('user_notifications', 1);
-        $this->assertDatabaseCount('recurring_log', 1);
+        $this->assertDatabaseCount('recurring_log', 3);
 
         $report = json_decode(File::get($this->reportPath), true, flags: JSON_THROW_ON_ERROR);
         $this->assertSame(1, $report['tables']['income']['already_present']);
@@ -207,7 +215,7 @@ class LegacyImportIntegrationTest extends TestCase
 
         $report = json_decode(File::get($this->reportPath), true, flags: JSON_THROW_ON_ERROR);
         $this->assertSame(1, $report['tables']['budget']['already_present']);
-        $this->assertSame(1, $report['tables']['recurring_log']['already_present']);
+        $this->assertSame(3, $report['tables']['recurring_log']['already_present']);
         $this->assertDatabaseCount('budgets', 1);
         $this->assertDatabaseCount('recurring_log', 1);
     }
@@ -414,9 +422,20 @@ class LegacyImportIntegrationTest extends TestCase
             'type' => 'expense', 'frequency' => 'monthly', 'next_due' => '2026-12-01',
             'status' => 'inactive', 'label' => 'Synthetic utility', 'day_of_month' => 1, 'active' => 0,
         ]);
+        $source->table('recurring_transactions')->insert([
+            'id' => 111, 'user_id' => 42, 'category' => 'Daily test', 'amount' => '5.00',
+            'type' => 'expense', 'frequency' => 'daily', 'next_due' => '2026-11-26',
+            'status' => 'active', 'label' => 'Daily synthetic', 'day_of_month' => 1, 'active' => 1,
+        ]);
+        $source->table('recurring_transactions')->insert([
+            'id' => 113, 'user_id' => 42, 'category' => 'Weekly test', 'amount' => '15.00',
+            'type' => 'income', 'frequency' => 'weekly', 'next_due' => '2026-12-02',
+            'status' => 'active', 'label' => 'Weekly synthetic', 'day_of_month' => 1, 'active' => 1,
+        ]);
         $source->table('recurring_log')->insert([
-            'id' => 109, 'recurring_id' => 108, 'user_id' => 42,
-            'applied_month' => '2026-11', 'applied_at' => $now,
+            ['id' => 109, 'recurring_id' => 108, 'user_id' => 42, 'applied_month' => '2026-11', 'applied_at' => $now],
+            ['id' => 112, 'recurring_id' => 111, 'user_id' => 42, 'applied_month' => '2026-11', 'applied_at' => '2026-11-25 10:30:45'],
+            ['id' => 114, 'recurring_id' => 113, 'user_id' => 42, 'applied_month' => '2026-11', 'applied_at' => '2026-11-25 10:30:45'],
         ]);
     }
 }
