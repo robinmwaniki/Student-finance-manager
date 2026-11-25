@@ -46,6 +46,15 @@ class ImportLegacyFinanceData extends Command
 
     public function handle(LegacyValueMapper $mapper): int
     {
+        $this->counts = [];
+        $this->rejected = [];
+        $this->knownUsers = [];
+        $this->knownRecurring = [];
+        $this->knownGoals = [];
+        $this->conflictedUsers = [];
+        $this->conflictedGoals = [];
+        $this->unsafeAvatarPathsOmitted = 0;
+
         $sourceName = $this->option('source') ?: config('legacy-import.source_connection');
         $targetName = $this->option('target') ?: config('legacy-import.target_connection');
         $execute = (bool) $this->option('execute');
