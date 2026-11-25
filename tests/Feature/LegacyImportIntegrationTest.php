@@ -28,9 +28,7 @@ class LegacyImportIntegrationTest extends TestCase
         'income',
         'users',
     ];
-
     private string $reportPath;
-
     private ?string $dryRunReportPath = null;
 
     public function test_synthetic_mariadb_rows_import_idempotently_into_postgresql_staging(): void
