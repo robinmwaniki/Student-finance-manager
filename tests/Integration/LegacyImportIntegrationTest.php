@@ -1,14 +1,14 @@
 <?php
 
-namespace Tests\\Feature;
+namespace Tests\Feature;
 
-use App\\Models\\Debt;
-use Illuminate\\Database\\Schema\\Blueprint;
-use Illuminate\\Foundation\\Testing\\RefreshDatabase;
-use Illuminate\\Support\\Facades\\DB;
-use Illuminate\\Support\\Facades\\File;
-use Illuminate\\Support\\Facades\\Schema;
-use Tests\\TestCase;
+use App\Models\Debt;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Schema;
+use Tests\TestCase;
 
 class LegacyImportIntegrationTest extends TestCase
 {
@@ -106,7 +106,7 @@ class LegacyImportIntegrationTest extends TestCase
 
     protected function tearDown(): void
     {
-        if (config('database.connections.legacy_mysql.database')) {
+        if (extension_loaded('pdo_mysql') && config('database.connections.legacy_mysql.database')) {
             foreach ($this->legacyTables as $table) {
                 Schema::connection('legacy_mysql')->dropIfExists($table);
             }
@@ -137,6 +137,9 @@ class LegacyImportIntegrationTest extends TestCase
     private function createLegacySchema(): void
     {
         $schema = Schema::connection('legacy_mysql');
+        foreach ($this->legacyTables as $table) {
+            $schema->dropIfExists($table);
+        }
 
         $schema->create('users', function (Blueprint $table): void {
             $table->increments('id');
