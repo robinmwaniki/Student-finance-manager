@@ -47,7 +47,7 @@ This document defines the controlled migration path from the original procedural
 
 The `finance:import-legacy` Artisan command is dry-run by default. It reads from the named MySQL/MariaDB connection in a read-only transaction and writes only to a PostgreSQL connection when `--execute` is explicitly supplied. It refuses to run unless `APP_ENV=staging`, the target database name exactly matches `LEGACY_IMPORT_ALLOWED_TARGET_DATABASES`, the source driver is MySQL/MariaDB, and the target driver is PostgreSQL. Production-looking target database names are rejected. The original source is never updated.
 
-Configure `LEGACY_DB_HOST`, `LEGACY_DB_PORT`, `LEGACY_DB_DATABASE`, `LEGACY_DB_USERNAME` and `LEGACY_DB_PASSWORD` in the staging secret store. Configure `LEGACY_IMPORT_ALLOWED_TARGET_DATABASES` with the exact isolated PostgreSQL staging database name. Do not place real credentials in `.env.example`, source control or chat logs.
+Configure `LEGACY_DB_HOST`, `LEGACY_DB_PORT`, `LEGACY_DB_DATABASE`, `LEGACY_DB_USERNAME` and `LEGACY_DB_PASSWORD` in the staging secret store. Configure the four `LEGACY_IMPORT_ALLOWED_*` variables with exact hostnames and database names for the restored MySQL/MariaDB source and isolated PostgreSQL target. Keep the allowlists narrow and do not use wildcards. Do not place real credentials in `.env.example`, source control or chat logs.
 
 Run the preflight/dry run first:
 
