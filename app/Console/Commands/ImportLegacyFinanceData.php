@@ -557,7 +557,7 @@ class ImportLegacyFinanceData extends Command
     private function writePrivateReport(string $sourceName, string $targetName, bool $execute, Connection $source, Connection $target): string
     {
         $directory = storage_path('app/private/legacy-import');
-        File::ensureDirectoryExists($directory);
+        File::ensureDirectoryExists($directory, 0700, true);
 
         $filename = $this->option('report') ?: 'legacy-import-'.now()->format('Ymd-His').'.json';
         $filename = basename($filename);
@@ -581,6 +581,7 @@ class ImportLegacyFinanceData extends Command
         ];
 
         File::put($path, json_encode($payload, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR));
+        @chmod($path, 0600);
 
         return $path;
     }
@@ -672,6 +673,11 @@ class ImportLegacyFinanceData extends Command
             'expenses_user' => $target->table('expenses as records')->leftJoin('users', 'users.id', '=', 'records.user_id')->whereNull('users.id')->count(),
             'savings_user' => $target->table('savings as records')->leftJoin('users', 'users.id', '=', 'records.user_id')->whereNull('users.id')->count(),
             'debts_user' => $target->table('debts as records')->leftJoin('users', 'users.id', '=', 'records.user_id')->whereNull('users.id')->count(),
+            'budgets_user' => $target->table('budgets as records')->leftJoin('users', 'users.id', '=', 'records.user_id')->whereNull('users.id')->count(),
+            'savings_goals_user' => $target->table('savings_goals as records')->leftJoin('users', 'users.id', '=', 'records.user_id')->whereNull('users.id')->count(),
+            'user_notifications_user' => $target->table('user_notifications as records')->leftJoin('users', 'users.id', '=', 'records.user_id')->whereNull('users.id')->count(),
+            'recurring_transactions_user' => $target->table('recurring_transactions as records')->leftJoin('users', 'users.id', '=', 'records.user_id')->whereNull('users.id')->count(),
+            'achievements_user' => $target->table('achievements as records')->leftJoin('users', 'users.id', '=', 'records.user_id')->whereNotNull('records.user_id')->whereNull('users.id')->count(),
             'recurring_log_user' => $target->table('recurring_log as records')->leftJoin('users', 'users.id', '=', 'records.user_id')->whereNull('users.id')->count(),
             'recurring_log_schedule' => $target->table('recurring_log as records')->leftJoin('recurring_transactions', 'recurring_transactions.id', '=', 'records.recurring_id')->whereNull('recurring_transactions.id')->count(),
         ];
@@ -680,6 +686,7 @@ class ImportLegacyFinanceData extends Command
             ->select('recurring_id', 'period_key')
             ->groupBy('recurring_id', 'period_key')
             ->havingRaw('COUNT(*) > 1')
+            ->get()
             ->count();
 
         return [
