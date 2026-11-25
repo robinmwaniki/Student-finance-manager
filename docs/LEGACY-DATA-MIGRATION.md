@@ -83,14 +83,22 @@ Use a dedicated staging database and separate credentials. The following command
 ### Capture and verify the legacy source backup
 
 ```bash
-mysqldump --host="$LEGACY_DB_HOST" --port="$LEGACY_DB_PORT" \
-  --user="$LEGACY_DB_USERNAME" --single-transaction --routines --triggers \
-  --hex-blob --databases "$LEGACY_DB_DATABASE" > legacy-finance.sql
+mysqldump --host="$ORIGINAL_MYSQL_HOST" --port="$ORIGINAL_MYSQL_PORT" \
+  --user="$ORIGINAL_MYSQL_USERNAME" --password --single-transaction --routines --triggers \
+  --hex-blob --databases "$ORIGINAL_MYSQL_DATABASE" > legacy-finance.sql
 sha256sum legacy-finance.sql > legacy-finance.sql.sha256
 gpg --symmetric --cipher-algo AES256 --output legacy-finance.sql.gpg legacy-finance.sql
 ```
 
-Restore only into a newly created isolated MySQL/MariaDB staging database, then verify the checksum and compare source table counts with the export manifest. Keep the original database read-only during the final snapshot and do not restore over it.
+Restore only into a newly created isolated MySQL/MariaDB staging database:
+
+```bash
+gpg --decrypt --output legacy-finance.sql legacy-finance.sql.gpg
+mysql --host="$LEGACY_DB_HOST" --port="$LEGACY_DB_PORT" \
+  --user="$LEGACY_DB_USERNAME" --password "$LEGACY_DB_DATABASE" < legacy-finance.sql
+```
+
+Then verify the checksum and compare source table counts with the export manifest. Keep the original database read-only during the final snapshot and do not restore over it.
 
 ### Back up and restore PostgreSQL staging
 
