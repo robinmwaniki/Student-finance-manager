@@ -21,6 +21,7 @@ class LegacyValueMapperTest extends TestCase
     {
         $this->assertSame('1200.30', $this->mapper->amount('1200.3'));
         $this->assertSame('0.10', $this->mapper->amount('0.10'));
+        $this->assertSame('999999999999.99', $this->mapper->amount('999999999999.99'));
     }
 
     public function test_invalid_or_negative_amounts_are_rejected(): void
