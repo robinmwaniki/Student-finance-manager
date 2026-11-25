@@ -263,6 +263,7 @@ class ImportLegacyFinanceData extends Command
                                 if ($execute) {
                                     $target->commit();
                                 }
+
                                 continue;
                             }
 
