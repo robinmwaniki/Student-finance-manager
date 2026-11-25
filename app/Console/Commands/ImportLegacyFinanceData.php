@@ -627,6 +627,8 @@ class ImportLegacyFinanceData extends Command
             'rejected_rows' => $this->rejected,
             'unsafe_avatar_paths_omitted' => $this->unsafeAvatarPathsOmitted,
             'financial_totals_by_user' => $this->financialTotalsByUser($source, $target),
+            'budget_limit_totals_by_user' => $this->budgetLimitTotalsByUser($source, $target),
+            'budget_limit_monthly_category_totals' => $this->budgetLimitMonthlyCategoryTotals($source, $target),
             'debt_outstanding_by_user' => $this->debtOutstandingByUser($source, $target),
             'monthly_category_totals' => $this->monthlyCategoryTotals($source, $target),
             'target_integrity' => $this->targetIntegritySummary($target),
@@ -671,6 +673,51 @@ class ImportLegacyFinanceData extends Command
         }
 
         return $totals;
+    }
+
+    private function budgetLimitTotalsByUser(Connection $source, Connection $target): array
+    {
+        $sourceRows = $source->table('budget')
+            ->select('user_id')
+            ->selectRaw('CAST(COALESCE(SUM(limit_amount), 0) AS CHAR) AS total')
+            ->groupBy('user_id')
+            ->orderBy('user_id')
+            ->get();
+
+        $targetRows = $target->table('budgets')
+            ->select('user_id')
+            ->selectRaw('CAST(COALESCE(SUM(limit_amount), 0) AS TEXT) AS total')
+            ->groupBy('user_id')
+            ->orderBy('user_id')
+            ->get();
+
+        return [
+            'source' => $sourceRows->mapWithKeys(fn (object $row): array => [(string) $row->user_id => (string) $row->total])->all(),
+            'target' => $targetRows->mapWithKeys(fn (object $row): array => [(string) $row->user_id => (string) $row->total])->all(),
+        ];
+    }
+
+    private function budgetLimitMonthlyCategoryTotals(Connection $source, Connection $target): array
+    {
+        $sourceRows = $source->table('budget')
+            ->select('user_id', 'budget_month', 'category')
+            ->selectRaw('CAST(COALESCE(SUM(limit_amount), 0) AS CHAR) AS total')
+            ->groupBy('user_id', 'budget_month', 'category')
+            ->get();
+
+        $targetRows = $target->table('budgets')
+            ->select('user_id', 'budget_month', 'category')
+            ->selectRaw('CAST(COALESCE(SUM(limit_amount), 0) AS TEXT) AS total')
+            ->groupBy('user_id', 'budget_month', 'category')
+            ->get();
+
+        $toMap = fn ($rows): array => $rows->mapWithKeys(
+            fn (object $row): array => [
+                (string) $row->user_id.'|'.(string) $row->budget_month.'|'.(string) $row->category => (string) $row->total,
+            ]
+        )->all();
+
+        return ['source' => $toMap($sourceRows), 'target' => $toMap($targetRows)];
     }
 
     private function debtOutstandingByUser(Connection $source, Connection $target): array
