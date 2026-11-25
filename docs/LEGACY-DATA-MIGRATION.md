@@ -89,4 +89,4 @@ The execute mode is transactional on PostgreSQL, preserves IDs, treats identical
 - [ ] Authentication, exports, charts and recurring processing pass tests.
 - [ ] Rollback procedure tested before cutover.
 
-The importer is implemented as a guarded Artisan command. The first implementation reports per-table row counts, rejected IDs and per-user financial totals. Monthly/category reconciliation, a restore-tested backup drill, and a staging integration run remain required before issue #66 can be closed.
+The importer is implemented as a guarded Artisan command. Its private report includes per-table row counts, rejected row IDs, per-user financial totals, monthly/category aggregates, target foreign-key orphan counts and recurring-period duplicate groups. A real isolated-staging run must still verify those figures against the fresh restored snapshot; the backup/restore and rollback drill and database integration tests remain required before issue #66 can be closed.
