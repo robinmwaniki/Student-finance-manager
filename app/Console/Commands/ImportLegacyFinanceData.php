@@ -28,6 +28,7 @@ class ImportLegacyFinanceData extends Command
     private array $knownGoals = [];
     private array $conflictedUsers = [];
     private array $conflictedGoals = [];
+    private array $conflictedRecurring = [];
     private int $unsafeAvatarPathsOmitted = 0;
 
     private const TABLES = [
@@ -53,6 +54,7 @@ class ImportLegacyFinanceData extends Command
         $this->knownGoals = [];
         $this->conflictedUsers = [];
         $this->conflictedGoals = [];
+        $this->conflictedRecurring = [];
         $this->unsafeAvatarPathsOmitted = 0;
 
         $sourceName = $this->option('source') ?: config('legacy-import.source_connection');
@@ -276,6 +278,9 @@ class ImportLegacyFinanceData extends Command
                         if ($sourceTable === 'savings_goals' && isset($row->user_id, $row->title)) {
                             $this->conflictedGoals[(int) $row->user_id.'|'.(string) $row->title] = true;
                         }
+                        if ($sourceTable === 'recurring_transactions') {
+                            $this->conflictedRecurring[$id] = true;
+                        }
                         if ($execute && $target->transactionLevel() > 1) {
                             $target->rollBack();
                         }
@@ -422,18 +427,39 @@ class ImportLegacyFinanceData extends Command
                 'day_of_month' => $this->dayOfMonth($row->day_of_month ?? 1),
                 'active' => $mapper->recurringStatus($row->status ?? 'active')['active'] && $mapper->boolean($row->active ?? 1),
             ] + $timestamps,
-            'recurring_log' => [
-                'id' => (int) $row->id,
-                'recurring_id' => (int) $row->recurring_id,
-                'user_id' => (int) $row->user_id,
-                'applied_month' => $mapper->month($row->applied_month ?? null),
-                'period_key' => $mapper->recurringPeriodKey((string) $row->applied_month),
-                'applied_at' => $mapper->dateTime($row->applied_at ?? null) ?? $now,
-                'income_id' => null,
-                'expense_id' => null,
-            ],
+            'recurring_log' => $this->mapRecurringLog($row, $mapper),
             default => throw new InvalidArgumentException('No mapping exists for this legacy table.'),
         };
+    }
+
+    private function mapRecurringLog(object $row, LegacyValueMapper $mapper): array
+    {
+        $recurringId = (int) $row->recurring_id;
+        if (isset($this->conflictedRecurring[$recurringId]) || ! isset($this->knownRecurring[$recurringId])) {
+            throw new InvalidArgumentException('Recurring transaction was not imported or verified.');
+        }
+
+        $userId = (int) $row->user_id;
+        if ((int) $this->knownRecurring[$recurringId]['user_id'] !== $userId) {
+            throw new InvalidArgumentException('Recurring log owner does not match its schedule owner.');
+        }
+
+        $appliedAt = $mapper->dateTime($row->applied_at ?? null);
+
+        return [
+            'id' => (int) $row->id,
+            'recurring_id' => $recurringId,
+            'user_id' => $userId,
+            'applied_month' => $mapper->month($row->applied_month ?? null),
+            'period_key' => $mapper->recurringPeriodKey(
+                $this->knownRecurring[$recurringId]['frequency'],
+                $appliedAt,
+                $row->applied_month ?? null
+            ),
+            'applied_at' => $appliedAt,
+            'income_id' => null,
+            'expense_id' => null,
+        ];
     }
 
     private function assertReferences(string $sourceTable, array $record, Connection $target): void
@@ -450,8 +476,11 @@ class ImportLegacyFinanceData extends Command
 
         if ($sourceTable === 'recurring_log') {
             $recurringId = (int) $record['recurring_id'];
-            if (! isset($this->knownRecurring[$recurringId]) && ! $target->table('recurring_transactions')->where('id', $recurringId)->exists()) {
-                throw new InvalidArgumentException('Recurring transaction reference does not exist.');
+            if (isset($this->conflictedRecurring[$recurringId]) || ! isset($this->knownRecurring[$recurringId])) {
+                throw new InvalidArgumentException('Recurring transaction was not imported or verified.');
+            }
+            if ((int) $this->knownRecurring[$recurringId]['user_id'] !== (int) $record['user_id']) {
+                throw new InvalidArgumentException('Recurring log owner does not match its schedule owner.');
             }
         }
     }
@@ -545,7 +574,10 @@ class ImportLegacyFinanceData extends Command
             }
         }
         if ($sourceTable === 'recurring_transactions') {
-            $this->knownRecurring[$id] = true;
+            $this->knownRecurring[$id] = [
+                'frequency' => (string) $record['frequency'],
+                'user_id' => (int) $record['user_id'],
+            ];
         }
         if ($sourceTable === 'savings_goals') {
             $key = (int) $record['user_id'].'|'.$record['title'];
