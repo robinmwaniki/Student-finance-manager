@@ -279,10 +279,6 @@ class ImportLegacyFinanceData extends Command
                 'password' => $mapper->bcryptHash($row->password ?? null),
                 'points' => $this->nonNegativeInteger($row->points ?? 0, 'points'),
                 'avatar' => $this->safeAvatarPath($row->avatar ?? null),
-                'email_verified_at' => null,
-                'remember_token' => null,
-                'is_active' => true,
-                'dashboard_preferences' => null,
             ] + $timestamps,
             'income' => [
                 'id' => (int) $row->id,
