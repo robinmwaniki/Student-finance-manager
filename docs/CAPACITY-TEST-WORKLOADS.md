@@ -22,7 +22,7 @@ This guide defines a safe, repeatable k6 workload for the Student Finance Manage
 
 The wallet-transfer workload exercises the authenticated transfer endpoint and its transaction/locking path. It creates staging ledger entries; use a dedicated account and clean up only the test records after the run. It does not exercise income/expense creation, imports, exports, recurring schedule processing, or external providers. Those require separately designed test data and idempotency controls.
 
-Each VU has its own k6 cookie jar and authenticated session. VUs represent active test clients, not necessarily one million simultaneously connected humans. Record achieved VUs, iterations, request rate, and in-flight requests separately.
+Each VU has its own k6 cookie jar and authenticates once, then reuses that session across iterations. It logs in again only after an authenticated request indicates that the session has expired or become invalid. This avoids accidentally turning every workload iteration into a new login storm. VUs represent active test clients, not necessarily one million simultaneously connected humans. Record achieved VUs, iterations, request rate, and in-flight requests separately.
 
 ## Setup
 
