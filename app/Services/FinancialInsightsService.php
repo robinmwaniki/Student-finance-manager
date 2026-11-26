@@ -18,7 +18,7 @@ class FinancialInsightsService
         $start = $today->startOfMonth()->toDateString();
         $end = $today->toDateString();
         $previousStart = $today->subMonthNoOverflow()->startOfMonth()->toDateString();
-        $previousEnd = $today->subMonthNoOverflow()->endOfMonth()->min($today->subDay())->toDateString();
+        $previousEnd = $today->subMonthNoOverflow()->toDateString();
 
         $income = (float) $user->income()->whereBetween('transaction_date', [$start, $end])->sum('amount');
         $expenses = (float) $user->expenses()->whereBetween('transaction_date', [$start, $end])->sum('amount');
@@ -30,14 +30,13 @@ class FinancialInsightsService
             ->selectRaw('category, SUM(amount) as total')
             ->groupBy('category')
             ->orderByDesc('total')
-            ->limit(5)
             ->get();
 
         $topCategories = $byCategory->map(fn ($row): array => [
             'category' => (string) $row->category,
             'amount' => (float) $row->total,
             'share' => $expenses > 0 ? round(((float) $row->total / $expenses) * 100, 1) : 0.0,
-        ])->all();
+        ])->take(5)->all();
 
         $recommendations = [];
         if ($income <= 0 && $expenses > 0) {
