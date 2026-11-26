@@ -2,7 +2,7 @@
 
 namespace Tests\Unit;
 
-use PHPUnit\Framework\TestCase;
+use Tests\TestCase;
 
 class LegacySchemaFixtureTest extends TestCase
 {
@@ -12,7 +12,7 @@ class LegacySchemaFixtureTest extends TestCase
 
         $this->assertIsString($fixture);
         $this->assertStringNotContainsString('INSERT INTO', strtoupper($fixture));
-        $this->assertStringNotContainsString('@gmail.com', $fixture);
+        $this->assertDoesNotMatchRegularExpression('/@[a-z0-9.-]+\\.[a-z]{2,}/i', $fixture);
         $this->assertDoesNotMatchRegularExpression('/\\$2[aby]\\$\\d+\\$/', $fixture);
 
         preg_match_all('/CREATE TABLE \x60([^\x60]+)\x60/i', $fixture, $matches);
