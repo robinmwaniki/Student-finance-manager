@@ -33,13 +33,13 @@ class MpesaSmsImportTest extends TestCase
     public function test_duplicate_receipt_lines_are_ignored_and_unknown_messages_are_skipped(): void
     {
         $message = 'QHX123ABC4 Confirmed. Ksh100.00 paid to Merchant on 26/11/26 at 10:15 AM.';
-        $rows = app(MpesaSmsParser::class)->parse($message."\n".$message."\nNot an M-PESA transaction.", 42);
+        $rows = app(MpesaSmsParser::class)->parseMany($message."\n".$message."\nNot an M-PESA transaction.", 42);
 
         $this->assertCount(1, $rows);
         $this->assertSame('expense', $rows[0]['type']);
         $this->assertSame('100.00', $rows[0]['amount']);
-        $this->assertSame('Bills and payments', $rows[0]['category']);
-        $this->assertSame($rows[0]['submission_token'], app(MpesaSmsParser::class)->parse($message, 42)[0]['submission_token']);
+        $this->assertSame('M-Pesa', $rows[0]['category']);
+        $this->assertSame($rows[0]['submission_token'], app(MpesaSmsParser::class)->parseMany($message, 42)[0]['submission_token']);
     }
 
     public function test_unrecognised_sms_does_not_write_financial_records(): void
