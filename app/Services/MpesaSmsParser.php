@@ -17,7 +17,7 @@ class MpesaSmsParser
         $message = trim(preg_replace('/\s+/', ' ', $message) ?? '');
         if ($message === '' || mb_strlen($message) > 3000
             || preg_match('/\b(reversed|received|you have received|credited to your account|deposit|withdrawal|fuliza)\b/i', $message)
-            || ! preg_match('/\b(sent to|paid to|buy goods(?: from| at)?|paybill|till(?: number)?|purchase)\b/i', $message)
+            || !preg_match('/\b(sent to|paid to|buy goods(?: from| at)?|paybill|till(?: number)?|purchase)\b/i', $message)
             || ! preg_match('/\b(?:Ksh|KES)\s*([0-9][0-9,]*(?:\.\d{1,2})?)/i', $message, $amountMatch)) {
             return null;
         }
@@ -70,7 +70,7 @@ class MpesaSmsParser
                 continue;
             }
 
-            if (! preg_match('/\b(?:Ksh|KES)\s*([0-9][0-9,]*(?:\.\d{1,2})?)/i', $line, $amountMatch)) continue;
+            if (!preg_match('/\b(?:Ksh|KES)\s*([0-9][0-9,]*(?:\.\d{1,2})?)/i', $line, $amountMatch)) continue;
             $amount = (float) str_replace(',', '', $amountMatch[1]);
             if ($amount <= 0 || $amount > 999999999999) {
                 continue;
