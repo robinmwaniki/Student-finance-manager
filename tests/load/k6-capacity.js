@@ -63,6 +63,7 @@ assertSafeTarget();
 
 const EMAIL = __ENV.TEST_EMAIL || '';
 const PASSWORD = __ENV.TEST_PASSWORD || '';
+let authenticated = false;
 if (!EMAIL || !PASSWORD) {
     throw new Error('Set TEST_EMAIL and TEST_PASSWORD for a dedicated synthetic account.');
 }
@@ -111,8 +112,17 @@ function authenticatedPage(path) {
     });
     const ok = response.status === 200
         && response.url.endsWith(path)
-        && ![302, 401, 403, 419].includes(response.status);
+        && ![302, 401, 403, 419].includes(response.status)
+        && (path !== '/dashboard' || String(response.body).includes('Financial overview'));
+
+    if (!ok) {
+        authenticated = false;
+    } else {
+        authenticated = true;
+    }
+
     check(response, { [path + ' returns authenticated HTTP 200']: () => ok });
+
     return response;
 }
 
@@ -141,7 +151,7 @@ function login() {
     }
 
     const dashboard = authenticatedPage('/dashboard');
-    if (dashboard.status !== 200) {
+    if (dashboard.status !== 200 || !authenticated) {
         throw new Error('Synthetic account did not reach the authenticated dashboard.');
     }
 }
@@ -190,8 +200,18 @@ function walletTransfer() {
 }
 
 export default function () {
-    login();
+    // k6 maintains an isolated cookie jar per VU. Authenticate once and keep
+    // the session alive across iterations to model connected users rather
+    // than generating a fresh login storm on every request cycle.
+    if (!authenticated) {
+        login();
+    }
+
     dashboardRead();
+    if (!authenticated) {
+        sleep(THINK_TIME);
+        return;
+    }
 
     if (MODE === 'mixed') {
         const path = READ_PATHS[Math.floor(Math.random() * READ_PATHS.length)];
