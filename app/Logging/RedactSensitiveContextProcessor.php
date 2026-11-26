@@ -9,7 +9,7 @@ use Monolog\Processor\ProcessorInterface;
 /**
  * Applies the same redaction policy to Monolog 3 context and extra fields.
  */
-final class RedactSensitiveContextProcessor implements \Monolog\Processor\ProcessorInterface
+final class RedactSensitiveContextProcessor implements ProcessorInterface
 {
     public function __invoke(LogRecord $record): LogRecord
     {
