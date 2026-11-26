@@ -38,6 +38,18 @@
 </section>
 
 <section class="card" style="margin-bottom:18px">
+    <h2 class="section-heading">Additional personalized tips</h2>
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px">
+        @foreach($tips as $tip)
+            <article style="border:1px solid #e8edf4;border-radius:11px;padding:14px">
+                <strong style="font-size:13px">{{ $tip['title'] }}</strong>
+                <p class="muted" style="font-size:11px;line-height:1.7;margin:8px 0 0">{{ $tip['detail'] }}</p>
+            </article>
+        @endforeach
+    </div>
+</section>
+
+<section class="card" style="margin-bottom:18px">
     <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap">
         <div><div class="eyebrow">Optional AI provider</div><h2 class="section-heading" style="margin:6px 0 0">Ask a money question</h2></div>
         <span style="font-size:11px;color:{{ $providerAvailable ? '#16835b' : '#8490a3' }};font-weight:700">{{ $providerAvailable ? $providerLabel.' connected' : 'AI provider not configured' }}</span>
