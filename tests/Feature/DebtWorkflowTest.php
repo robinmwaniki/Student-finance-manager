@@ -180,6 +180,19 @@ class DebtWorkflowTest extends TestCase
         $this->assertDatabaseCount('debts', 0);
     }
 
+    public function test_paid_debt_has_no_outstanding_balance_without_repayment_rows(): void
+    {
+        $user = $this->makeUser();
+        $debt = $user->debts()->create([
+            'description' => 'Legacy settled debt',
+            'amount' => '1250.00',
+            'type' => 'borrowed',
+            'status' => 'paid',
+        ]);
+
+        $this->assertSame(0, $debt->fresh()->outstandingBalanceCents());
+    }
+
     private function makeUser(string $email = 'debt@example.test'): User
     {
         static $counter = 0;

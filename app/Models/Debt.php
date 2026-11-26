@@ -39,6 +39,10 @@ class Debt extends Model
 
     public function outstandingBalanceCents(): int
     {
+        if ($this->status === 'paid') {
+            return 0;
+        }
+
         $toCents = static function (string $amount): int {
             [$whole, $fraction] = array_pad(explode('.', $amount, 2), 2, '0');
 

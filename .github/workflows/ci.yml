@@ -35,6 +35,20 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+      mariadb:
+        image: mariadb:10.11
+        env:
+          MARIADB_DATABASE: legacy_finance_test
+          MARIADB_USER: legacy_finance
+          MARIADB_PASSWORD: legacy_finance_test_password
+          MARIADB_ROOT_PASSWORD: legacy_finance_root_password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "healthcheck.sh --connect --innodb_initialized"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
       redis:
         image: redis:7-alpine
         ports:
@@ -54,7 +68,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.5'
-          extensions: ctype, curl, dom, fileinfo, filter, hash, mbstring, openssl, pcre, pdo, pdo_pgsql, redis, session, tokenizer, xml
+          extensions: ctype, curl, dom, fileinfo, filter, hash, mbstring, openssl, pcre, pdo, pdo_mysql, pdo_pgsql, redis, session, tokenizer, xml
           coverage: none
           tools: composer:v2
 
@@ -109,6 +123,17 @@ jobs:
           REDIS_CACHE_DB: 1
           REDIS_SESSION_DB: 2
           REDIS_QUEUE_DB: 3
+          LEGACY_DB_HOST: 127.0.0.1
+          LEGACY_DB_PORT: 3306
+          LEGACY_DB_DATABASE: legacy_finance_test
+          LEGACY_DB_USERNAME: legacy_finance
+          LEGACY_DB_PASSWORD: legacy_finance_test_password
+          LEGACY_IMPORT_SOURCE_CONNECTION: legacy_mysql
+          LEGACY_IMPORT_TARGET_CONNECTION: pgsql
+          LEGACY_IMPORT_ALLOWED_SOURCE_HOSTS: 127.0.0.1:3306
+          LEGACY_IMPORT_ALLOWED_SOURCE_DATABASES: legacy_finance_test
+          LEGACY_IMPORT_ALLOWED_TARGET_HOSTS: 127.0.0.1:5432
+          LEGACY_IMPORT_ALLOWED_TARGET_DATABASES: student_finance_test
 
       - name: Set up Node.js for browser policy tests
         uses: actions/setup-node@v4

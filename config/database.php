@@ -12,6 +12,14 @@ return [
             'busy_timeout' => null, 'journal_mode' => null, 'synchronous' => null,
             'transaction_mode' => 'DEFERRED',
         ],
+        'legacy_mysql' => [
+            'driver' => 'mysql', 'url' => env('LEGACY_DB_URL'),
+            'host' => env('LEGACY_DB_HOST', '127.0.0.1'), 'port' => env('LEGACY_DB_PORT', '3306'),
+            'database' => env('LEGACY_DB_DATABASE', ''), 'username' => env('LEGACY_DB_USERNAME', ''),
+            'password' => env('LEGACY_DB_PASSWORD', ''), 'unix_socket' => env('LEGACY_DB_SOCKET', ''),
+            'charset' => 'utf8mb4', 'collation' => 'utf8mb4_unicode_ci', 'prefix' => '',
+            'prefix_indexes' => true, 'strict' => true, 'engine' => null,
+        ],
         'pgsql' => [
             'driver' => 'pgsql', 'url' => env('DB_URL'),
             'host' => env('DB_HOST', '127.0.0.1'), 'port' => env('DB_PORT', '5432'),
