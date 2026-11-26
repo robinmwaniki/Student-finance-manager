@@ -78,8 +78,10 @@ class DashboardAnalyticsTest extends TestCase
         $groupedQueries = [];
 
         DB::listen(function ($query) use (&$groupedQueries): void {
-            if (str_contains($query->sql, "to_char(transaction_date, 'YYYY-MM')")
-                || (str_contains($query->sql, 'budget_month') && str_contains($query->sql, 'GROUP BY'))) {
+            $sql = strtoupper($query->sql);
+
+            if (str_contains($sql, "TO_CHAR(TRANSACTION_DATE, 'YYYY-MM')")
+                || (str_contains($sql, 'BUDGET_MONTH') && str_contains($sql, 'GROUP BY'))) {
                 $groupedQueries[] = $query->sql;
             }
         });
