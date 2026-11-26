@@ -54,16 +54,29 @@ class TransactionImportController extends Controller
             'incomeCount' => count(array_filter($rows, fn ($row) => $row['type'] === 'income')),
             'expenseCount' => count(array_filter($rows, fn ($row) => $row['type'] === 'expense')),
             'total' => array_sum(array_map(fn ($row) => (float) $row['amount'], $rows)),
+            'categories' => ['Food & Groceries', 'Transport', 'Housing', 'Utilities', 'Airtime & Data', 'Health', 'Education', 'Entertainment', 'Shopping', 'Debt & Loans', 'Other'],
         ]);
     }
 
     public function confirm(Request $request, string $batch): RedirectResponse
     {
+        $request->validate([
+            'categories' => ['nullable', 'array'],
+            'categories.*' => ['nullable', 'string', 'max:50'],
+        ]);
+
         $data = $request->session()->get(self::SESSION_PREFIX.$batch);
         abort_unless(is_array($data) && (int) ($data['user_id'] ?? 0) === $request->user()->id, 404);
         abort_if(now()->timestamp - (int) ($data['created_at'] ?? 0) > 1800, 410, 'This import preview has expired.');
         $rows = $data['rows'] ?? [];
         abort_if($rows === [], 422, 'There are no transactions to import.');
+        foreach ($rows as $index => &$row) {
+            if ($row['type'] === 'expense' && isset($request->input('categories', [])[$index])) {
+                $row['category'] = trim($request->input('categories')[$index]);
+            }
+        }
+        unset($row);
+
         DB::transaction(function () use ($request, $rows): void {
             foreach ($rows as $row) {
                 if ($row['type'] === 'income') {
