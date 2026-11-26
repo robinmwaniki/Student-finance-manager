@@ -89,7 +89,7 @@ class TransactionImportTest extends TestCase
         $previewUrl = $response->headers->get('Location');
         $this->assertNotNull($previewUrl);
         $this->get($previewUrl)->assertOk()
-            ->assertSee('Food &amp; Groceries')
+            ->assertSee('Food & Groceries')
             ->assertSee('Naivas Supermarket')
             ->assertSee('Salary payment');
 
