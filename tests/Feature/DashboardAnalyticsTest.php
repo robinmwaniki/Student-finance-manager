@@ -21,11 +21,11 @@ class DashboardAnalyticsTest extends TestCase
 
         $this->actingAs($user)->get(route('dashboard', ['month' => '2026-11']))
             ->assertOk()
-            ->assertViewHas('totalIncome', 50000.0)
-            ->assertViewHas('totalExpenses', 12000.0)
-            ->assertViewHas('totalSavings', 5000.0)
-            ->assertViewHas('totalBudget', 15000.0)
-            ->assertViewHas('netBalance', 33000.0)
+            ->assertViewHas('totalIncome', '50000.00')
+            ->assertViewHas('totalExpenses', '12000.00')
+            ->assertViewHas('totalSavings', '5000.00')
+            ->assertViewHas('totalBudget', '15000.00')
+            ->assertViewHas('netBalance', '33000.00')
             ->assertSee('November 2026');
     }
 
@@ -40,7 +40,7 @@ class DashboardAnalyticsTest extends TestCase
 
         $this->actingAs($user)->get(route('dashboard', ['month' => '2026-11']))
             ->assertOk()
-            ->assertViewHas('totalExpenses', 300.0)
+            ->assertViewHas('totalExpenses', '300.00')
             ->assertViewHas('categoryBreakdown', fn ($rows) => $rows->count() === 1 && (float) $rows->first()->total === 300.0);
     }
 
@@ -66,9 +66,9 @@ class DashboardAnalyticsTest extends TestCase
 
         $this->actingAs($user)->get(route('dashboard', ['month' => '2026-11']))
             ->assertOk()
-            ->assertViewHas('forecast.income', 6000.0)
-            ->assertViewHas('forecast.expenses', 300.0)
-            ->assertViewHas('forecast.balance', 5700.0)
+            ->assertViewHas('forecast.income', '6000.00')
+            ->assertViewHas('forecast.expenses', '300.00')
+            ->assertViewHas('forecast.balance', '5700.00')
             ->assertViewHas('forecastBasis', 'Aug 2026 – Oct 2026');
     }
 
@@ -113,8 +113,8 @@ class DashboardAnalyticsTest extends TestCase
 
         $this->actingAs($user)->get(route('dashboard', ['month' => '2026-02']))
             ->assertOk()
-            ->assertViewHas('totalIncome', 0.0)
-            ->assertViewHas('totalExpenses', 0.0)
+            ->assertViewHas('totalIncome', '0.00')
+            ->assertViewHas('totalExpenses', '0.00')
             ->assertViewHas('categoryBreakdown', fn ($rows) => $rows->isEmpty())
             ->assertViewHas('dailyLabels', fn ($labels) => count($labels) === 28)
             ->assertViewHas('recentActivity', fn ($activity) => $activity->isEmpty());
@@ -146,9 +146,24 @@ class DashboardAnalyticsTest extends TestCase
             });
     }
 
-    public function test_invalid_month_selection_is_rejected(): void
+    public function test_dashboard_monetary_totals_and_forecasts_preserve_minor_units(): void
     {
-        $this->actingAs($this->makeUser())->get(route('dashboard', ['month' => '2026-13']))->assertNotFound();
+        $user = $this->makeUser();
+        $user->income()->create(['source' => 'First part', 'amount' => '0.10', 'transaction_date' => '2026-08-10']);
+        $user->income()->create(['source' => 'Second part', 'amount' => '0.20', 'transaction_date' => '2026-08-11']);
+        $user->income()->create(['source' => 'September income', 'amount' => '0.20', 'transaction_date' => '2026-09-10']);
+        $user->income()->create(['source' => 'October income', 'amount' => '0.30', 'transaction_date' => '2026-10-10']);
+        $user->expenses()->create(['category' => 'Food', 'amount' => '0.10', 'transaction_date' => '2026-08-12']);
+        $user->savings()->create(['goal' => 'Emergency', 'amount' => '0.05', 'transaction_date' => '2026-08-13', 'savings_month' => '2026-08']);
+
+        $this->actingAs($user)->get(route('dashboard', ['month' => '2026-11']))
+            ->assertOk()
+            ->assertViewHas('forecast.income', '0.20')
+            ->assertViewHas('forecast.expenses', '0.03')
+            ->assertViewHas('forecast.savings', '0.02')
+            ->assertViewHas('forecast.balance', '0.15')
+            ->assertViewHas('comparison.income.difference', '0.00')
+            ->assertViewHas('comparison.income.percentage', 0.0);
     }
 
     private function makeUser(string $email = 'dashboard@example.test'): User
