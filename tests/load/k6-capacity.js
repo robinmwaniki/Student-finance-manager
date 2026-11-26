@@ -154,34 +154,38 @@ function walletTransfer() {
     const page = authenticatedPage('/wallets');
     if (page.status !== 200) return;
 
+    const csrf = extract(/name="csrf-token" content="([^"]+)"/, page.body, 'CSRF token');
     const token = extract(/name="submission_token" value="([^"]+)"/, page.body, 'wallet transfer submission token');
     const date = extract(/name="transfer_date"[^>]*value="([^"]+)"/, page.body, 'wallet transfer date');
+    const note = 'k6 synthetic capacity test VU ' + __VU + ' iteration ' + __ITER;
     const response = http.post(BASE_URL + '/wallets/transfers', {
+        _token: csrf,
         submission_token: token,
         from_wallet_id: FROM_WALLET_ID,
         to_wallet_id: TO_WALLET_ID,
         amount: TRANSFER_AMOUNT,
         transfer_date: date,
-        note: 'k6 synthetic capacity test',
+        note,
     }, {
         redirects: 0,
         headers: { Accept: 'text/html' },
         tags: { endpoint: '/wallets/transfers', operation: 'synthetic-transfer' },
     });
 
-    // Laravel redirects after a successful HTML form submission. Validation
-    // redirects (also 302) are not distinguishable by status alone, so verify
-    // the subsequent wallet page still loads and inspect the flash text.
+    // Laravel redirects after successful HTML form submissions. Verify the
+    // unique note appears in the transfer history so a validation redirect
+    // cannot be mistaken for a successful write.
     const redirected = [302, 303].includes(response.status);
-    check(response, {
-        'wallet transfer form accepted': result => redirected,
-    });
     const refreshed = http.get(BASE_URL + '/wallets', {
         redirects: 0,
         tags: { endpoint: '/wallets', operation: 'verify-transfer-page' },
     });
+    const transferVisible = refreshed.status === 200 && String(refreshed.body).includes(note);
+    check(response, {
+        'wallet transfer form redirects after submission': () => redirected,
+    });
     check(refreshed, {
-        'wallet page remains available after transfer attempt': result => result.status === 200,
+        'synthetic transfer appears in wallet history': () => transferVisible,
     });
 }
 
