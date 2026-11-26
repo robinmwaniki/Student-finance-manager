@@ -28,7 +28,7 @@ The canonical script is `tests/load/k6-capacity.js`.
 | Mode | Behavior | Writes |
 |---|---|---|
 | `read-only` | Authenticates each VU, reads the dashboard, then idles for the configured think time | None |
-| `mixed` | Reads the dashboard and one randomly selected reports, ledger, wallet, budget, savings, debt, recurring or notifications page | None |
+| `mixed` | Reads the dashboard and one randomly selected reports, wallets, budgets, savings, debts, recurring or notifications page | None |
 | `wallet-transfer` | Reads the dashboard and wallet page, submits a small transfer, then verifies its unique note appears in wallet history | Synthetic wallet transfer per iteration |
 
 Each VU uses its own k6 cookie jar and reuses its authenticated session across iterations. It re-authenticates only after an authenticated request fails. The dashboard check requires the expected authenticated-page marker; a login redirect or login page must not count as a successful dashboard read.
