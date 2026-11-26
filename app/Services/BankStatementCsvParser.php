@@ -118,7 +118,7 @@ class BankStatementCsvParser
         foreach ($headers as $index => $header) {
             $header = preg_replace('/^\xEF\xBB\xBF/', '', (string) $header) ?? (string) $header;
             $normalised = $this->normaliseHeader($header);
-            if (isset($aliases[$normalised]) && ! isset($columns[$aliases[$normalised]])) {
+            if (isset($aliases[$normalised]) && !isset($columns[$aliases[$normalised]])) {
                 $columns[$aliases[$normalised]] = $index;
             }
         }
