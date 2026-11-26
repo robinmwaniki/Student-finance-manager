@@ -17,7 +17,7 @@ This guide defines a safe, repeatable k6 workload for the Student Finance Manage
 | Mode | Requests | Writes |
 |---|---|---|
 | `read-only` | Login once per VU, dashboard, then idle/think time | None |
-| `mixed` | Login, dashboard, and one randomly selected report/ledger/wallet/budget/savings/debt/recurring/notification page per iteration | None |
+| `mixed` | Login, dashboard, and one randomly selected reports/wallets/budgets/savings/debts/recurring/notifications page per iteration | None |
 | `wallet-transfer` | Login and dashboard, then wallet page | One small transfer between two synthetic wallets per iteration |
 
 The wallet-transfer workload exercises the authenticated transfer endpoint and its transaction/locking path. It creates staging ledger entries; use a dedicated account and clean up only the test records after the run. It does not exercise income/expense creation, imports, exports, recurring schedule processing, or external providers. Those require separately designed test data and idempotency controls.
