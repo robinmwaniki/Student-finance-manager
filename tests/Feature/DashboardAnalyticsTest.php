@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class DashboardAnalyticsTest extends TestCase
@@ -69,6 +70,25 @@ class DashboardAnalyticsTest extends TestCase
             ->assertViewHas('forecast.expenses', 300.0)
             ->assertViewHas('forecast.balance', 5700.0)
             ->assertViewHas('forecastBasis', 'Aug 2026 – Oct 2026');
+    }
+
+    public function test_monthly_summaries_use_four_grouped_queries_for_five_months(): void
+    {
+        $user = $this->makeUser();
+        $groupedQueries = [];
+
+        DB::listen(function ($query) use (&$groupedQueries): void {
+            $sql = strtoupper($query->sql);
+
+            if (str_contains($sql, "TO_CHAR(TRANSACTION_DATE, 'YYYY-MM')")
+                || (str_contains($sql, 'BUDGET_MONTH') && str_contains($sql, 'GROUP BY'))) {
+                $groupedQueries[] = $query->sql;
+            }
+        });
+
+        $this->actingAs($user)->get(route('dashboard', ['month' => '2026-11']))->assertOk();
+
+        $this->assertCount(4, $groupedQueries, 'The current, previous and forecast month totals should use four grouped aggregate queries.');
     }
 
     public function test_budget_alerts_include_near_limit_and_over_budget_categories(): void

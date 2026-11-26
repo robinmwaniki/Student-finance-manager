@@ -24,14 +24,17 @@ class DashboardController extends Controller
         $monthStart = CarbonImmutable::parse($month.'-01')->startOfMonth();
         $monthEnd = $monthStart->endOfMonth();
         $previousStart = $monthStart->subMonth()->startOfMonth();
-        $previousEnd = $previousStart->endOfMonth();
 
-        $current = $this->totals($user, $monthStart, $monthEnd);
-        $previous = $this->totals($user, $previousStart, $previousEnd);
+        // Load current, previous and three forecast months with four grouped
+        // aggregates instead of issuing four SUM queries for each month.
+        $monthlyTotals = $this->monthlyTotals($user, $monthStart->subMonths(4)->startOfMonth(), $monthEnd);
+        $current = $monthlyTotals[$month] ?? $this->emptyTotals();
+        $previous = $monthlyTotals[$previousStart->format('Y-m')] ?? $this->emptyTotals();
+
         $forecastMonths = [];
         for ($offset = 3; $offset >= 1; $offset--) {
-            $periodStart = $monthStart->subMonths($offset)->startOfMonth();
-            $forecastMonths[] = $this->totals($user, $periodStart, $periodStart->endOfMonth());
+            $period = $monthStart->subMonths($offset)->format('Y-m');
+            $forecastMonths[] = $monthlyTotals[$period] ?? $this->emptyTotals();
         }
         $forecast = [];
         foreach (['income', 'expenses', 'savings', 'budget', 'balance'] as $metric) {
@@ -126,21 +129,66 @@ class DashboardController extends Controller
         return $series;
     }
 
-    private function totals($user, CarbonImmutable $start, CarbonImmutable $end): array
+    /**
+     * Return per-month financial totals for the requested range. The three
+     * transaction tables and budgets are each scanned by one grouped query.
+     */
+    private function monthlyTotals($user, CarbonImmutable $start, CarbonImmutable $end): array
     {
+        $totals = [];
+        for ($month = $start->startOfMonth(); $month <= $end; $month = $month->addMonth()) {
+            $totals[$month->format('Y-m')] = $this->emptyTotals();
+        }
+
         $from = $start->toDateString();
         $to = $end->toDateString();
-        $income = (float) $user->income()->whereBetween('transaction_date', [$from, $to])->sum('amount');
-        $expenses = (float) $user->expenses()->whereBetween('transaction_date', [$from, $to])->sum('amount');
-        $savings = (float) $user->savings()->whereBetween('transaction_date', [$from, $to])->sum('amount');
-        $budget = (float) $user->budgets()->where('budget_month', $start->format('Y-m'))->sum('amount');
 
+        foreach ([
+            'income' => $user->income(),
+            'expenses' => $user->expenses(),
+            'savings' => $user->savings(),
+        ] as $metric => $query) {
+            $rows = $query
+                ->whereBetween('transaction_date', [$from, $to])
+                ->selectRaw("to_char(transaction_date, 'YYYY-MM') AS month, SUM(amount) AS total")
+                ->groupByRaw("to_char(transaction_date, 'YYYY-MM')")
+                ->get();
+
+            foreach ($rows as $row) {
+                if (array_key_exists($row->month, $totals)) {
+                    $totals[$row->month][$metric] = (float) $row->total;
+                }
+            }
+        }
+
+        $budgetRows = $user->budgets()
+            ->whereBetween('budget_month', [array_key_first($totals), array_key_last($totals)])
+            ->selectRaw('budget_month AS month, SUM(amount) AS total')
+            ->groupBy('budget_month')
+            ->get();
+
+        foreach ($budgetRows as $row) {
+            if (array_key_exists($row->month, $totals)) {
+                $totals[$row->month]['budget'] = (float) $row->total;
+            }
+        }
+
+        foreach ($totals as &$monthTotals) {
+            $monthTotals['balance'] = $monthTotals['income'] - $monthTotals['expenses'] - $monthTotals['savings'];
+        }
+        unset($monthTotals);
+
+        return $totals;
+    }
+
+    private function emptyTotals(): array
+    {
         return [
-            'income' => $income,
-            'expenses' => $expenses,
-            'savings' => $savings,
-            'budget' => $budget,
-            'balance' => $income - $expenses - $savings,
+            'income' => 0.0,
+            'expenses' => 0.0,
+            'savings' => 0.0,
+            'budget' => 0.0,
+            'balance' => 0.0,
         ];
     }
 
