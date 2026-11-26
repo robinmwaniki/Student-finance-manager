@@ -88,7 +88,7 @@ class TransactionImportController extends Controller
                 if ($description === '' || mb_strlen($description) > ($type === 'income' ? 100 : 50)) {
                     throw ValidationException::withMessages(['file' => "Row {$line}: description is required and must fit the selected transaction type."]);
                 }
-                if (! preg_match('/^\\d{1,12}(?:\\.\\d{1,2})?$/', $amount) || (float) $amount <= 0) {
+                if (preg_match('/^\\d{1,12}(?:\\.\\d{1,2})?$/', $amount) === 0 || (float) $amount <= 0) {
                     throw ValidationException::withMessages(['file' => "Row {$line}: amount must be positive with at most two decimal places."]);
                 }
                 $category = trim($record['category'] ?? '');
