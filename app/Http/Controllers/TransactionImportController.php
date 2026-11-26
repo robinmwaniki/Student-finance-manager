@@ -29,7 +29,7 @@ class TransactionImportController extends Controller
         ]);
 
         $rows = $request->filled('mpesa_sms')
-            ? $parser->parse($request->string('mpesa_sms')->toString(), $request->user()->id)
+            ? $parser->parseMany($request->string('mpesa_sms')->toString(), $request->user()->id)
             : $this->parseCsv($request->file('file')->getRealPath());
 
         $batch = (string) Str::uuid();
