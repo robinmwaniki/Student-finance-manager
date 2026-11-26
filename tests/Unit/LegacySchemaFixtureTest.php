@@ -1,8 +1,8 @@
 <?php
 
-namespace Tests\\Unit;
+namespace Tests\Unit;
 
-use PHPUnit\\Framework\\TestCase;
+use PHPUnit\Framework\TestCase;
 
 class LegacySchemaFixtureTest extends TestCase
 {
@@ -15,7 +15,7 @@ class LegacySchemaFixtureTest extends TestCase
         $this->assertStringNotContainsString('@gmail.com', $fixture);
         $this->assertDoesNotMatchRegularExpression('/\\$2[aby]\\$\\d+\\$/', $fixture);
 
-        preg_match_all('/CREATE TABLE \`([^\\`]+)\\`/i', $fixture, $matches);
+        preg_match_all('/CREATE TABLE \x60([^\x60]+)\x60/i', $fixture, $matches);
 
         $this->assertEqualsCanonicalizing([
             'achievements',
