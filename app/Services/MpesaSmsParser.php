@@ -18,7 +18,7 @@ class MpesaSmsParser
         if ($message === '' || mb_strlen($message) > 3000
             || preg_match('/\b(reversed|received|you have received|credited to your account|deposit|withdrawal|fuliza)\b/i', $message)
             || !preg_match('/\b(sent to|paid to|buy goods(?: from| at)?|paybill|till(?: number)?|purchase)\b/i', $message)
-            || ! preg_match('/\b(?:Ksh|KES)\s*([0-9][0-9,]*(?:\.\d{1,2})?)/i', $message, $amountMatch)) {
+            || !preg_match('/\b(?:Ksh|KES)\s*([0-9][0-9,]*(?:\.\d{1,2})?)/i', $message, $amountMatch)) {
             return null;
         }
 
@@ -61,7 +61,7 @@ class MpesaSmsParser
         foreach (preg_split('/\r\n|\r|\n/', trim($messages)) ?: [] as $line) {
             $line = trim($line);
             if ($line === '' || mb_strlen($line) > 3000
-                || ! preg_match('/^([A-Z0-9]{8,12})\s+Confirmed\b/i', $line, $referenceMatch)) {
+                || !preg_match('/^([A-Z0-9]{8,12})\s+Confirmed\b/i', $line, $referenceMatch)) {
                 continue;
             }
 
@@ -123,7 +123,7 @@ class MpesaSmsParser
 
     private function extractDate(string $message): ?string
     {
-        if (! preg_match('/\bon\s+(\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4})/i', $message, $match)) return null;
+        if (!preg_match('/\bon\s+(\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4})/i', $message, $match)) return null;
 
         foreach (['!d/m/y', '!d/m/Y', '!d-m-y', '!d-m-Y'] as $format) {
             try {
