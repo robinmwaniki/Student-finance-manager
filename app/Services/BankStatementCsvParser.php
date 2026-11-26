@@ -1,9 +1,9 @@
 <?php
 
-namespace App\\Services;
+namespace App\Services;
 
-use Illuminate\\Support\\Str;
-use Illuminate\\Validation\\ValidationException;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class BankStatementCsvParser
 {
@@ -116,7 +116,7 @@ class BankStatementCsvParser
 
         $columns = [];
         foreach ($headers as $index => $header) {
-            $header = preg_replace('/^\\xEF\\xBB\\xBF/', '', (string) $header) ?? (string) $header;
+            $header = preg_replace('/^\xEF\xBB\xBF/', '', (string) $header) ?? (string) $header;
             $normalised = $this->normaliseHeader($header);
             if (isset($aliases[$normalised]) && ! isset($columns[$aliases[$normalised]])) {
                 $columns[$aliases[$normalised]] = $index;
@@ -135,8 +135,8 @@ class BankStatementCsvParser
     {
         $value = trim($value);
         foreach (['!Y-m-d', '!d/m/Y', '!d-m-Y', '!d.m.Y', '!d/m/y', '!d-m-y', '!j M Y', '!j F Y'] as $format) {
-            $date = \\DateTimeImmutable::createFromFormat($format, $value);
-            $errors = \\DateTimeImmutable::getLastErrors();
+            $date = \DateTimeImmutable::createFromFormat($format, $value);
+            $errors = \DateTimeImmutable::getLastErrors();
             if ($date !== false && ($errors === false || ($errors['warning_count'] === 0 && $errors['error_count'] === 0))) {
                 return $date->format('Y-m-d');
             }
@@ -198,7 +198,7 @@ class BankStatementCsvParser
         if ($negative) {
             $value = substr($value, 1, -1);
         }
-        if (preg_match('/^-?\\d+(?:\\.\\d{1,2})?$/', $value) !== 1) {
+        if (preg_match('/^-?\d+(?:\.\d{1,2})?$/', $value) !== 1) {
             return null;
         }
 
