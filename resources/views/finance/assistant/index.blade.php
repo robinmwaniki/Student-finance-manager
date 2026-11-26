@@ -38,7 +38,7 @@
 </section>
 
 <section class="card" style="margin-bottom:18px">
-    <h2 class="section-heading">Additional personalized tips</h2>
+    <h2 class="section-heading">Personalized tips</h2>
     <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px">
         @foreach($tips as $tip)
             <article style="border:1px solid #e8edf4;border-radius:11px;padding:14px">
