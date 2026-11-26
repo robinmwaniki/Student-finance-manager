@@ -13,7 +13,9 @@ use Illuminate\View\View;
 class TransactionImportController extends Controller
 {
     private const SESSION_PREFIX = 'finance_csv_import.';
+
     private const MAX_BYTES = 2097152;
+
     private const MAX_ROWS = 500;
 
     public function index(): View
