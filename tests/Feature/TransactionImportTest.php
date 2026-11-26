@@ -75,6 +75,59 @@ class TransactionImportTest extends TestCase
         $this->assertDatabaseCount('income', 0);
     }
 
+    public function test_bank_style_headers_and_debit_credit_columns_are_mapped_automatically(): void
+    {
+        $user = $this->makeUser();
+        $csv = "Transaction Date,Details,Debit,Credit,Balance\\n".
+            "26/11/2026,Naivas Supermarket,1250.50,,8750.00\\n".
+            "2026-11-25,Salary payment,,25000.00,10000.00\\n";
+
+        $response = $this->actingAs($user)->post(route('imports.preview.store'), [
+            'file' => UploadedFile::fake()->createWithContent('bank-statement.csv', $csv),
+        ]);
+
+        $previewUrl = $response->headers->get('Location');
+        $this->assertNotNull($previewUrl);
+        $this->get($previewUrl)->assertOk()
+            ->assertSee('Food &amp; Groceries')
+            ->assertSee('Naivas Supermarket')
+            ->assertSee('Salary payment');
+
+        $this->post($previewUrl.'/confirm')->assertRedirect(route('dashboard'));
+        $this->assertDatabaseHas('expenses', [
+            'user_id' => $user->id,
+            'category' => 'Food & Groceries',
+            'amount' => '1250.50',
+        ]);
+        $this->assertDatabaseHas('income', [
+            'user_id' => $user->id,
+            'source' => 'Salary payment',
+            'amount' => '25000.00',
+        ]);
+    }
+
+    public function test_bank_csv_supports_signed_amounts_and_common_type_labels(): void
+    {
+        $user = $this->makeUser();
+        $csv = "Value Date,Narration,Transaction Type,Transaction Amount\\n".
+            "25-11-2026,Monthly salary,CR,25,000.00\\n";
+        // Quoted amount fields preserve commas in normal CSV exports.
+        $csv = "Value Date,Narration,Transaction Type,Transaction Amount\\n".
+            "25-11-2026,Monthly salary,CR,\"25,000.00\"\\n".
+            "24/11/2026,Shop purchase,DR,(\"500.00\")\\n";
+
+        $response = $this->actingAs($user)->post(route('imports.preview.store'), [
+            'file' => UploadedFile::fake()->createWithContent('bank-statement.csv', $csv),
+        ]);
+
+        $response->assertRedirect();
+        $previewUrl = $response->headers->get('Location');
+        $this->get($previewUrl)->assertOk()->assertSee('Monthly salary')->assertSee('Shop purchase');
+        $this->post($previewUrl.'/confirm')->assertRedirect(route('dashboard'));
+        $this->assertDatabaseHas('income', ['user_id' => $user->id, 'amount' => '25000.00']);
+        $this->assertDatabaseHas('expenses', ['user_id' => $user->id, 'amount' => '500.00']);
+    }
+
     private function makeUser(string $email = 'importer@example.test'): User
     {
         static $counter = 0;
