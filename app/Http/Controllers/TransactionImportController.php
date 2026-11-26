@@ -82,7 +82,7 @@ class TransactionImportController extends Controller
                 if (!in_array($type, ['income', 'expense'], true)) {
                     throw ValidationException::withMessages(['file' => "Row {$line}: type must be income or expense."]);
                 }
-                if (!$parsed || $parsed->format('Y-m-d') !== $date || $date > now(config('app.timezone'))->toDateString()) {
+                if (! $parsed || $parsed->format('Y-m-d') !== $date || $date > now(config('app.timezone'))->toDateString()) {
                     throw ValidationException::withMessages(['file' => "Row {$line}: date must be a valid YYYY-MM-DD date and cannot be in the future."]);
                 }
                 if ($description === '' || mb_strlen($description) > ($type === 'income' ? 100 : 50)) {
