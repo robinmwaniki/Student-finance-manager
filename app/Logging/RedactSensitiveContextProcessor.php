@@ -8,7 +8,7 @@ use Monolog\LogRecord;
 /**
  * Applies the same redaction policy to Monolog 3 context and extra fields.
  */
-final class RedactSensitiveContextProcessor
+final class RedactSensitiveContextProcessor implements \Monolog\Processor\ProcessorInterface
 {
     public function __invoke(LogRecord $record): LogRecord
     {
