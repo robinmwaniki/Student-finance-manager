@@ -109,12 +109,10 @@ class TransactionImportTest extends TestCase
     public function test_bank_csv_supports_signed_amounts_and_common_type_labels(): void
     {
         $user = $this->makeUser();
-        $csv = "Value Date,Narration,Transaction Type,Transaction Amount\\n".
-            "25-11-2026,Monthly salary,CR,25,000.00\\n";
-        // Quoted amount fields preserve commas in normal CSV exports.
+        // Quoted amount fields preserve thousands separators in normal CSV exports.
         $csv = "Value Date,Narration,Transaction Type,Transaction Amount\\n".
             "25-11-2026,Monthly salary,CR,\"25,000.00\"\\n".
-            "24/11/2026,Shop purchase,DR,(\"500.00\")\\n";
+            "24/11/2026,Shop purchase,DR,(500.00)\\n";
 
         $response = $this->actingAs($user)->post(route('imports.preview.store'), [
             'file' => UploadedFile::fake()->createWithContent('bank-statement.csv', $csv),
