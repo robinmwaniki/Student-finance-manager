@@ -39,9 +39,10 @@ Publish the maximum tested values, test-generator capacity, topology and cost. D
 
 ### 3. Dashboard aggregation has been partially optimised
 
-- Daily income, expense and savings chart series are now aggregated in SQL rather than hydrating every matching transaction row into PHP.
-- The dashboard still performs several monthly aggregate queries for income, expenses, savings and budgets.
-- Monetary aggregation and presentation paths still require a broader decimal-safety review; do not assume SQL aggregation alone proves financial correctness or optimal query plans.
+- Daily income, expense and savings chart series are aggregated in SQL rather than hydrating every matching transaction row into PHP.
+- PR #142 replaced the repeated per-month income, expense, savings and budget SUM queries for the current, previous and three forecast months with **four grouped aggregate queries**. A regression test asserts this bounded query count.
+- This is a query-count improvement, not a measured throughput or latency result. It does not establish an optimal query plan under representative production-scale data.
+- Monetary aggregation and presentation paths still require a broader decimal-safety review; do not assume SQL aggregation alone proves financial correctness.
 
 **Next:** inspect representative query plans with `EXPLAIN (ANALYZE, BUFFERS)`, verify composite indexes against real query predicates, review unbounded lists and keep money calculations decimal-safe. Any derived dashboard cache must be user-scoped and have explicit invalidation or a short bounded TTL.
 
