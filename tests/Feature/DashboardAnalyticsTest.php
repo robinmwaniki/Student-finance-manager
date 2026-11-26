@@ -151,8 +151,9 @@ class DashboardAnalyticsTest extends TestCase
         $user = $this->makeUser();
         $user->income()->create(['source' => 'First part', 'amount' => '0.10', 'transaction_date' => '2026-08-10']);
         $user->income()->create(['source' => 'Second part', 'amount' => '0.20', 'transaction_date' => '2026-08-11']);
-        $user->income()->create(['source' => 'September income', 'amount' => '0.20', 'transaction_date' => '2026-09-10']);
-        $user->income()->create(['source' => 'October income', 'amount' => '0.30', 'transaction_date' => '2026-10-10']);
+        $user->income()->create(['source' => 'September income', 'amount' => '0.15', 'transaction_date' => '2026-09-10']);
+        $user->income()->create(['source' => 'October income', 'amount' => '0.15', 'transaction_date' => '2026-10-10']);
+        $user->income()->create(['source' => 'November income', 'amount' => '0.15', 'transaction_date' => '2026-11-10']);
         $user->expenses()->create(['category' => 'Food', 'amount' => '0.10', 'transaction_date' => '2026-08-12']);
         $user->savings()->create(['goal' => 'Emergency', 'amount' => '0.05', 'transaction_date' => '2026-08-13', 'savings_month' => '2026-08']);
 
