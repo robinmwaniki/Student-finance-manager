@@ -50,7 +50,7 @@ class TransactionImportController extends Controller
         }
         try {
             $headers = fgetcsv($file, 4096, ',', '"', '');
-            if (! is_array($headers)) {
+            if (is_array($headers) === false) {
                 throw ValidationException::withMessages(['file' => 'The CSV file is empty.']);
             }
             $headers[0] = preg_replace('/^\xEF\xBB\xBF/', '', (string) $headers[0]);
@@ -79,10 +79,10 @@ class TransactionImportController extends Controller
                 $description = $record['description'] ?? '';
                 $amount = $record['amount'] ?? '';
                 $parsed = \DateTimeImmutable::createFromFormat('!Y-m-d', $date);
-                if (! in_array($type, ['income', 'expense'], true)) {
+                if (in_array($type, ['income', 'expense'], true) === false) {
                     throw ValidationException::withMessages(['file' => "Row {$line}: type must be income or expense."]);
                 }
-                if (! $parsed || $parsed->format('Y-m-d') !== $date || $date > now(config('app.timezone'))->toDateString()) {
+                if ($parsed === false || $parsed->format('Y-m-d') !== $date || $date > now(config('app.timezone'))->toDateString()) {
                     throw ValidationException::withMessages(['file' => "Row {$line}: date must be a valid YYYY-MM-DD date and cannot be in the future."]);
                 }
                 if ($description === '' || mb_strlen($description) > ($type === 'income' ? 100 : 50)) {
