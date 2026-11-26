@@ -9,7 +9,7 @@
     <form method="POST" action="{{ route('imports.preview.store') }}" enctype="multipart/form-data" style="margin-top:22px">
         @csrf
         <div class="field" style="max-width:520px;margin-bottom:16px">
-            <label for="file">Bank or M-PESA CSV statement (maximum 2 MB and 500 transactions)</label>
+            <label for="file">Bank statement CSV (maximum 2 MB and 500 transactions)</label>
             <input id="file" name="file" type="file" accept=".csv,text/csv">
         </div>
         <div style="text-align:center;color:#8490a3;font-size:11px;font-weight:700;margin:14px 0">OR PASTE M-PESA CONFIRMATION MESSAGES</div>
@@ -23,8 +23,8 @@
 </div>
 <div class="card" style="margin-top:18px">
     <h2 class="section-heading">CSV format</h2>
-    <p class="muted" style="font-size:12px">For bank statement files, map the columns to the format below. Dates use YYYY-MM-DD and amounts are positive KES values.</p>
+    <p class="muted" style="font-size:12px">Most bank CSV files are mapped automatically. The importer recognises common headers such as Transaction Date, Value Date, Narration, Details, Debit, Credit, Withdrawal, Deposit and Transaction Amount. Dates may use YYYY-MM-DD or DD/MM/YYYY. Debit and credit columns determine expense and income automatically.</p>
     <div class="table-wrap"><table><thead><tr><th>type</th><th>date</th><th>description</th><th>amount</th><th>category</th><th>tag</th></tr></thead><tbody><tr><td>income</td><td>2026-11-01</td><td>Salary</td><td>15000.00</td><td></td><td>Work</td></tr><tr><td>expense</td><td>2026-11-02</td><td>Groceries</td><td>1250.50</td><td>Food</td><td>Home</td></tr></tbody></table></div>
-    <p class="muted" style="font-size:11px;margin-top:12px">Required columns: type, date, description, amount. Optional columns: category, tag. Imports are limited to 500 rows. SMS support covers common successful received, sent, payment and withdrawal confirmations; unsupported messages are ignored.</p>
+    <p class="muted" style="font-size:11px;margin-top:12px">For the standard layout, use type, date, description and amount; category and tag are optional. Bank statements may instead use date, description and amount, or separate debit and credit columns. Expense categories are suggested from transaction descriptions using local keyword rules; check every suggestion in the preview. Imports are limited to 500 rows. SMS support covers common successful received, sent, payment and withdrawal confirmations; unsupported messages are ignored.</p>
 </div>
 @endsection
