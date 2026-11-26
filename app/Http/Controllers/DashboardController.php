@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\MarketInformationService;
+use App\Support\Money;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -38,7 +39,7 @@ class DashboardController extends Controller
         }
         $forecast = [];
         foreach (['income', 'expenses', 'savings', 'budget', 'balance'] as $metric) {
-            $forecast[$metric] = array_sum(array_column($forecastMonths, $metric)) / 3;
+            $forecast[$metric] = Money::average(array_column($forecastMonths, $metric));
         }
 
         $daysInMonth = $monthStart->daysInMonth;
@@ -56,15 +57,15 @@ class DashboardController extends Controller
         $expenseByCategory = $categoryBreakdown->pluck('total', 'category');
         $budgetAlerts = $user->budgets()->where('budget_month', $month)->orderBy('category')->get()
             ->map(function ($budget) use ($expenseByCategory): object {
-                $spent = (float) ($expenseByCategory[$budget->category] ?? 0);
-                $limit = (float) $budget->amount;
-                $usage = $limit > 0 ? ($spent / $limit) * 100 : 0;
+                $spentCents = Money::toMinorUnits((string) ($expenseByCategory[$budget->category] ?? '0.00'));
+                $limitCents = Money::toMinorUnits((string) $budget->amount);
+                $usage = $limitCents > 0 ? ($spentCents / $limitCents) * 100 : 0;
 
                 return (object) [
                     'category' => $budget->category,
-                    'budget' => $limit,
-                    'spent' => $spent,
-                    'remaining' => $limit - $spent,
+                    'budget' => Money::fromMinorUnits($limitCents),
+                    'spent' => Money::fromMinorUnits($spentCents),
+                    'remaining' => Money::fromMinorUnits($limitCents - $spentCents),
                     'usage' => $usage,
                     'level' => $usage > 100 ? 'exceeded' : ($usage >= 80 ? 'warning' : 'normal'),
                 ];
@@ -156,7 +157,7 @@ class DashboardController extends Controller
 
             foreach ($rows as $row) {
                 if (array_key_exists($row->month, $totals)) {
-                    $totals[$row->month][$metric] = (float) $row->total;
+                    $totals[$row->month][$metric] = (string) $row->total;
                 }
             }
         }
@@ -169,12 +170,16 @@ class DashboardController extends Controller
 
         foreach ($budgetRows as $row) {
             if (array_key_exists($row->month, $totals)) {
-                $totals[$row->month]['budget'] = (float) $row->total;
+                $totals[$row->month]['budget'] = (string) $row->total;
             }
         }
 
         foreach ($totals as &$monthTotals) {
-            $monthTotals['balance'] = $monthTotals['income'] - $monthTotals['expenses'] - $monthTotals['savings'];
+            $monthTotals['balance'] = Money::subtract(
+                $monthTotals['income'],
+                $monthTotals['expenses'],
+                $monthTotals['savings'],
+            );
         }
         unset($monthTotals);
 
@@ -184,22 +189,26 @@ class DashboardController extends Controller
     private function emptyTotals(): array
     {
         return [
-            'income' => 0.0,
-            'expenses' => 0.0,
-            'savings' => 0.0,
-            'budget' => 0.0,
-            'balance' => 0.0,
+            'income' => '0.00',
+            'expenses' => '0.00',
+            'savings' => '0.00',
+            'budget' => '0.00',
+            'balance' => '0.00',
         ];
     }
 
-    private function comparison(float $current, float $previous): array
+    private function comparison(string $current, string $previous): array
     {
+        $currentCents = Money::toMinorUnits($current);
+        $previousCents = Money::toMinorUnits($previous);
+        $difference = $currentCents - $previousCents;
+
         return [
-            'difference' => $current - $previous,
-            'percentage' => $previous == 0.0
-                ? ($current == 0.0 ? 0.0 : null)
-                : (($current - $previous) / abs($previous)) * 100,
-            'hasBaseline' => $previous != 0.0,
+            'difference' => Money::fromMinorUnits($difference),
+            'percentage' => $previousCents === 0
+                ? ($currentCents === 0 ? 0.0 : null)
+                : ($difference / abs($previousCents)) * 100,
+            'hasBaseline' => $previousCents !== 0,
         ];
     }
 
