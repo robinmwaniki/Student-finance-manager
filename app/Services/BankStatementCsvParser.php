@@ -34,13 +34,13 @@ class BankStatementCsvParser
 
         try {
             $headers = fgetcsv($file, 8192, ',', '"', '');
-            if (! is_array($headers) || $headers === []) {
+            if (is_array($headers) === false || $headers === []) {
                 throw ValidationException::withMessages(['file' => 'The CSV file is empty.']);
             }
 
             $columns = $this->mapHeaders($headers);
-            if (! isset($columns['date'], $columns['description'])
-                || (! isset($columns['amount']) && ! isset($columns['debit']) && ! isset($columns['credit']))) {
+            if (isset($columns['date'], $columns['description']) === false
+                || (isset($columns['amount']) === false && isset($columns['debit']) === false && isset($columns['credit']) === false)) {
                 throw ValidationException::withMessages([
                     'file' => 'Could not recognise the statement columns. Include a date, description/details, and amount or debit/credit columns.',
                 ]);
@@ -189,7 +189,8 @@ class BankStatementCsvParser
 
     private function normaliseAmount(string $value): ?float
     {
-        $value = trim(str_replace([',', 'KES', 'Ksh', 'ksh', ' '], '', $value));
+        $value = trim(str_replace(',', '', preg_replace('/(?:KES|KSH)/i', '', $value) ?? $value));
+        $value = str_replace(' ', '', $value);
         if ($value === '') {
             return null;
         }
