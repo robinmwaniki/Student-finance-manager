@@ -28,6 +28,12 @@ This document defines the controlled migration path from the original procedural
 | recurring_transactions | recurring_transactions | Keep id, owner, amount, type, frequency, next_due, status, label, day_of_month and active. |
 | recurring_log | recurring_log | Keep ids, recurring_id, user_id, applied_month and applied_at. |
 
+## Captured legacy schema baseline
+
+The maintainer supplied a phpMyAdmin export named `finance_manager.sql`, generated on 2026-11-23 from MariaDB 10.4.32. A sanitized DDL-only reference is preserved at `tests/Fixtures/legacy-finance-schema.sql`. It contains all 15 table definitions, indexes, auto-increment declarations and source foreign keys, but no INSERT statements, account details, password hashes, tokens or financial rows. The fixture is useful for mapping and regression checks; it is not a substitute for confirming the current live schema before a real migration. The source export itself must remain private and must never be committed.
+
+The captured schema includes `bill_reminders`, `financial_notes`, `quiz_attempts` and `quiz_streaks`. These four tables are intentionally outside issue #66's current importer scope, as noted below; their records remain untouched in the source until a separately reviewed mapping is approved.
+
 ## Compatibility decisions
 
 - Legacy debt type `owed` maps to target `lent`; `borrowed` remains `borrowed`. Legacy recurring status `inactive` maps to target `paused` plus `active=false`.
