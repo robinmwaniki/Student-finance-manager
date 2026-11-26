@@ -93,10 +93,10 @@ class TransactionImportTest extends TestCase
             ->assertSee('Naivas Supermarket')
             ->assertSee('Salary payment');
 
-        $this->post($previewUrl.'/confirm')->assertRedirect(route('dashboard'));
+        $this->post($previewUrl.'/confirm', ['categories' => [0 => 'Shopping']])->assertRedirect(route('dashboard'));
         $this->assertDatabaseHas('expenses', [
             'user_id' => $user->id,
-            'category' => 'Food & Groceries',
+            'category' => 'Shopping',
             'amount' => '1250.50',
         ]);
         $this->assertDatabaseHas('income', [
