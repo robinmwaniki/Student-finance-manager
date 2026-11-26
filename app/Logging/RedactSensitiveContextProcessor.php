@@ -4,6 +4,7 @@ namespace App\Logging;
 
 use App\Support\Observability\SensitiveDataRedactor;
 use Monolog\LogRecord;
+use Monolog\Processor\ProcessorInterface;
 
 /**
  * Applies the same redaction policy to Monolog 3 context and extra fields.
