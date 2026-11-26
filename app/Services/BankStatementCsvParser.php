@@ -102,7 +102,7 @@ class BankStatementCsvParser
     }
 
     /**
-     * @param array<int, string> $headers
+     * @param  array<int, string>  $headers
      * @return array<string, int>
      */
     private function mapHeaders(array $headers): array
@@ -146,7 +146,7 @@ class BankStatementCsvParser
     }
 
     /**
-     * @param array<string, string> $record
+     * @param  array<string, string>  $record
      * @return array{0:string,1:string}
      */
     private function resolveTypeAndAmount(array $record, int $line): array
