@@ -15,7 +15,7 @@ class MpesaSmsImportTest extends TestCase
     {
         $user = $this->makeUser();
         $messages = "QHX123ABC4 Confirmed. Ksh1,000.00 sent to JOHN DOE 0712345678 on 26/11/26 at 10:15 AM. New M-PESA balance is Ksh2,000.00.\n".
-            "QHY123ABC5 Confirmed. You have received Ksh5,000.00 from JANE DOE 0711111111 on 26/11/26 at 11:00 AM. New M-PESA balance is Ksh7,000.00.";
+            'QHY123ABC5 Confirmed. You have received Ksh5,000.00 from JANE DOE 0711111111 on 26/11/26 at 11:00 AM. New M-PESA balance is Ksh7,000.00.';
 
         $response = $this->actingAs($user)->post(route('imports.preview.store'), ['mpesa_sms' => $messages]);
         $preview = $response->headers->get('Location');
