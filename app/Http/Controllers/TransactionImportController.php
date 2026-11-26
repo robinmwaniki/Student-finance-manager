@@ -109,6 +109,7 @@ class TransactionImportController extends Controller
         if ($rows === []) {
             throw ValidationException::withMessages(['file' => 'The CSV contains a header but no transaction rows.']);
         }
+
         return $rows;
     }
 
@@ -118,6 +119,7 @@ class TransactionImportController extends Controller
         abort_unless(is_array($data) && (int) ($data['user_id'] ?? 0) === $request->user()->id, 404);
         abort_if(now()->timestamp - (int) ($data['created_at'] ?? 0) > 1800, 410, 'This import preview has expired. Upload the source again.');
         $rows = $data['rows'] ?? [];
+
         return view('finance.import.preview', [
             'batch' => $batch, 'rows' => $rows,
             'incomeCount' => count(array_filter($rows, fn ($row) => $row['type'] === 'income')),
@@ -149,6 +151,7 @@ class TransactionImportController extends Controller
             }
         });
         $request->session()->forget(self::SESSION_PREFIX.$batch);
+
         return redirect()->route('dashboard')->with('success', count($rows).' transactions imported. Re-imported M-PESA messages are deduplicated by receipt code.');
     }
 
@@ -157,6 +160,7 @@ class TransactionImportController extends Controller
         $data = $request->session()->get(self::SESSION_PREFIX.$batch);
         abort_unless(is_array($data) && (int) ($data['user_id'] ?? 0) === $request->user()->id, 404);
         $request->session()->forget(self::SESSION_PREFIX.$batch);
+
         return redirect()->route('imports.index')->with('success', 'Import preview discarded. No transactions were added.');
     }
 }
