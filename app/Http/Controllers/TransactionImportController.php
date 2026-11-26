@@ -62,23 +62,41 @@ class TransactionImportController extends Controller
             $line = 1;
             while (($values = fgetcsv($file, 4096, ',', '"', '')) !== false) {
                 $line++;
-                if ($values === [null] || $values === []) continue;
-                if (count($rows) >= self::MAX_ROWS) throw ValidationException::withMessages(['file' => 'A single import may contain at most 500 transactions.']);
+                if ($values === [null] || $values === []) {
+                    continue;
+                }
+                if (count($rows) >= self::MAX_ROWS) {
+                    throw ValidationException::withMessages(['file' => 'A single import may contain at most 500 transactions.']);
+                }
                 $record = [];
-                foreach ($headers as $index => $header) if ($header !== '') $record[$header] = trim((string) ($values[$index] ?? ''));
+                foreach ($headers as $index => $header) {
+                    if ($header !== '') {
+                        $record[$header] = trim((string) ($values[$index] ?? ''));
+                    }
+                }
                 $type = strtolower($record['type'] ?? '');
                 $date = $record['date'] ?? '';
                 $description = $record['description'] ?? '';
                 $amount = $record['amount'] ?? '';
                 $parsed = \DateTimeImmutable::createFromFormat('!Y-m-d', $date);
-                if (! in_array($type, ['income', 'expense'], true)) throw ValidationException::withMessages(['file' => "Row {$line}: type must be income or expense."]);
-                if (! $parsed || $parsed->format('Y-m-d') !== $date || $date > now(config('app.timezone'))->toDateString()) throw ValidationException::withMessages(['file' => "Row {$line}: date must be a valid YYYY-MM-DD date and cannot be in the future."]);
-                if ($description === '' || mb_strlen($description) > ($type === 'income' ? 100 : 50)) throw ValidationException::withMessages(['file' => "Row {$line}: description is required and must fit the selected transaction type."]);
+                if (! in_array($type, ['income', 'expense'], true)) {
+                    throw ValidationException::withMessages(['file' => "Row {$line}: type must be income or expense."]);
+                }
+                if (! $parsed || $parsed->format('Y-m-d') !== $date || $date > now(config('app.timezone'))->toDateString()) {
+                    throw ValidationException::withMessages(['file' => "Row {$line}: date must be a valid YYYY-MM-DD date and cannot be in the future."]);
+                }
+                if ($description === '' || mb_strlen($description) > ($type === 'income' ? 100 : 50)) {
+                    throw ValidationException::withMessages(['file' => "Row {$line}: description is required and must fit the selected transaction type."]);
+                }
                 if (! preg_match('/^\d{1,12}(?:\.\d{1,2})?$/', $amount) || (float) $amount <= 0) throw ValidationException::withMessages(['file' => "Row {$line}: amount must be positive with at most two decimal places."]);
                 $category = trim($record['category'] ?? '');
                 $tag = trim($record['tag'] ?? '');
-                if ($type === 'expense' && $category === '') $category = $description;
-                if (($type === 'expense' && mb_strlen($category) > 50) || mb_strlen($tag) > 50) throw ValidationException::withMessages(['file' => "Row {$line}: category and tag must not exceed 50 characters."]);
+                if ($type === 'expense' && $category === '') {
+                    $category = $description;
+                }
+                if (($type === 'expense' && mb_strlen($category) > 50) || mb_strlen($tag) > 50) {
+                    throw ValidationException::withMessages(['file' => "Row {$line}: category and tag must not exceed 50 characters."]);
+                }
                 [$whole, $fraction] = array_pad(explode('.', $amount, 2), 2, '');
                 $whole = ltrim($whole, '0') ?: '0';
                 $rows[] = ['type' => $type, 'date' => $date, 'description' => $description, 'amount' => $whole.'.'.str_pad($fraction, 2, '0'), 'category' => $category, 'tag' => $tag ?: null, 'submission_token' => (string) Str::uuid()];
@@ -86,7 +104,9 @@ class TransactionImportController extends Controller
         } finally {
             fclose($file);
         }
-        if ($rows === []) throw ValidationException::withMessages(['file' => 'The CSV contains a header but no transaction rows.']);
+        if ($rows === []) {
+            throw ValidationException::withMessages(['file' => 'The CSV contains a header but no transaction rows.']);
+        }
         return $rows;
     }
 
