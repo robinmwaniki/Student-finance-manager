@@ -91,7 +91,7 @@ body[data-theme="dark"] #offline-sync-panel{background:#142035!important;border-
 <a class="nav-link {{ request()->routeIs('income.*') ? 'active' : '' }}" href="{{ route('income.index') }}"><span class="nav-icon">↗</span>Income</a>
 <a class="nav-link {{ request()->routeIs('expenses.*') ? 'active' : '' }}" href="{{ route('expenses.index') }}"><span class="nav-icon">↘</span>Expenses</a>
 <a class="nav-link {{ request()->routeIs('wallets.*') ? 'active' : '' }}" href="{{ route('wallets.index') }}"><span class="nav-icon">▣</span>Wallets</a>
-<a class="nav-link {{ request()->routeIs('imports.*') ? 'active' : '' }}" href="{{ route('imports.index') }}"><span class="nav-icon">⇧</span>Import CSV</a>
+<a class="nav-link {{ request()->routeIs('imports.*') ? 'active' : '' }}" href="{{ route('imports.index') }}"><span class="nav-icon">⇧</span>Import transactions</a>
 <a class="nav-link {{ request()->routeIs('expense-capture.*') ? 'active' : '' }}" href="{{ route('expense-capture.index') }}"><span class="nav-icon">⌁</span>Capture</a>
 <a class="nav-link {{ request()->routeIs('budgets.*') ? 'active' : '' }}" href="{{ route('budgets.index') }}"><span class="nav-icon">▥</span>Budgets</a>
 <a class="nav-link {{ request()->routeIs('savings.*') ? 'active' : '' }}" href="{{ route('savings.index') }}"><span class="nav-icon">◎</span>Savings</a>
@@ -103,7 +103,7 @@ body[data-theme="dark"] #offline-sync-panel{background:#142035!important;border-
 <a class="nav-link {{ request()->routeIs('market.*') ? 'active' : '' }}" href="{{ route('market.index') }}"><span class="nav-icon">◎</span>Market info</a>
 <a class="nav-link {{ request()->routeIs('reports.*') ? 'active' : '' }}" href="{{ route('reports.index') }}"><span class="nav-icon">▤</span>Reports</a>
 <a class="nav-link {{ request()->routeIs('learning.*') ? 'active' : '' }}" href="{{ route('learning.index') }}"><span class="nav-icon">✦</span>Learning</a>
-<a class="nav-link {{ request()->routeIs('assistant.*') ? 'active' : '' }}" href="{{ route('assistant.index') }}"><span class="nav-icon">✧</span>AI Assistant</a>
+<a class="nav-link {{ request()->routeIs('assistant.*') ? 'active' : '' }}" href="{{ route('assistant.index') }}"><span class="nav-icon">✧</span>Financial insights</a>
 <a class="nav-link {{ request()->routeIs('notifications.*') ? 'active' : '' }}" href="{{ route('notifications.index') }}"><span class="nav-icon">♧</span>Notifications @php($unreadNavCount = auth()->user()->userNotifications()->where('status', 'unread')->count()) @if($unreadNavCount > 0)<span style="margin-left:auto;background:#e9efff;color:#344a75;border-radius:10px;padding:2px 6px;font-size:10px">{{ $unreadNavCount }}</span>@endif</a>
 <a class="nav-link {{ request()->routeIs('settings.*') ? 'active' : '' }}" href="{{ route('settings.index') }}"><span class="nav-icon">⚙</span>Settings</a>
 </nav>

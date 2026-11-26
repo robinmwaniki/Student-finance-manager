@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\FinancialAssistantService;
+use App\Services\FinancialInsightsService;
 use App\Services\FinancialTipsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -11,10 +12,11 @@ use Illuminate\View\View;
 
 class FinancialAssistantController extends Controller
 {
-    public function index(Request $request, FinancialTipsService $tips, FinancialAssistantService $assistant): View
+    public function index(Request $request, FinancialTipsService $tips, FinancialAssistantService $assistant, FinancialInsightsService $insights): View
     {
         return view('finance.assistant.index', [
             'tips' => $tips->forUser($request->user()),
+            'insights' => $insights->forUser($request->user()),
             'providerAvailable' => $assistant->isConfigured(),
             'providerLabel' => $assistant->providerLabel(),
         ]);
