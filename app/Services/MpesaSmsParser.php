@@ -17,19 +17,23 @@ class MpesaSmsParser
         $message = trim(preg_replace('/\s+/', ' ', $message) ?? '');
         if ($message === '' || mb_strlen($message) > 3000
             || preg_match('/\b(reversed|received|you have received|credited to your account|deposit|withdrawal|fuliza)\b/i', $message)
-            || ! preg_match('/\b(sent to|paid to|buy goods(?: from| at)?|paybill|till(?: number)?|purchase)\b/i', $message)
+            || !preg_match('/\b(sent to|paid to|buy goods(?: from| at)?|paybill|till(?: number)?|purchase)\b/i', $message)
             || ! preg_match('/\b(?:Ksh|KES)\s*([0-9][0-9,]*(?:\.\d{1,2})?)/i', $message, $amountMatch)) {
             return null;
         }
 
         $amount = (float) str_replace(',', '', $amountMatch[1]);
-        if ($amount <= 0 || $amount > 999999999999) return null;
+        if ($amount <= 0 || $amount > 999999999999) {
+            return null;
+        }
 
         preg_match('/\b([A-Z0-9]{8,12})\s+Confirmed\b/i', $message, $referenceMatch);
         preg_match('/\b(?:sent to|paid to|buy goods(?: from| at)?|purchase from|paybill(?:\s+to)?|till(?:\s+number)?(?:\s+to)?)\s+(.+?)(?=\s+(?:\d{9,}|on\s+\d)|[.;]|$)/i', $message, $merchantMatch);
 
         $date = $this->extractDate($message);
-        if ($date !== null && CarbonImmutable::parse($date, config('app.timezone'))->isFuture()) return null;
+        if ($date !== null && CarbonImmutable::parse($date, config('app.timezone'))->isFuture()) {
+            return null;
+        }
 
         $merchant = isset($merchantMatch[1])
             ? trim(preg_replace('/\b\d{9,13}\b/', '', $merchantMatch[1]) ?? '', ' .,-')
@@ -62,14 +66,20 @@ class MpesaSmsParser
             }
 
             $reference = strtoupper($referenceMatch[1]);
-            if (isset($seen[$reference])) continue;
+            if (isset($seen[$reference])) {
+                continue;
+            }
 
             if (! preg_match('/\b(?:Ksh|KES)\s*([0-9][0-9,]*(?:\.\d{1,2})?)/i', $line, $amountMatch)) continue;
             $amount = (float) str_replace(',', '', $amountMatch[1]);
-            if ($amount <= 0 || $amount > 999999999999) continue;
+            if ($amount <= 0 || $amount > 999999999999) {
+                continue;
+            }
 
             $date = $this->extractDate($line);
-            if ($date === null || CarbonImmutable::parse($date, config('app.timezone'))->isFuture()) continue;
+            if ($date === null || CarbonImmutable::parse($date, config('app.timezone'))->isFuture()) {
+                continue;
+            }
 
             $lower = strtolower($line);
             if (str_contains($lower, 'you have received') || str_contains($lower, 'credited to your account')) {
