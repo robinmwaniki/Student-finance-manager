@@ -17,7 +17,7 @@ class MpesaSmsParser
         $message = trim(preg_replace('/\s+/', ' ', $message) ?? '');
         if ($message === '' || mb_strlen($message) > 3000
             || preg_match('/\b(reversed|received|you have received|credited to your account|deposit|withdrawal|fuliza)\b/i', $message)
-            || !preg_match('/\b(sent to|paid to|buy goods(?: from| at)?|paybill|till(?: number)?|purchase)\b/i', $message)
+            || ! preg_match('/\b(sent to|paid to|buy goods(?: from| at)?|paybill|till(?: number)?|purchase)\b/i', $message)
             || ! preg_match('/\b(?:Ksh|KES)\s*([0-9][0-9,]*(?:\.\d{1,2})?)/i', $message, $amountMatch)) {
             return null;
         }
@@ -88,7 +88,9 @@ class MpesaSmsParser
                 $category = '';
             } elseif (preg_match('/\b(sent to|paid to|buy goods(?: from| at)?|paybill|till(?: number)?|purchase)\b/i', $line)) {
                 $candidate = $this->parse($line);
-                if ($candidate === null) continue;
+                if ($candidate === null) {
+                    continue;
+                }
                 $type = 'expense';
                 $description = 'M-PESA · '.$reference;
                 $category = $candidate['category'];
