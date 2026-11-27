@@ -6,6 +6,7 @@ use App\Jobs\ProcessRecurringTransactionsForUser;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
@@ -23,6 +24,7 @@ class RecurringQueueMetricsCommandTest extends TestCase
     {
         Carbon::setTestNow('2026-11-27 12:00:00');
         config(['queue.default' => 'database']);
+        Log::spy();
 
         Queue::connection('database')->push(
             new ProcessRecurringTransactionsForUser(123),
@@ -35,19 +37,31 @@ class RecurringQueueMetricsCommandTest extends TestCase
             ->update(['created_at' => now()->timestamp - 120]);
 
         $this->artisan('finance:queue-metrics', ['--queue' => 'recurring'])
-            ->expectsOutputToContain('"queue":"recurring"')
-            ->expectsOutputToContain('"pending_jobs":1')
-            ->expectsOutputToContain('"oldest_job_age_seconds":120')
             ->assertExitCode(0);
+
+        Log::shouldHaveReceived('info')
+            ->once()
+            ->with('Queue backlog snapshot', \Mockery::on(
+                fn (array $metrics): bool => $metrics['queue'] === 'recurring'
+                    && $metrics['pending_jobs'] === 1
+                    && $metrics['oldest_job_age_seconds'] === 120,
+            ));
     }
 
     public function test_queue_metrics_reports_zero_pending_jobs_for_an_empty_queue(): void
     {
         config(['queue.default' => 'database']);
+        Log::spy();
 
         $this->artisan('finance:queue-metrics', ['--queue' => 'recurring'])
-            ->expectsOutputToContain('"pending_jobs":0')
-            ->expectsOutputToContain('"oldest_job_age_seconds":null')
             ->assertExitCode(0);
+
+        Log::shouldHaveReceived('info')
+            ->once()
+            ->with('Queue backlog snapshot', \Mockery::on(
+                fn (array $metrics): bool => $metrics['queue'] === 'recurring'
+                    && $metrics['pending_jobs'] === 0
+                    && $metrics['oldest_job_age_seconds'] === null,
+            ));
     }
 }
