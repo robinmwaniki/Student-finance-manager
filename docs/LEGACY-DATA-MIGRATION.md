@@ -69,6 +69,16 @@ APP_ENV=staging php artisan finance:import-legacy --source=legacy_mysql --target
 
 The execute mode is transactional on PostgreSQL, preserves IDs, treats identical existing rows as already imported, rejects conflicting primary keys, provisions default wallets, and resets identity sequences. It does not perform production cutover.
 
+## Synthetic MariaDB integration-test isolation
+
+The destructive MariaDB integration test creates and drops legacy table names. It therefore skips unless all of the following are true:
+
+- `pdo_mysql` is installed.
+- `LEGACY_DB_DATABASE` resolves to a dedicated test database whose name contains a standalone `test` or `testing` segment (for example, `finance_test`).
+- `LEGACY_IMPORT_TEST_ALLOW_SCHEMA_RESET=true` is explicitly set in the test environment.
+
+Never set this opt-in for a shared, staging, or production database. The test marks its schema as owned only after the guard passes, and teardown drops tables only when that test-created schema flag is set. A skipped integration test does not validate a real staging connection; it must be run separately against a disposable database.
+
 ## Migration procedure
 
 1. Stop writes to the legacy application during the final snapshot window.
