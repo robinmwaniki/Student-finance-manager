@@ -60,7 +60,7 @@ class ProcessRecurringTransactions extends Command
 
         $durationMs = (int) round((hrtime(true) - $startedAt) / 1_000_000);
 
-        Log::log($failures > 0 ? 'warning' : 'info', 'Recurring processing run completed', [
+        $completionContext = [
             'event' => 'recurring.processing.completed',
             'chunk_size' => $chunkSize,
             'batches_processed' => $batchesProcessed,
@@ -68,7 +68,13 @@ class ProcessRecurringTransactions extends Command
             'occurrences_processed' => $processed,
             'failed_users' => $failures,
             'duration_ms' => $durationMs,
-        ]);
+        ];
+
+        if ($failures > 0) {
+            Log::warning('Recurring processing run completed', $completionContext);
+        } else {
+            Log::info('Recurring processing run completed', $completionContext);
+        }
 
         $this->components->info("Processed {$processed} recurring occurrence(s) across {$usersAttempted} user(s) in {$durationMs}ms.");
 
