@@ -23,10 +23,21 @@ The following observations are based on the current `develop` source and deploym
 | Cache | Cache store defaults to `file`. Redis store is configured. | Local file cache does not provide shared cache/locks across replicas. Use shared Redis for distributed locks, rate limits and shared cache where justified. |
 | Queue | Queue defaults to `database`; Redis connection is configured. | Database-backed jobs can add contention to the primary database. Any async workload requires independently sized workers, bounded concurrency and queue-lag monitoring. |
 | Database | PostgreSQL is the application database; no pooler is configured in the repository. | Connection budgets must be explicit before adding web replicas and workers. Evaluate managed pooling/PgBouncer and verify transaction/session-mode compatibility. |
-| Recurring processing | The scheduled command selects distinct due user IDs and processes each user sequentially; each schedule can catch up to 366 occurrences per invocation. | A large backlog can make a single scheduler invocation long-running. The design needs bounded batches, queue dispatch, lock/idempotency guarantees and observable progress before scale testing. |
+| Recurring processing | The default scheduled command scans due users in bounded keyset batches and processes inline. An explicit `--async` option dispatches one job per due user to the `recurring` queue. Each job has 3 attempts, a 60-second timeout and 30/120/300-second backoff; each schedule catches up at most 366 occurrences per invocation. | Async dispatch is not enabled by the scheduler. A dedicated worker must consume `recurring`; without one, keep inline mode. Row locks and unique period keys protect financial writes on retries, while queue depth/age and job failures need monitoring. |
 | Staging | The documented free Render Blueprint has ephemeral local files, no persistent disk, no dedicated worker or cron, and an expiring free database. | It is useful for functional checks only, not representative capacity testing or durable migration rehearsal. |
 
 These are source-level findings, not measured bottleneck claims. See `Dockerfile`, `docker/php/zz-pool.conf`, `config/session.php`, `config/cache.php`, `config/queue.php`, `routes/console.php`, `app/Console/Commands/ProcessRecurringTransactions.php` and `docs/RENDER-STAGING.md`.
+
+## Recurring processing rollout status
+
+The recurring command now has two execution modes:
+
+- **Inline (default):** the scheduler invokes `finance:process-recurring` without extra flags. It scans due users in bounded keyset batches and calls the processor directly. This remains the safe default for deployments without a queue worker.
+- **Queued (opt-in):** an operator may invoke `finance:process-recurring --async`. The command dispatches one `ProcessRecurringTransactionsForUser` job per due user to the `recurring` queue. The job is retryable (3 attempts, 60-second timeout, 30/120/300-second backoff). A worker must explicitly consume that queue (for example, `php artisan queue:work --queue=recurring`).
+
+The processor retains per-schedule row locking, transaction boundaries and unique period keys. Repeated delivery is covered by an idempotency regression test. The command emits structured start/completion events and low-cardinality run metrics; the worker emits a permanent-failure event without user identifiers.
+
+**Rollout gate:** do not pass `--async` until a dedicated worker is deployed, monitored and sized against the PostgreSQL connection budget. The current free staging Blueprint does not provision that worker. Before production use, add queue-depth/oldest-job-age, job throughput, retry/failure and worker saturation monitoring, then validate worker restarts and backlog recovery with synthetic staging accounts. No queue throughput or capacity claim has yet been measured.
 
 ## Workload model
 
