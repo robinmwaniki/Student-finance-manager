@@ -8,10 +8,23 @@ const CONFIRMED_HOST = (__ENV.STAGING_HOST || '').trim().toLowerCase();
 const MODE = (__ENV.MODE || 'read-only').toLowerCase();
 const VUS = Number(__ENV.VUS || 5);
 const DURATION = __ENV.DURATION || '2m';
+const MAX_DURATION_MS = 60 * 60 * 1000;
 const THINK_TIME = Number(__ENV.THINK_TIME_SECONDS || 1);
 const FROM_WALLET_ID = (__ENV.TRANSFER_FROM_WALLET_ID || '').trim();
 const TO_WALLET_ID = (__ENV.TRANSFER_TO_WALLET_ID || '').trim();
 const TRANSFER_AMOUNT = (__ENV.TRANSFER_AMOUNT || '0.01').trim();
+
+function durationMilliseconds(value) {
+    const parts = String(value).match(/^(?:\\d+(?:ms|s|m|h))+$/);
+    if (!parts) return 0;
+
+    const units = { ms: 1, s: 1000, m: 60 * 1000, h: 60 * 60 * 1000 };
+    const tokens = String(value).match(/\\d+(?:ms|s|m|h)/g) || [];
+    return tokens.reduce((total, token) => {
+        const match = token.match(/^(\\d+)(ms|s|m|h)$/);
+        return total + Number(match[1]) * units[match[2]];
+    }, 0);
+}
 
 function assertSafeTarget() {
     if (__ENV.CONFIRM_STAGING !== 'true') {
@@ -42,6 +55,10 @@ function assertSafeTarget() {
     }
     if (!Number.isInteger(VUS) || VUS < 1 || VUS > 1000) {
         throw new Error('VUS must be an integer from 1 to 1000 per generator. Use distributed generators for larger tests.');
+    }
+    const durationMs = durationMilliseconds(DURATION);
+    if (durationMs <= 0 || durationMs > MAX_DURATION_MS) {
+        throw new Error('DURATION must be a valid positive k6 duration no longer than 1h per run.');
     }
     if (!Number.isFinite(THINK_TIME) || THINK_TIME < 0) {
         throw new Error('THINK_TIME_SECONDS must be zero or greater.');
