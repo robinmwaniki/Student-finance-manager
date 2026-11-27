@@ -192,6 +192,35 @@ class RecurringTransactionWorkflowTest extends TestCase
         }
     }
 
+    public function test_processor_handles_more_than_one_schedule_batch_without_skipping_updated_due_rows(): void
+    {
+        Carbon::setTestNow('2026-11-19 10:00:00');
+        $user = $this->makeUser();
+
+        for ($index = 1; $index <= 101; $index++) {
+            $user->recurringTransactions()->create([
+                'label' => 'Daily expense '.$index,
+                'type' => 'expense',
+                'category' => 'Utilities',
+                'amount' => '10.00',
+                'frequency' => 'daily',
+                'next_due' => '2026-11-19',
+                'status' => 'active',
+                'active' => true,
+            ]);
+        }
+
+        $processed = app(RecurringTransactionProcessor::class)->process($user->id);
+
+        $this->assertSame(101, $processed);
+        $this->assertDatabaseCount('expenses', 101);
+        $this->assertDatabaseCount('recurring_log', 101);
+        $this->assertSame(
+            101,
+            $user->recurringTransactions()->whereDate('next_due', '2026-11-20')->count()
+        );
+    }
+
     public function test_scheduled_command_processes_due_records_across_multiple_database_batches(): void
     {
         Carbon::setTestNow('2026-11-19 00:05:00');
