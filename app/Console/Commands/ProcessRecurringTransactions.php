@@ -32,8 +32,7 @@ class ProcessRecurringTransactions extends Command
             ->whereNotNull('next_due')
             ->whereDate('next_due', '<=', now(config('app.timezone'))->toDateString())
             ->distinct()
-            ->orderBy('user_id')
-            ->chunk($chunkSize, function ($users) use ($processor, &$processed, &$failures): void {
+            ->chunkById($chunkSize, function ($users) use ($processor, &$processed, &$failures): void {
                 foreach ($users as $user) {
                     $userId = (int) $user->user_id;
 
@@ -45,7 +44,7 @@ class ProcessRecurringTransactions extends Command
                         $this->components->error("Recurring processing failed for user {$userId}: {$exception->getMessage()}");
                     }
                 }
-            });
+            }, 'user_id', 'user_id');
 
         $this->components->info("Processed {$processed} recurring occurrence(s).");
 
