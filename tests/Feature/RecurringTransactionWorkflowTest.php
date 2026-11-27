@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Services\RecurringTransactionProcessor;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schedule;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
