@@ -31,10 +31,14 @@ class ReportQueueBacklog extends Command
             $table = (string) config("queue.connections.{$connection}.table", 'jobs');
             $databaseConnection = config("queue.connections.{$connection}.connection")
                 ?: config('database.default');
-            $oldestCreatedAt = DB::connection($databaseConnection)
+            $waitingJobs = DB::connection($databaseConnection)
                 ->table($table)
                 ->where('queue', $queue)
-                ->min('created_at');
+                ->whereNull('reserved_at')
+                ->where('available_at', '<=', now()->timestamp);
+
+            $pendingJobs = (clone $waitingJobs)->count();
+            $oldestCreatedAt = (clone $waitingJobs)->min('created_at');
 
             if ($oldestCreatedAt !== null) {
                 $oldestJobAgeSeconds = max(0, now()->timestamp - (int) $oldestCreatedAt);
