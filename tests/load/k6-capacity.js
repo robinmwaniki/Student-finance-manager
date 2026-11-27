@@ -15,13 +15,13 @@ const TO_WALLET_ID = (__ENV.TRANSFER_TO_WALLET_ID || '').trim();
 const TRANSFER_AMOUNT = (__ENV.TRANSFER_AMOUNT || '0.01').trim();
 
 function durationMilliseconds(value) {
-    const parts = String(value).match(/^(?:\\d+(?:ms|s|m|h))+$/);
+    const parts = String(value).match(/^(?:\d+(?:ms|s|m|h))+$/);
     if (!parts) return 0;
 
     const units = { ms: 1, s: 1000, m: 60 * 1000, h: 60 * 60 * 1000 };
-    const tokens = String(value).match(/\\d+(?:ms|s|m|h)/g) || [];
+    const tokens = String(value).match(/\d+(?:ms|s|m|h)/g) || [];
     return tokens.reduce((total, token) => {
-        const match = token.match(/^(\\d+)(ms|s|m|h)$/);
+        const match = token.match(/^(\d+)(ms|s|m|h)$/);
         return total + Number(match[1]) * units[match[2]];
     }, 0);
 }
