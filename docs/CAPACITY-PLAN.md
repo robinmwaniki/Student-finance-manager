@@ -100,6 +100,12 @@ The load suite should model realistic user journeys rather than repeatedly calli
 
 Use deterministic synthetic accounts and data. Never use real user financial data, credentials, emails or production database snapshots in load tests.
 
+## Multi-instance deployment preflight
+
+Run `php artisan finance:deployment-readiness` before deploying more than one web instance. The command reports whether the configured session, cache/lock and queue drivers are shared-store candidates. Use `--strict` in a deployment gate to return a non-zero exit code when file/array sessions, file/array cache, or sync/null queues are configured.
+
+The check is intentionally configuration-only. A `READY` result does **not** prove that Redis or the database is reachable, that session/cache tables exist, that queue workers are running, or that connection limits and failover are safe. Those require environment-specific integration and multi-instance tests. Keep local file/array stores for single-instance local development where appropriate; do not change production drivers without provisioning and validating the corresponding shared service.
+
 ## Architecture changes to evaluate (not yet enabled)
 
 1. **Shared session/cache/locks:** use a managed Redis deployment or compatible shared store; validate encryption, TTLs, failover, lock expiry and behavior during Redis outages.
