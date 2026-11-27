@@ -390,12 +390,12 @@ class RecurringTransactionWorkflowTest extends TestCase
         $processor->expects($this->once())
             ->method('process')
             ->with($user->id)
-            ->willThrowException(new \\RuntimeException('Synthetic processor failure'));
+            ->willThrowException(new \RuntimeException('Synthetic processor failure'));
 
         try {
             (new ProcessRecurringTransactionsForUser($user->id))->onQueue('recurring')->handle($processor);
             $this->fail('The queue worker must receive the exception so it can retry the job.');
-        } catch (\\RuntimeException $exception) {
+        } catch (\RuntimeException $exception) {
             $this->assertSame('Synthetic processor failure', $exception->getMessage());
         }
 
