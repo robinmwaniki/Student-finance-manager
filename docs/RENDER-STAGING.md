@@ -22,11 +22,11 @@ Render's free web services can sleep after inactivity and may restart. A free Re
 Therefore this Blueprint is suitable only for temporary evaluation:
 - Uploaded avatars and other local-disk files are ephemeral and may disappear on restart/redeploy.
 - The configured file sessions/cache are ephemeral; users may need to sign in again after a restart.
-- The database-backed queue is configured but no separate worker is provisioned in this free staging Blueprint.
+- The database-backed queue is configured but no separate worker is provisioned in this free staging Blueprint. Keep `finance:process-recurring` in its default inline mode; do not pass `--async` until a dedicated worker is provisioned and monitored for the `recurring` queue.
 - The daily reminder scheduler is not running in this Blueprint.
 - Do not use the staging database as the only copy of any data.
 
-For longer-lived staging, configure a paid database/compute plan and persistent or external object storage, then add supervised queue and cron services. Review Render's current plan limits before provisioning.
+For longer-lived staging, configure a paid database/compute plan and persistent or external object storage, then add a dedicated queue worker that consumes the `recurring` queue and a scheduler/cron service. Review Render's current plan limits before provisioning. The command's `--async` option is deliberately opt-in; the scheduled command remains inline until worker operations are verified.
 
 ## Deploy through Render
 
