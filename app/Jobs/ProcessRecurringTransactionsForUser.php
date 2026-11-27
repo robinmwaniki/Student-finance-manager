@@ -1,13 +1,14 @@
 <?php
 
-namespace App\\Jobs;
+namespace App\Jobs;
 
-use App\\Services\\RecurringTransactionProcessor;
-use Illuminate\\Bus\\Queueable;
-use Illuminate\\Contracts\\Queue\\ShouldQueue;
-use Illuminate\\Foundation\\Bus\\Dispatchable;
-use Illuminate\\Queue\\InteractsWithQueue;
-use Illuminate\\Queue\\SerializesModels;
+use App\Services\RecurringTransactionProcessor;
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class ProcessRecurringTransactionsForUser implements ShouldQueue
@@ -36,7 +37,7 @@ class ProcessRecurringTransactionsForUser implements ShouldQueue
     {
         report($exception);
 
-        \\Illuminate\\Support\\Facades\\Log::warning('Recurring user processing job failed permanently', [
+        Log::warning('Recurring user processing job failed permanently', [
             'event' => 'recurring.processing.job_failed',
         ]);
     }
