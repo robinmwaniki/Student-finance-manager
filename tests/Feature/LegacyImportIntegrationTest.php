@@ -178,7 +178,7 @@ class LegacyImportIntegrationTest extends TestCase
 
     public function test_rejected_unique_conflict_is_reported_without_poisoning_the_import_transaction(): void
     {
-        if (! extension_loaded('pdo_mysql') || ! config('database.connections.legacy_mysql.database')) {
+        if (! $this->hasDedicatedLegacyTestDatabase()) {
             $this->markTestSkipped('A dedicated MariaDB test connection is not configured.');
         }
 
