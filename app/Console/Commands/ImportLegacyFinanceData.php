@@ -665,6 +665,7 @@ class ImportLegacyFinanceData extends Command
             'source_connection' => $sourceName,
             'target_connection' => $targetName,
             'tables' => $this->counts,
+            'row_accounting' => $this->rowAccountingSummary($execute),
             'rejected_rows' => $this->rejected,
             'unsafe_avatar_paths_omitted' => $this->unsafeAvatarPathsOmitted,
             'financial_totals_by_user' => $this->financialTotalsByUser($source, $target),
@@ -859,6 +860,35 @@ class ImportLegacyFinanceData extends Command
             'foreign_key_orphan_counts' => $orphans,
             'duplicate_recurring_period_groups' => $duplicateRecurringPeriods,
         ];
+    }
+
+    /**
+     * Proves every source row was imported, already present, planned for import,
+     * or explicitly rejected. A report with unaccounted rows is not reconcilable.
+     */
+    private function rowAccountingSummary(bool $execute): array
+    {
+        $summary = [];
+
+        foreach ($this->counts as $table => $counts) {
+            $accounted = $counts['imported'] + $counts['already_present'] + $counts['rejected'];
+            if (! $execute) {
+                $accounted += $counts['would_import'];
+            }
+
+            $summary[$table] = [
+                'source_rows' => $counts['source'],
+                'imported_rows' => $counts['imported'],
+                'planned_rows' => $counts['would_import'],
+                'already_present_rows' => $counts['already_present'],
+                'rejected_rows' => $counts['rejected'],
+                'accounted_rows' => $accounted,
+                'unaccounted_rows' => $counts['source'] - $accounted,
+                'balanced' => $counts['source'] === $accounted,
+            ];
+        }
+
+        return $summary;
     }
 
     private function tableSummary(): void
