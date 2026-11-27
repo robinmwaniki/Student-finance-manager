@@ -192,7 +192,7 @@ class RecurringTransactionWorkflowTest extends TestCase
         }
     }
 
-    public function test_scheduled_command_processes_due_records_for_all_users(): void
+    public function test_scheduled_command_processes_due_records_across_multiple_database_batches(): void
     {
         Carbon::setTestNow('2026-11-19 00:05:00');
         $first = $this->makeUser('first@example.test');
@@ -211,12 +211,21 @@ class RecurringTransactionWorkflowTest extends TestCase
             ]);
         }
 
-        $this->artisan('finance:process-recurring')->assertExitCode(0);
+        $this->artisan('finance:process-recurring', ['--chunk' => 1])->assertExitCode(0);
 
         $this->assertDatabaseCount('expenses', 2);
         $this->assertDatabaseCount('recurring_log', 2);
         $this->assertDatabaseHas('expenses', ['user_id' => $first->id, 'wallet_id' => $first->wallets()->where('is_default', true)->value('id')]);
         $this->assertDatabaseHas('expenses', ['user_id' => $second->id, 'wallet_id' => $second->wallets()->where('is_default', true)->value('id')]);
+    }
+
+    public function test_scheduled_command_rejects_unsafe_batch_sizes(): void
+    {
+        $this->artisan('finance:process-recurring', ['--chunk' => 0])->assertExitCode(2);
+        $this->artisan('finance:process-recurring', ['--chunk' => 1001])->assertExitCode(2);
+        $this->artisan('finance:process-recurring', ['--chunk' => 'not-a-number'])->assertExitCode(2);
+
+        $this->assertDatabaseCount('expenses', 0);
     }
 
     public function test_recurring_command_is_registered_in_the_laravel_scheduler(): void

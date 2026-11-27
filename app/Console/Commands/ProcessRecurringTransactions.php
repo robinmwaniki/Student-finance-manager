@@ -9,33 +9,42 @@ use Throwable;
 
 class ProcessRecurringTransactions extends Command
 {
-    protected $signature = 'finance:process-recurring';
+    protected $signature = 'finance:process-recurring {--chunk=250 : Number of due users to load per database batch (1-1000)}';
 
     protected $description = 'Apply due recurring income and expense schedules for all users';
 
     public function handle(RecurringTransactionProcessor $processor): int
     {
-        $userIds = RecurringTransaction::query()
+        $chunkSize = filter_var($this->option('chunk'), FILTER_VALIDATE_INT);
+        if ($chunkSize === false || $chunkSize < 1 || $chunkSize > 1000) {
+            $this->components->error('The --chunk option must be an integer between 1 and 1000.');
+
+            return self::INVALID;
+        }
+
+        $processed = 0;
+        $failures = 0;
+
+        RecurringTransaction::query()
+            ->select('user_id')
             ->where('active', true)
             ->where('status', 'active')
             ->whereNotNull('next_due')
             ->whereDate('next_due', '<=', now(config('app.timezone'))->toDateString())
             ->distinct()
-            ->orderBy('user_id')
-            ->pluck('user_id');
+            ->chunkById($chunkSize, function ($users) use ($processor, &$processed, &$failures): void {
+                foreach ($users as $user) {
+                    $userId = (int) $user->user_id;
 
-        $processed = 0;
-        $failures = 0;
-
-        foreach ($userIds as $userId) {
-            try {
-                $processed += $processor->process((int) $userId);
-            } catch (Throwable $exception) {
-                $failures++;
-                report($exception);
-                $this->components->error("Recurring processing failed for user {$userId}: {$exception->getMessage()}");
-            }
-        }
+                    try {
+                        $processed += $processor->process($userId);
+                    } catch (Throwable $exception) {
+                        $failures++;
+                        report($exception);
+                        $this->components->error("Recurring processing failed for user {$userId}: {$exception->getMessage()}");
+                    }
+                }
+            }, 'user_id', 'user_id');
 
         $this->components->info("Processed {$processed} recurring occurrence(s).");
 
