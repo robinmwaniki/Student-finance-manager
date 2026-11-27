@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Jobs\ProcessRecurringTransactionsForUser;
 use App\Models\RecurringTransaction;
 use App\Services\RecurringTransactionProcessor;
 use Illuminate\Console\Command;
@@ -10,9 +11,9 @@ use Throwable;
 
 class ProcessRecurringTransactions extends Command
 {
-    protected $signature = 'finance:process-recurring {--chunk=250 : Number of due users to load per database batch (1-1000)}';
+    protected $signature = 'finance:process-recurring {--chunk=250 : Number of due users to scan per database batch (1-1000)} {--async : Dispatch each due user to the recurring queue instead of processing inline}';
 
-    protected $description = 'Apply due recurring income and expense schedules for all users';
+    protected $description = 'Apply or queue due recurring income and expense schedules for all users';
 
     public function handle(RecurringTransactionProcessor $processor): int
     {
@@ -23,15 +24,18 @@ class ProcessRecurringTransactions extends Command
             return self::INVALID;
         }
 
+        $async = (bool) $this->option('async');
         $startedAt = hrtime(true);
         $processed = 0;
-        $failures = 0;
         $usersAttempted = 0;
+        $usersQueued = 0;
+        $failures = 0;
         $batchesProcessed = 0;
 
         Log::info('Recurring processing run started', [
             'event' => 'recurring.processing.started',
             'chunk_size' => $chunkSize,
+            'mode' => $async ? 'queued' : 'inline',
         ]);
 
         RecurringTransaction::query()
@@ -41,7 +45,7 @@ class ProcessRecurringTransactions extends Command
             ->whereNotNull('next_due')
             ->whereDate('next_due', '<=', now(config('app.timezone'))->toDateString())
             ->distinct()
-            ->chunkById($chunkSize, function ($users) use ($processor, &$processed, &$failures, &$usersAttempted, &$batchesProcessed): void {
+            ->chunkById($chunkSize, function ($users) use ($processor, $async, &$processed, &$usersAttempted, &$usersQueued, &$failures, &$batchesProcessed): void {
                 $batchesProcessed++;
 
                 foreach ($users as $user) {
@@ -49,7 +53,12 @@ class ProcessRecurringTransactions extends Command
                     $userId = (int) $user->user_id;
 
                     try {
-                        $processed += $processor->process($userId);
+                        if ($async) {
+                            ProcessRecurringTransactionsForUser::dispatch($userId)->onQueue('recurring');
+                            $usersQueued++;
+                        } else {
+                            $processed += $processor->process($userId);
+                        }
                     } catch (Throwable $exception) {
                         $failures++;
                         report($exception);
@@ -59,12 +68,13 @@ class ProcessRecurringTransactions extends Command
             }, 'user_id', 'user_id');
 
         $durationMs = (int) round((hrtime(true) - $startedAt) / 1_000_000);
-
         $completionContext = [
             'event' => 'recurring.processing.completed',
             'chunk_size' => $chunkSize,
+            'mode' => $async ? 'queued' : 'inline',
             'batches_processed' => $batchesProcessed,
             'users_attempted' => $usersAttempted,
+            'users_queued' => $usersQueued,
             'occurrences_processed' => $processed,
             'failed_users' => $failures,
             'duration_ms' => $durationMs,
@@ -76,7 +86,10 @@ class ProcessRecurringTransactions extends Command
             Log::info('Recurring processing run completed', $completionContext);
         }
 
-        $this->components->info("Processed {$processed} recurring occurrence(s) across {$usersAttempted} user(s) in {$durationMs}ms.");
+        $summary = $async
+            ? "Queued recurring processing for {$usersQueued} user(s)"
+            : "Processed {$processed} recurring occurrence(s) across {$usersAttempted} user(s)";
+        $this->components->info("{$summary} in {$durationMs}ms.");
 
         return $failures > 0 ? self::FAILURE : self::SUCCESS;
     }
