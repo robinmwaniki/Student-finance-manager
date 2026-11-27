@@ -128,6 +128,7 @@ jobs:
           LEGACY_DB_DATABASE: legacy_finance_test
           LEGACY_DB_USERNAME: legacy_finance
           LEGACY_DB_PASSWORD: legacy_finance_test_password
+          LEGACY_IMPORT_TEST_ALLOW_SCHEMA_RESET: 'true'
           LEGACY_IMPORT_SOURCE_CONNECTION: legacy_mysql
           LEGACY_IMPORT_TARGET_CONNECTION: pgsql
           LEGACY_IMPORT_ALLOWED_SOURCE_HOSTS: 127.0.0.1:3306
