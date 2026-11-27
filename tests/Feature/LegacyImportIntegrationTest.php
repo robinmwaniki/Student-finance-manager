@@ -33,9 +33,11 @@ class LegacyImportIntegrationTest extends TestCase
 
     private ?string $dryRunReportPath = null;
 
+    private bool $legacySchemaCreated = false;
+
     public function test_synthetic_mariadb_rows_import_idempotently_into_postgresql_staging(): void
     {
-        if (! extension_loaded('pdo_mysql') || ! config('database.connections.legacy_mysql.database')) {
+        if (! $this->hasDedicatedLegacyTestDatabase()) {
             $this->markTestSkipped('A dedicated MariaDB test connection is not configured.');
         }
 
@@ -176,7 +178,7 @@ class LegacyImportIntegrationTest extends TestCase
 
     public function test_rejected_unique_conflict_is_reported_without_poisoning_the_import_transaction(): void
     {
-        if (! extension_loaded('pdo_mysql') || ! config('database.connections.legacy_mysql.database')) {
+        if (! $this->hasDedicatedLegacyTestDatabase()) {
             $this->markTestSkipped('A dedicated MariaDB test connection is not configured.');
         }
 
@@ -221,7 +223,7 @@ class LegacyImportIntegrationTest extends TestCase
 
     protected function tearDown(): void
     {
-        if (extension_loaded('pdo_mysql') && config('database.connections.legacy_mysql.database')) {
+        if ($this->legacySchemaCreated && extension_loaded('pdo_mysql')) {
             foreach ($this->legacyTables as $table) {
                 Schema::connection('legacy_mysql')->dropIfExists($table);
             }
@@ -252,8 +254,27 @@ class LegacyImportIntegrationTest extends TestCase
         $this->reportPath = storage_path('app/private/legacy-import/integration-legacy-import.json');
     }
 
+    private function hasDedicatedLegacyTestDatabase(): bool
+    {
+        $database = (string) config('database.connections.legacy_mysql.database', '');
+        $schemaResetExplicitlyAllowed = filter_var(
+            (string) env('LEGACY_IMPORT_TEST_ALLOW_SCHEMA_RESET', 'false'),
+            FILTER_VALIDATE_BOOLEAN
+        );
+
+        return extension_loaded('pdo_mysql')
+            && $database !== ''
+            && preg_match('/(^|[_-])(test|testing)([_-]|$)/i', $database) === 1
+            && $schemaResetExplicitlyAllowed;
+    }
+
     private function createLegacySchema(): void
     {
+        if (! $this->hasDedicatedLegacyTestDatabase()) {
+            throw new \RuntimeException('Legacy import integration tests require an explicitly authorized dedicated test database.');
+        }
+
+        $this->legacySchemaCreated = true;
         $schema = Schema::connection('legacy_mysql');
         foreach ($this->legacyTables as $table) {
             $schema->dropIfExists($table);
