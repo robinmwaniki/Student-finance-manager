@@ -342,6 +342,75 @@ class RecurringTransactionWorkflowTest extends TestCase
         $this->assertDatabaseCount('recurring_log', 1);
     }
 
+    public function test_queued_user_job_emits_low_cardinality_lifecycle_metrics(): void
+    {
+        Carbon::setTestNow('2026-11-19 00:05:00');
+        $user = $this->makeUser();
+        $user->recurringTransactions()->create([
+            'type' => 'expense',
+            'category' => 'Utilities',
+            'amount' => '75.50',
+            'frequency' => 'daily',
+            'next_due' => '2026-11-19',
+            'status' => 'active',
+            'active' => true,
+        ]);
+
+        Log::spy();
+
+        (new ProcessRecurringTransactionsForUser($user->id))->onQueue('recurring')
+            ->handle(app(RecurringTransactionProcessor::class));
+
+        Log::shouldHaveReceived('info')->withArgs(function (string $message, array $context): bool {
+            return $message === 'Recurring queue job started'
+                && ($context['event'] ?? null) === 'recurring.processing.job_started'
+                && ($context['queue'] ?? null) === 'recurring'
+                && ($context['attempt'] ?? null) === 1
+                && ! array_key_exists('user_id', $context);
+        })->once();
+
+        Log::shouldHaveReceived('info')->withArgs(function (string $message, array $context): bool {
+            return $message === 'Recurring queue job completed'
+                && ($context['event'] ?? null) === 'recurring.processing.job_completed'
+                && ($context['queue'] ?? null) === 'recurring'
+                && ($context['attempt'] ?? null) === 1
+                && ($context['occurrences_processed'] ?? null) === 1
+                && is_int($context['duration_ms'] ?? null)
+                && $context['duration_ms'] >= 0
+                && ! array_key_exists('user_id', $context)
+                && ! array_key_exists('email', $context);
+        })->once();
+    }
+
+    public function test_queued_job_logs_failed_attempt_without_sensitive_identifiers_and_rethrows(): void
+    {
+        $user = $this->makeUser();
+        Log::spy();
+        $processor = $this->createMock(RecurringTransactionProcessor::class);
+        $processor->expects($this->once())
+            ->method('process')
+            ->with($user->id)
+            ->willThrowException(new \RuntimeException('Synthetic processor failure'));
+
+        try {
+            (new ProcessRecurringTransactionsForUser($user->id))->onQueue('recurring')->handle($processor);
+            $this->fail('The queue worker must receive the exception so it can retry the job.');
+        } catch (\RuntimeException $exception) {
+            $this->assertSame('Synthetic processor failure', $exception->getMessage());
+        }
+
+        Log::shouldHaveReceived('warning')->withArgs(function (string $message, array $context): bool {
+            return $message === 'Recurring queue job attempt failed'
+                && ($context['event'] ?? null) === 'recurring.processing.job_attempt_failed'
+                && ($context['queue'] ?? null) === 'recurring'
+                && ($context['attempt'] ?? null) === 1
+                && is_int($context['duration_ms'] ?? null)
+                && $context['duration_ms'] >= 0
+                && ! array_key_exists('user_id', $context)
+                && ! array_key_exists('email', $context);
+        })->once();
+    }
+
     public function test_scheduled_command_rejects_unsafe_batch_sizes(): void
     {
         $this->artisan('finance:process-recurring', ['--chunk' => 0])->assertExitCode(2);
