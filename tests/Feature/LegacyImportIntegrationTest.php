@@ -51,6 +51,10 @@ class LegacyImportIntegrationTest extends TestCase
         $dryRunReport = json_decode(File::get($this->dryRunReportPath), true, flags: JSON_THROW_ON_ERROR);
         $this->assertSame(1, $dryRunReport['tables']['users']['would_import']);
         $this->assertSame(0, $dryRunReport['tables']['users']['imported']);
+        $this->assertSame(1, $dryRunReport['row_accounting']['users']['source_rows']);
+        $this->assertSame(1, $dryRunReport['row_accounting']['users']['planned_rows']);
+        $this->assertSame(0, $dryRunReport['row_accounting']['users']['unaccounted_rows']);
+        $this->assertTrue($dryRunReport['row_accounting']['users']['balanced']);
         $this->assertDatabaseMissing('users', ['id' => 42]);
         $this->assertDatabaseMissing('wallets', ['user_id' => 42]);
         File::delete($this->dryRunReportPath);
@@ -148,6 +152,10 @@ class LegacyImportIntegrationTest extends TestCase
 
         $report = json_decode(File::get($this->reportPath), true, flags: JSON_THROW_ON_ERROR);
         $this->assertSame(1, $report['tables']['income']['already_present']);
+        $this->assertSame(1, $report['row_accounting']['income']['source_rows']);
+        $this->assertSame(1, $report['row_accounting']['income']['accounted_rows']);
+        $this->assertSame(0, $report['row_accounting']['income']['unaccounted_rows']);
+        $this->assertTrue($report['row_accounting']['income']['balanced']);
         $this->assertSame('1000.10', $report['financial_totals_by_user']['income']['source']['42']);
         $this->assertSame('1000.10', $report['financial_totals_by_user']['income']['target']['42']);
         $this->assertEquals(0.0, (float) $report['debt_outstanding_by_user']['source']['42']);
@@ -204,6 +212,10 @@ class LegacyImportIntegrationTest extends TestCase
 
         $report = json_decode(File::get($this->reportPath), true, flags: JSON_THROW_ON_ERROR);
         $this->assertSame(1, $report['tables']['budget']['rejected']);
+        $this->assertSame(2, $report['row_accounting']['budget']['source_rows']);
+        $this->assertSame(2, $report['row_accounting']['budget']['accounted_rows']);
+        $this->assertSame(0, $report['row_accounting']['budget']['unaccounted_rows']);
+        $this->assertTrue($report['row_accounting']['budget']['balanced']);
         $this->assertSame(1, $report['tables']['budget']['imported']);
         $this->assertDatabaseHas('recurring_log', ['id' => 109, 'period_key' => 'M:2026-11']);
         $this->assertDatabaseCount('budgets', 1);
