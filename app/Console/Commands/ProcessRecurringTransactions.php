@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\RecurringTransaction;
 use App\Services\RecurringTransactionProcessor;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class ProcessRecurringTransactions extends Command
