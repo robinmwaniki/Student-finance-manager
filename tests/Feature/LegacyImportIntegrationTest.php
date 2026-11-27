@@ -271,7 +271,7 @@ class LegacyImportIntegrationTest extends TestCase
     private function createLegacySchema(): void
     {
         if (! $this->hasDedicatedLegacyTestDatabase()) {
-            throw new \\RuntimeException('Legacy import integration tests require an explicitly authorized dedicated test database.');
+            throw new \RuntimeException('Legacy import integration tests require an explicitly authorized dedicated test database.');
         }
 
         $this->legacySchemaCreated = true;
