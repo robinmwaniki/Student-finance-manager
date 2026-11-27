@@ -23,3 +23,10 @@ test('capacity workload remains restricted to explicitly confirmed staging hosts
     assert.match(workload, /VUS > 1000/);
     assert.match(workload, /ALLOW_SYNTHETIC_WRITES !== 'true'/);
 });
+
+test('capacity workload rejects invalid or excessive run durations before starting', () => {
+    assert.match(workload, /function durationMilliseconds\(value\)/);
+    assert.match(workload, /MAX_DURATION_MS = 60 \* 60 \* 1000/);
+    assert.match(workload, /durationMs <= 0 \|\| durationMs > MAX_DURATION_MS/);
+    assert.match(workload, /no longer than 1h per run/);
+});
