@@ -24,9 +24,7 @@ class ProcessRecurringTransactionsForUser implements ShouldQueue
 
     public array $backoff = [30, 120, 300];
 
-    public function __construct(public readonly int $userId)
-    {
-    }
+    public function __construct(public readonly int $userId) {}
 
     public function handle(RecurringTransactionProcessor $processor): void
     {
