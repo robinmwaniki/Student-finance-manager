@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\RecurringTransaction;
 use App\Services\RecurringTransactionProcessor;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class ProcessRecurringTransactions extends Command
@@ -22,8 +23,16 @@ class ProcessRecurringTransactions extends Command
             return self::INVALID;
         }
 
+        $startedAt = hrtime(true);
         $processed = 0;
         $failures = 0;
+        $usersAttempted = 0;
+        $batchesProcessed = 0;
+
+        Log::info('Recurring processing run started', [
+            'event' => 'recurring.processing.started',
+            'chunk_size' => $chunkSize,
+        ]);
 
         RecurringTransaction::query()
             ->select('user_id')
@@ -32,8 +41,11 @@ class ProcessRecurringTransactions extends Command
             ->whereNotNull('next_due')
             ->whereDate('next_due', '<=', now(config('app.timezone'))->toDateString())
             ->distinct()
-            ->chunkById($chunkSize, function ($users) use ($processor, &$processed, &$failures): void {
+            ->chunkById($chunkSize, function ($users) use ($processor, &$processed, &$failures, &$usersAttempted, &$batchesProcessed): void {
+                $batchesProcessed++;
+
                 foreach ($users as $user) {
+                    $usersAttempted++;
                     $userId = (int) $user->user_id;
 
                     try {
@@ -41,12 +53,30 @@ class ProcessRecurringTransactions extends Command
                     } catch (Throwable $exception) {
                         $failures++;
                         report($exception);
-                        $this->components->error("Recurring processing failed for user {$userId}: {$exception->getMessage()}");
+                        $this->components->error('Recurring processing failed for one user. See application logs for the exception.');
                     }
                 }
             }, 'user_id', 'user_id');
 
-        $this->components->info("Processed {$processed} recurring occurrence(s).");
+        $durationMs = (int) round((hrtime(true) - $startedAt) / 1_000_000);
+
+        $completionContext = [
+            'event' => 'recurring.processing.completed',
+            'chunk_size' => $chunkSize,
+            'batches_processed' => $batchesProcessed,
+            'users_attempted' => $usersAttempted,
+            'occurrences_processed' => $processed,
+            'failed_users' => $failures,
+            'duration_ms' => $durationMs,
+        ];
+
+        if ($failures > 0) {
+            Log::warning('Recurring processing run completed', $completionContext);
+        } else {
+            Log::info('Recurring processing run completed', $completionContext);
+        }
+
+        $this->components->info("Processed {$processed} recurring occurrence(s) across {$usersAttempted} user(s) in {$durationMs}ms.");
 
         return $failures > 0 ? self::FAILURE : self::SUCCESS;
     }

@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Services\RecurringTransactionProcessor;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schedule;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
@@ -246,6 +247,46 @@ class RecurringTransactionWorkflowTest extends TestCase
         $this->assertDatabaseCount('recurring_log', 2);
         $this->assertDatabaseHas('expenses', ['user_id' => $first->id, 'wallet_id' => $first->wallets()->where('is_default', true)->value('id')]);
         $this->assertDatabaseHas('expenses', ['user_id' => $second->id, 'wallet_id' => $second->wallets()->where('is_default', true)->value('id')]);
+    }
+
+    public function test_scheduled_command_emits_structured_run_metrics_without_user_identifiers(): void
+    {
+        Carbon::setTestNow('2026-11-19 00:05:00');
+        $user = $this->makeUser();
+        $user->recurringTransactions()->create([
+            'type' => 'expense',
+            'category' => 'Utilities',
+            'amount' => '75.50',
+            'frequency' => 'monthly',
+            'next_due' => '2026-11-19',
+            'day_of_month' => 19,
+            'status' => 'active',
+            'active' => true,
+        ]);
+
+        Log::spy();
+
+        $this->artisan('finance:process-recurring', ['--chunk' => 1])->assertExitCode(0);
+
+        Log::shouldHaveReceived('info')->withArgs(function (string $message, array $context): bool {
+            return $message === 'Recurring processing run started'
+                && ($context['event'] ?? null) === 'recurring.processing.started'
+                && ($context['chunk_size'] ?? null) === 1;
+        })->once();
+
+        Log::shouldHaveReceived('info')->withArgs(function (string $message, array $context): bool {
+            return $message === 'Recurring processing run completed'
+                && ($context['event'] ?? null) === 'recurring.processing.completed'
+                && ($context['chunk_size'] ?? null) === 1
+                && ($context['batches_processed'] ?? null) === 1
+                && ($context['users_attempted'] ?? null) === 1
+                && ($context['occurrences_processed'] ?? null) === 1
+                && ($context['failed_users'] ?? null) === 0
+                && is_int($context['duration_ms'] ?? null)
+                && $context['duration_ms'] >= 0
+                && ! array_key_exists('user_id', $context)
+                && ! array_key_exists('email', $context);
+        })->once();
     }
 
     public function test_scheduled_command_rejects_unsafe_batch_sizes(): void
