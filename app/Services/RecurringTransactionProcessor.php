@@ -25,15 +25,19 @@ class RecurringTransactionProcessor
         }
 
         $processed = 0;
-        foreach ($query->pluck('id') as $id) {
-            // Limit catch-up to one year per schedule per invocation.
-            for ($attempt = 0; $attempt < 366; $attempt++) {
-                if (! $this->processNextOccurrence($userId, (int) $id)) {
-                    break;
+        $query
+            ->reorder()
+            ->chunkById(100, function ($schedules) use ($userId, &$processed): void {
+                foreach ($schedules as $schedule) {
+                    // Limit catch-up to one year per schedule per invocation.
+                    for ($attempt = 0; $attempt < 366; $attempt++) {
+                        if (! $this->processNextOccurrence($userId, (int) $schedule->id)) {
+                            break;
+                        }
+                        $processed++;
+                    }
                 }
-                $processed++;
-            }
-        }
+            }, 'id');
 
         return $processed;
     }
