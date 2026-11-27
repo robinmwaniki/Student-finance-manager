@@ -1,13 +1,13 @@
 <?php
 
-namespace Tests\\Feature;
+namespace Tests\Feature;
 
-use App\\Jobs\\ProcessRecurringTransactionsForUser;
-use Carbon\\Carbon;
-use Illuminate\\Foundation\\Testing\\RefreshDatabase;
-use Illuminate\\Support\\Facades\\DB;
-use Illuminate\\Support\\Facades\\Queue;
-use Tests\\TestCase;
+use App\Jobs\ProcessRecurringTransactionsForUser;
+use Carbon\Carbon;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Queue;
+use Tests\TestCase;
 
 class RecurringQueueMetricsCommandTest extends TestCase
 {
