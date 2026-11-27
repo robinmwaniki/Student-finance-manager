@@ -289,6 +289,57 @@ class RecurringTransactionWorkflowTest extends TestCase
         })->once();
     }
 
+    public function test_async_command_dispatches_one_bounded_job_per_due_user(): void
+    {
+        Carbon::setTestNow('2026-11-19 00:05:00');
+        $first = $this->makeUser('first@example.test');
+        $second = $this->makeUser('second@example.test');
+
+        foreach ([$first, $second] as $user) {
+            $user->recurringTransactions()->create([
+                'type' => 'expense',
+                'category' => 'Utilities',
+                'amount' => '75.50',
+                'frequency' => 'monthly',
+                'next_due' => '2026-11-19',
+                'day_of_month' => 19,
+                'status' => 'active',
+                'active' => true,
+            ]);
+        }
+
+        Queue::fake();
+
+        $this->artisan('finance:process-recurring', ['--chunk' => 1, '--async' => true])
+            ->assertExitCode(0);
+
+        Queue::assertPushedOn('recurring', ProcessRecurringTransactionsForUser::class, fn ($job): bool => $job->userId === $first->id);
+        Queue::assertPushedOn('recurring', ProcessRecurringTransactionsForUser::class, fn ($job): bool => $job->userId === $second->id);
+        Queue::assertPushed(ProcessRecurringTransactionsForUser::class, 2);
+        $this->assertDatabaseCount('expenses', 0);
+    }
+
+    public function test_queued_user_job_applies_due_occurrences_through_the_idempotent_processor(): void
+    {
+        Carbon::setTestNow('2026-11-19 00:05:00');
+        $user = $this->makeUser();
+        $user->recurringTransactions()->create([
+            'type' => 'expense',
+            'category' => 'Utilities',
+            'amount' => '75.50',
+            'frequency' => 'daily',
+            'next_due' => '2026-11-19',
+            'status' => 'active',
+            'active' => true,
+        ]);
+
+        (new ProcessRecurringTransactionsForUser($user->id))->handle(app(RecurringTransactionProcessor::class));
+        (new ProcessRecurringTransactionsForUser($user->id))->handle(app(RecurringTransactionProcessor::class));
+
+        $this->assertDatabaseCount('expenses', 1);
+        $this->assertDatabaseCount('recurring_log', 1);
+    }
+
     public function test_scheduled_command_rejects_unsafe_batch_sizes(): void
     {
         $this->artisan('finance:process-recurring', ['--chunk' => 0])->assertExitCode(2);
